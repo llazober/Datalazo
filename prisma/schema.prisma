@@ -1,0 +1,22 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  service   String
+  message   String?
+  status    String   @default("IN_REVIEW") // IN_REVIEW, PROCESSED, CONTACTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
