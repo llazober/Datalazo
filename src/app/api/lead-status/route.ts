@@ -4,8 +4,10 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  let receivedId = 'unknown';
   try {
     const { id, status } = await req.json();
+    receivedId = id;
 
     if (!id || !status) {
       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ 
       error: isNotFound ? 'Lead ID not found in database' : 'Failed to update lead',
-      id_received: id,
+      id_received: receivedId,
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: isNotFound ? 404 : 500 });
   }
