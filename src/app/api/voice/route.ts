@@ -5,8 +5,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
+// Simple In-Memory Rate Limiter (Max 10 requests per minute per IP)
+const rateLimitMap = new Map<string, { count: number, lastReset: number }>();
+
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+    const now = Date.now();
+    const limit = 10;
+    const windowMs = 60000;
+
+    const currentLimit = rateLimitMap.get(ip) || { count: 0, lastReset: now };
+
+    if (now - currentLimit.lastReset > windowMs) {
+      currentLimit.count = 0;
+      currentLimit.lastReset = now;
+    }
+
+    if (currentLimit.count >= limit) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 });
+    }
+
+    currentLimit.count++;
+    rateLimitMap.set(ip, currentLimit);
     const formData = await req.formData();
     const file = formData.get('file') as Blob;
     const mode = formData.get('mode') as string;

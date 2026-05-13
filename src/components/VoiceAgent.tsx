@@ -33,6 +33,13 @@ export default function VoiceAgent() {
 
       mediaRecorder.start();
       setStatus('listening');
+
+      // 60-second auto-stop to prevent abuse
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          stopRecording();
+        }
+      }, 60000); 
     } catch (err) {
       console.error('Failed to start recording', err);
       setStatus('idle');
