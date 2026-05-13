@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import LeadForm from "@/components/LeadForm";
 import Link from 'next/link';
+import VoiceAgent from "@/components/VoiceAgent";
 
 export default function Home() {
   const services = [
@@ -101,6 +102,7 @@ export default function Home() {
       <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5">
         &copy; 2026 Datalazo Intelligence Agency. All rights reserved.
       </footer>
+      <VoiceAgent />
     </div>
   );
 }

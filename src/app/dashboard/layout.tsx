@@ -32,7 +32,7 @@ export default function DashboardLayout({
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent-cyan to-accent-indigo" />
             <div className="text-sm">
               <div className="font-medium">Admin User</div>
-              <div className="text-xs text-slate-500 text-ellipsis overflow-hidden">admin@datalazo.com</div>
+              <div className="text-xs text-slate-500 text-ellipsis overflow-hidden">admin@datalazo.net</div>
             </div>
           </div>
         </div>
