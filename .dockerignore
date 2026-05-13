@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+dist
+.git
+.gitignore
+README.md
+*.log
+.env
+.env.local
+.env.production
+.vscode
+.gemini
+.nixpacks
+nixpacks.toml
