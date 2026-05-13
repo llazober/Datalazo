@@ -25,43 +25,48 @@ export async function POST(req: NextRequest) {
     const queryEmbedding = response.data[0].embedding;
 
     // 2. Fetch all chunks from the database
-    // (Note: In a large database, this would be slow without pgvector, 
-    // but for an agency KB it is fine)
     const chunks = await prisma.documentChunk.findMany({
       include: { document: true }
     });
 
-    // 3. Manual Cosine Similarity
-    const similarity = (vecA: number[], vecB: number[]) => {
-      const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
+    console.log(`Searching through ${chunks.length} chunks...`);
+
+    // 3. Manual Cosine Similarity with safety checks
+    const similarity = (vecA: any, vecB: any) => {
+      if (!Array.isArray(vecA) || !Array.isArray(vecB)) return 0;
+      const dotProduct = vecA.reduce((sum, a, i) => sum + a * (vecB[i] || 0), 0);
       const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
       const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+      if (magA === 0 || magB === 0) return 0;
       return dotProduct / (magA * magB);
     };
 
     const results = chunks
       .map(chunk => {
-        const score = similarity(queryEmbedding, chunk.embedding as unknown as number[]);
-        // Safety Net: If the chunk contains the query words, boost it!
+        const chunkEmbedding = Array.isArray(chunk.embedding) ? chunk.embedding : [];
+        const score = similarity(queryEmbedding, chunkEmbedding);
+        
+        // Safety Net: Keyword match
         const queryWords = query.toLowerCase().split(' ');
         const matchesWords = queryWords.some((word: string) => word.length > 3 && chunk.content.toLowerCase().includes(word));
         
         return {
           ...chunk,
-          score: matchesWords ? Math.max(score, 0.5) : score // Minimum 0.5 if words match
+          score: matchesWords ? Math.max(score, 0.6) : score 
         };
       })
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // Return top 5 results
+      .slice(0, 5)
+      .filter(r => r.score > 0.2); // Only return decent matches
 
     return NextResponse.json({ 
       success: true, 
-      results: results.map(r => ({
-        content: r.content,
-        documentName: r.document.name,
-        score: r.score
-      })),
-      formatted: results.map(r => `[From ${r.document.name}]: ${r.content}`).join('\n\n---\n\n')
+      query_received: query,
+      chunks_searched: chunks.length,
+      top_score: results[0]?.score || 0,
+      formatted: results.length > 0 
+        ? results.map(r => `[From ${r.document.name}]: ${r.content}`).join('\n\n---\n\n')
+        : "No relevant information found in Knowledge Base."
     });
   } catch (error) {
     console.error('Search Error:', error);
