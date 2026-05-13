@@ -1,117 +1,104 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function VoiceAgent() {
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const recognitionRef = useRef<any>(null);
-  const transcriptRef = useRef<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    // Initialize Web Speech API once on mount
-    if (typeof window !== 'undefined' && !recognitionRef.current) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-        recognition.onresult = (event: any) => {
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              transcriptRef.current += event.results[i][0].transcript + ' ';
-            }
-          }
-        };
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
 
-        recognition.onend = () => {
-          setIsListening(false);
-          // Only change status to processing if it was already in listening/processing state
-          setStatus(current => {
-            if (current === 'listening' || current === 'processing') {
-              const finalTranscript = transcriptRef.current.trim();
-              if (finalTranscript) {
-                handleVoiceInput(finalTranscript);
-                transcriptRef.current = ''; 
-                return 'processing';
-              }
-            }
-            return 'idle';
-          });
-        };
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        handleVoiceAudio(audioBlob);
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
 
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error', event.error);
-          setIsListening(false);
-          setStatus('idle');
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-  }, []);
-
-  const toggleListening = () => {
-    if (isListening) {
-      // Manual Stop and Process
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      setStatus('processing');
-    } else {
-      // Start Listening
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setIsSpeaking(false);
-      }
-      try {
-        recognitionRef.current?.start();
-        setIsListening(true);
-        setStatus('listening');
-      } catch (err) {
-        console.error('Failed to start recognition', err);
-      }
+      mediaRecorder.start();
+      setStatus('listening');
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      setStatus('idle');
     }
   };
 
-  const handleVoiceInput = async (text: string) => {
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setStatus('processing');
+    }
+  };
+
+  const toggleListening = () => {
+    if (status === 'listening') {
+      stopRecording();
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      startRecording();
+    }
+  };
+
+  const handleVoiceAudio = async (blob: Blob) => {
     setStatus('processing');
     try {
-      // 1. Get LLM Response
+      // 1. Transcribe with Whisper
+      const formData = new FormData();
+      formData.append('file', blob);
+      formData.append('mode', 'stt');
+
+      const sttResponse = await fetch('/api/voice', {
+        method: 'POST',
+        body: formData,
+      });
+      const sttData = await sttResponse.json();
+      
+      if (!sttData.text) throw new Error('No transcription result');
+
+      // 2. Get LLM Response
       const chatResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: [] }),
+        body: JSON.stringify({ message: sttData.text, history: [] }),
       });
       const chatData = await chatResponse.json();
       
       if (!chatData.reply) throw new Error('No reply from AI');
 
-      // 2. Get TTS Audio
-      const voiceResponse = await fetch('/api/voice', {
+      // 3. Get TTS Audio
+      const ttsFormData = new FormData();
+      ttsFormData.append('mode', 'tts');
+      ttsFormData.append('text', chatData.reply);
+
+      const ttsResponse = await fetch('/api/voice', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: chatData.reply }),
+        body: ttsFormData,
       });
 
-      if (!voiceResponse.ok) throw new Error('Failed to get voice');
+      if (!ttsResponse.ok) throw new Error('Failed to get voice');
 
-      const blob = await voiceResponse.blob();
-      const url = URL.createObjectURL(blob);
+      const audioBlob = await ttsResponse.blob();
+      const url = URL.createObjectURL(audioBlob);
 
       if (audioRef.current) {
         audioRef.current.src = url;
-        audioRef.current.onplay = () => {
-          setIsSpeaking(true);
-          setStatus('speaking');
-        };
-        audioRef.current.onended = () => {
-          setIsSpeaking(false);
-          setStatus('idle');
-        };
+        audioRef.current.onplay = () => setStatus('speaking');
+        audioRef.current.onended = () => setStatus('idle');
         audioRef.current.play();
       }
     } catch (error) {
@@ -122,18 +109,16 @@ export default function VoiceAgent() {
 
   return (
     <div className="fixed bottom-6 left-6 z-[100] flex flex-col items-center">
-      {/* Tooltip / Status */}
       <div className={`mb-4 px-4 py-2 rounded-full glass text-xs font-medium transition-all duration-300 ${
         status !== 'idle' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}>
         <span className="flex items-center gap-2">
-          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Click to finish speaking...</>}
-          {status === 'processing' && <><div className="w-1.5 h-1.5 bg-accent-cyan rounded-full animate-bounce" /> Architecting Reply...</>}
+          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Click to finish...</>}
+          {status === 'processing' && <><div className="w-1.5 h-1.5 bg-accent-cyan rounded-full animate-bounce" /> Transcribing & Thinking...</>}
           {status === 'speaking' && <><div className="w-1.5 h-1.5 bg-accent-indigo rounded-full animate-pulse" /> AI is Speaking...</>}
         </span>
       </div>
 
-      {/* Main Voice Button */}
       <button
         onClick={toggleListening}
         className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 ${
@@ -141,17 +126,15 @@ export default function VoiceAgent() {
           status === 'speaking' ? 'bg-accent-indigo/20' : 'bg-white/5 hover:bg-white/10'
         } border border-white/10 group`}
       >
-        {/* Glow Effects */}
-        {(isListening || isSpeaking) && (
+        {(status === 'listening' || status === 'speaking') && (
           <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${
-            isListening ? 'bg-red-500' : 'bg-accent-indigo'
+            status === 'listening' ? 'bg-red-500' : 'bg-accent-indigo'
           }`} />
         )}
         <div className={`absolute -inset-1 rounded-full blur-md opacity-0 group-hover:opacity-40 transition-opacity ${
-          isListening ? 'bg-red-500' : 'bg-accent-cyan'
+          status === 'listening' ? 'bg-red-500' : 'bg-accent-cyan'
         }`} />
 
-        {/* Icons */}
         {status === 'listening' ? (
            <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
