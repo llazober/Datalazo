@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
         content: r.content,
         documentName: r.document.name,
         score: r.score
-      }))
+      })),
+      formatted: results.map(r => `[From ${r.document.name}]: ${r.content}`).join('\n\n---\n\n')
     });
   } catch (error) {
     console.error('Search Error:', error);
