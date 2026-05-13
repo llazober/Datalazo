@@ -5,34 +5,57 @@ import LeadTable from '@/components/LeadTable';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const leads = await prisma.lead.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+  try {
+    const leads = await prisma.lead.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
 
-  // Convert Date objects to strings for Client Component serialization
-  const serializedLeads = leads.map(lead => ({
-    ...lead,
-    createdAt: lead.createdAt.toISOString()
-  }));
+    // Convert Date objects to strings for Client Component serialization
+    const serializedLeads = leads.map(lead => ({
+      ...lead,
+      createdAt: lead.createdAt.toISOString()
+    }));
 
-  return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leads Overview</h1>
-          <p className="text-slate-400">Manage and track your incoming business requests.</p>
+    return (
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Leads Overview</h1>
+            <p className="text-slate-400">Manage and track your incoming business requests.</p>
+          </div>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 glass text-sm font-semibold rounded-lg hover:bg-white/5 transition-all">
+              Export CSV
+            </button>
+            <button className="px-4 py-2 bg-accent-cyan text-black text-sm font-bold rounded-lg hover:bg-cyan-500 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              Refresh Data
+            </button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 glass text-sm font-semibold rounded-lg hover:bg-white/5 transition-all">
-            Export CSV
-          </button>
-          <button className="px-4 py-2 bg-accent-cyan text-black text-sm font-bold rounded-lg hover:bg-cyan-500 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-            Refresh Data
-          </button>
-        </div>
+
+        <LeadTable initialLeads={serializedLeads} />
       </div>
-
-      <LeadTable initialLeads={serializedLeads} />
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('Dashboard Data Fetch Error:', error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-white">Database Connection Error</h1>
+        <p className="text-slate-400 max-w-md mx-auto">
+          We were unable to connect to your database. Please check your DATABASE_URL in Easypanel and ensure your database is running.
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-sm font-medium"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 }
