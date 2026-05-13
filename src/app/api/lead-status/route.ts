@@ -21,9 +21,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, updatedLead });
   } catch (error) {
     console.error('Simplified Update Error:', error);
+    
+    // Check if it's a "Record not found" error
+    const isNotFound = error instanceof Error && error.message.includes('Record to update not found');
+    
     return NextResponse.json({ 
-      error: 'Failed to update lead',
+      error: isNotFound ? 'Lead ID not found in database' : 'Failed to update lead',
+      id_received: id,
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    }, { status: isNotFound ? 404 : 500 });
   }
 }
