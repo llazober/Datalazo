@@ -22,7 +22,13 @@ export async function PATCH(
     
     if (!leadExists) {
       console.error(`Lead with ID ${id} not found after retry.`);
-      return NextResponse.json({ error: 'Lead not found', id_requested: id }, { status: 404 });
+      // Return more info to n8n to help us debug
+      return NextResponse.json({ 
+        error: 'Lead not found', 
+        id_requested: id,
+        id_length: id?.length,
+        message: "The ID received from n8n does not exist in the database. Check if there are extra spaces or encoding issues."
+      }, { status: 404 });
     }
 
     const updatedLead = await prisma.lead.update({
