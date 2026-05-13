@@ -1,4 +1,9 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Datalazo Intelligence Agency
+
+> [!IMPORTANT]
+> **DEPLOYMENT REMINDER**: You MUST stop the **n8n** service in Easypanel before deploying this website to avoid memory hangs. See [DEPLOYMENT.md](file:///c:/Users/luisl/Datalazo/DEPLOYMENT.md) for details.
+
+This is a [Next.js](https://nextjs.org) project...
 
 ## Getting Started
 
