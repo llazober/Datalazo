@@ -57,43 +57,24 @@ export default function VoiceAgent() {
   const handleVoiceAudio = async (blob: Blob) => {
     setStatus('processing');
     try {
-      // 1. Transcribe with Whisper
+      // Unified Fast Mode: Send audio, get back audio + metadata
       const formData = new FormData();
       formData.append('file', blob);
-      formData.append('mode', 'stt');
+      formData.append('mode', 'fast');
 
-      const sttResponse = await fetch('/api/voice', {
+      const response = await fetch('/api/voice', {
         method: 'POST',
         body: formData,
       });
-      const sttData = await sttResponse.json();
-      
-      if (!sttData.text) throw new Error('No transcription result');
 
-      // 2. Get LLM Response
-      const chatResponse = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: sttData.text, history: [] }),
-      });
-      const chatData = await chatResponse.json();
-      
-      if (!chatData.reply) throw new Error('No reply from AI');
+      if (!response.ok) throw new Error('Failed to process voice in fast mode');
 
-      // 3. Get TTS Audio
-      const ttsFormData = new FormData();
-      ttsFormData.append('mode', 'tts');
-      ttsFormData.append('text', chatData.reply);
-
-      const ttsResponse = await fetch('/api/voice', {
-        method: 'POST',
-        body: ttsFormData,
-      });
-
-      if (!ttsResponse.ok) throw new Error('Failed to get voice');
-
-      const audioBlob = await ttsResponse.blob();
+      const audioBlob = await response.blob();
       const url = URL.createObjectURL(audioBlob);
+
+      // Optional: Read transcripts from headers if needed for UI
+      // const transcript = decodeURIComponent(response.headers.get('X-AI-Transcript') || '');
+      // const reply = decodeURIComponent(response.headers.get('X-AI-Reply') || '');
 
       if (audioRef.current) {
         audioRef.current.src = url;
