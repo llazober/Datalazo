@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'your-placeholder-key',
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
     const { message, history } = await req.json();
 
     if (!process.env.OPENAI_API_KEY) {

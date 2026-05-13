@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+export const dynamic = 'force-dynamic';
 
 // Simple In-Memory Rate Limiter (Max 10 requests per minute per IP)
 const rateLimitMap = new Map<string, { count: number, lastReset: number }>();
 
 export async function POST(req: Request) {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
     const ip = req.headers.get('x-forwarded-for') || 'anonymous';
     const now = Date.now();
     const limit = 10;
