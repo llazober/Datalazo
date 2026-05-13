@@ -53,10 +53,12 @@ export async function processDocument(documentId: string, text: string) {
     console.log(`Document ${documentId} is now READY.`);
     return { success: true };
   } catch (error) {
-    console.error(`Error processing document ${documentId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error processing document ${documentId}:`, errorMessage);
+    
     await prisma.document.update({
       where: { id: documentId },
-      data: { status: 'ERROR' },
+      data: { status: `ERROR: ${errorMessage.slice(0, 30)}` },
     });
     throw error;
   }
