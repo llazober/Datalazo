@@ -25,8 +25,9 @@ export default function VoiceAgent() {
         };
 
         recognitionRef.current.onend = () => {
+          // If the browser auto-stops, we only move to processing if the user hasn't already clicked stop
           setIsListening(false);
-          if (status === 'listening') setStatus('processing');
+          setStatus(current => current === 'listening' ? 'processing' : current);
         };
 
         recognitionRef.current.onerror = (event: any) => {
@@ -40,10 +41,12 @@ export default function VoiceAgent() {
 
   const toggleListening = () => {
     if (isListening) {
+      // Manual Stop and Process
       recognitionRef.current?.stop();
       setIsListening(false);
-      setStatus('idle');
+      setStatus('processing');
     } else {
+      // Start Listening
       if (audioRef.current) {
         audioRef.current.pause();
         setIsSpeaking(false);
@@ -108,7 +111,7 @@ export default function VoiceAgent() {
         status !== 'idle' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}>
         <span className="flex items-center gap-2">
-          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Listening...</>}
+          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Click to finish speaking...</>}
           {status === 'processing' && <><div className="w-1.5 h-1.5 bg-accent-cyan rounded-full animate-bounce" /> Architecting Reply...</>}
           {status === 'speaking' && <><div className="w-1.5 h-1.5 bg-accent-indigo rounded-full animate-pulse" /> AI is Speaking...</>}
         </span>
