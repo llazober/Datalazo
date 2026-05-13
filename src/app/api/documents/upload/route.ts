@@ -42,12 +42,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`File uploaded and saved: ${file.name} (${document.id})`);
 
-    // If it's a text file, process it immediately in the background
+    // If it's a text file, process it immediately
     if (type === 'txt') {
       const text = buffer.toString('utf-8');
-      // We don't await this so the user gets a fast response, 
-      // but the processing happens in the background.
-      processDocument(document.id, text).catch(console.error);
+      // We await this now to guarantee the status updates correctly
+      await processDocument(document.id, text);
     }
 
     return NextResponse.json({ 
