@@ -16,17 +16,28 @@ interface Lead {
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return;
-
+  const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/lead/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/lead/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
       if (response.ok) {
-        setLeads(leads.filter(l => l.id !== id));
+        setLeads(leads.map(l => l.id === id ? { ...l, status: newStatus } : l));
       }
     } catch (error) {
-      console.error('Delete failed:', error);
-      alert('Failed to delete lead.');
+      console.error('Status update failed:', error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'WON': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'LOST': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+      case 'MAYBE': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      case 'CONTACTED': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
@@ -36,9 +47,9 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: 'Total Leads', value: leads.length, color: 'text-white' },
-          { label: 'Active Automations', value: '1', color: 'text-accent-cyan' },
-          { label: 'AI Health', value: '98%', color: 'text-emerald-400' },
-          { label: 'SEO Growth', value: '+12%', color: 'text-cyan-400' }
+          { label: 'Won Deals', value: leads.filter(l => l.status === 'WON').length, color: 'text-emerald-400' },
+          { label: 'Pending', value: leads.filter(l => l.status === 'IN_REVIEW').length, color: 'text-amber-400' },
+          { label: 'Conversion', value: leads.length ? `${Math.round((leads.filter(l => l.status === 'WON').length / leads.length) * 100)}%` : '0%', color: 'text-cyan-400' }
         ].map((stat, i) => (
           <div key={i} className="glass p-6">
             <div className="text-sm text-slate-400 mb-1">{stat.label}</div>
@@ -50,40 +61,54 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       {/* Table */}
       <div className="glass overflow-hidden">
         <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-          <h3 className="font-bold">Recent Leads</h3>
-          <button className="text-xs text-accent-cyan hover:underline">View All</button>
+          <h3 className="font-bold text-lg">Lead Pipeline</h3>
+          <div className="flex gap-2">
+             <div className="text-[10px] uppercase text-slate-500 font-bold flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-amber-500" /> New
+             </div>
+             <div className="text-[10px] uppercase text-slate-500 font-bold flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-cyan-500" /> Contacted
+             </div>
+             <div className="text-[10px] uppercase text-slate-500 font-bold flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" /> Won
+             </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
         <thead className="text-xs text-slate-500 uppercase bg-white/5">
           <tr>
-            <th className="py-4 px-4 font-semibold text-slate-300">Name</th>
-            <th className="py-4 px-4 font-semibold text-slate-300">Email</th>
-            <th className="py-4 px-4 font-semibold text-slate-300">Company</th>
-            <th className="py-4 px-4 font-semibold text-slate-300">Service</th>
+            <th className="py-4 px-4 font-semibold text-slate-300">Contact</th>
+            <th className="py-4 px-4 font-semibold text-slate-300">Company / Service</th>
             <th className="py-4 px-4 font-semibold text-slate-300">Message</th>
-            <th className="py-4 px-4 font-semibold text-slate-300 text-center">Status</th>
+            <th className="py-4 px-4 font-semibold text-slate-300">Status</th>
             <th className="py-4 px-4 font-semibold text-slate-300 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
           {leads.map((lead) => (
             <tr key={lead.id} className="border-t border-white/5 hover:bg-white/[0.02] transition-colors group">
-              <td className="py-4 px-4 font-medium">{lead.name}</td>
-              <td className="py-4 px-4 text-slate-400">{lead.email}</td>
-              <td className="py-4 px-4 text-slate-400">{lead.company}</td>
               <td className="py-4 px-4">
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 capitalize">
-                  {lead.service}
-                </span>
+                <div className="font-bold text-white">{lead.name}</div>
+                <div className="text-xs text-slate-500">{lead.email}</div>
               </td>
-              <td className="py-4 px-4 text-slate-400 max-w-xs truncate">{lead.message}</td>
-              <td className="py-4 px-4 text-center">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                  lead.status === 'PROCESSED' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'
-                }`}>
-                  {lead.status}
-                </span>
+              <td className="py-4 px-4">
+                <div className="text-sm text-slate-300">{lead.company || 'Personal'}</div>
+                <div className="text-[10px] uppercase font-bold text-cyan-400">{lead.service}</div>
+              </td>
+              <td className="py-4 px-4 text-slate-400 text-xs max-w-xs truncate">{lead.message}</td>
+              <td className="py-4 px-4">
+                <select 
+                  value={lead.status}
+                  onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border bg-background outline-none cursor-pointer transition-all ${getStatusColor(lead.status)}`}
+                >
+                  <option value="IN_REVIEW">In Review</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="MAYBE">Maybe</option>
+                  <option value="WON">Won</option>
+                  <option value="LOST">Lost</option>
+                </select>
               </td>
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
