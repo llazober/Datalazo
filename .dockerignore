@@ -12,5 +12,3 @@ README.md
 .env.production
 .vscode
 .gemini
-.nixpacks
-nixpacks.toml
