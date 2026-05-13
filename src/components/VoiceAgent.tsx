@@ -11,16 +11,16 @@ export default function VoiceAgent() {
   const transcriptRef = useRef<string>('');
 
   useEffect(() => {
-    // Initialize Web Speech API
-    if (typeof window !== 'undefined') {
+    // Initialize Web Speech API once on mount
+    if (typeof window !== 'undefined' && !recognitionRef.current) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'en-US';
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
 
-        recognitionRef.current.onresult = (event: any) => {
+        recognition.onresult = (event: any) => {
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
               transcriptRef.current += event.results[i][0].transcript + ' ';
@@ -28,26 +28,32 @@ export default function VoiceAgent() {
           }
         };
 
-        recognitionRef.current.onend = () => {
+        recognition.onend = () => {
           setIsListening(false);
-          // Check if we stopped because the user clicked or if it was an error
-          const finalTranscript = transcriptRef.current.trim();
-          if (finalTranscript) {
-            handleVoiceInput(finalTranscript);
-            transcriptRef.current = ''; // Clear for next time
-          } else {
-            setStatus('idle');
-          }
+          // Only change status to processing if it was already in listening/processing state
+          setStatus(current => {
+            if (current === 'listening' || current === 'processing') {
+              const finalTranscript = transcriptRef.current.trim();
+              if (finalTranscript) {
+                handleVoiceInput(finalTranscript);
+                transcriptRef.current = ''; 
+                return 'processing';
+              }
+            }
+            return 'idle';
+          });
         };
 
-        recognitionRef.current.onerror = (event: any) => {
+        recognition.onerror = (event: any) => {
           console.error('Speech recognition error', event.error);
           setIsListening(false);
           setStatus('idle');
         };
+
+        recognitionRef.current = recognition;
       }
     }
-  }, [status]);
+  }, []);
 
   const toggleListening = () => {
     if (isListening) {
