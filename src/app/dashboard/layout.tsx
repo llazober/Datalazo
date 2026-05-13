@@ -10,9 +10,9 @@ export default function DashboardLayout({
     <div className="flex h-screen bg-[#0a0a0c] text-white">
       {/* Sidebar */}
       <aside className="w-64 border-r border-white/10 flex flex-col p-6">
-          <div className="flex justify-center mb-12">
+          <Link href="/" className="flex justify-center mb-12">
             <img src="/logo.png" alt="Datalazo Logo" className="w-32 h-32 rounded-3xl shadow-[0_0_30px_rgba(6,182,212,0.5)]" />
-          </div>
+          </Link>
         
         <nav className="flex-1 space-y-2">
           {[

@@ -16,9 +16,9 @@ export default function Home() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center">
+          <Link href="/" className="flex items-center">
             <img src="/logo.png" alt="Datalazo Logo" className="w-12 h-12 rounded-xl" />
-          </div>
+          </Link>
           
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#services" className="hover:text-accent-cyan transition-colors">{t.nav.services}</a>
