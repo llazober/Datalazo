@@ -11,11 +11,18 @@ export async function PATCH(
 
     console.log(`Attempting to update lead ${id} to status: ${status}`);
 
-    const leadExists = await prisma.lead.findUnique({ where: { id } });
+    let leadExists = await prisma.lead.findUnique({ where: { id } });
+    
+    // Race condition safety: if not found, wait 1.5 seconds and try one last time
+    if (!leadExists) {
+      console.log(`Lead ${id} not found immediately. Retrying in 1.5s...`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      leadExists = await prisma.lead.findUnique({ where: { id } });
+    }
     
     if (!leadExists) {
-      console.error(`Lead with ID ${id} not found in database.`);
-      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      console.error(`Lead with ID ${id} not found after retry.`);
+      return NextResponse.json({ error: 'Lead not found', id_requested: id }, { status: 404 });
     }
 
     const updatedLead = await prisma.lead.update({
