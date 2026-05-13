@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function DashboardLayout({
   children,
@@ -15,15 +16,15 @@ export default function DashboardLayout({
         
         <nav className="flex-1 space-y-2">
           {['Overview', 'Leads', 'Automation', 'Analytics', 'Settings'].map((item) => (
-            <a
+            <Link
               key={item}
-              href="#"
+              href="/dashboard"
               className={`block px-4 py-3 rounded-xl transition-colors ${
                 item === 'Overview' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               {item}
-            </a>
+            </Link>
           ))}
         </nav>
 
