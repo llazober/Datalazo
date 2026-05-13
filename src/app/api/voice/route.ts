@@ -10,13 +10,11 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get('file') as Blob;
     const mode = formData.get('mode') as string;
-    const text = formData.get('text') as string;
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: 'API Key not configured' }, { status: 401 });
     }
 
-    // --- NEW: UNIFIED FAST MODE ---
     if (mode === 'fast' && file) {
       // 1. Transcription (Whisper)
       const transcription = await openai.audio.transcriptions.create({
@@ -30,48 +28,29 @@ export async function POST(req: Request) {
       const chatCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are the Datalazo AI Voice Agent. Be concise, professional, and helpful. Keep responses short and suitable for voice conversation (1-3 sentences max)." },
+          { role: "system", content: "You are the Datalazo AI. Be extremely concise. 1-2 short sentences maximum. Use natural spoken language." },
           { role: "user", content: userText }
         ],
+        max_tokens: 150,
       });
 
-      const aiReply = chatCompletion.choices[0].message.content || "I'm sorry, I couldn't process that.";
+      const aiReply = chatCompletion.choices[0].message.content || "I'm sorry.";
 
-      // 3. Text to Speech (TTS-1)
-      const mp3 = await openai.audio.speech.create({
+      // 3. Text to Speech (TTS-1) - STREAMING
+      const response = await openai.audio.speech.create({
         model: "tts-1",
         voice: "alloy",
         input: aiReply,
+        response_format: "mp3",
       });
 
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      
-      // Return both the audio and the text in headers (or just the audio)
-      return new NextResponse(buffer, {
+      // Instead of arrayBuffer(), we use the body as a stream
+      return new NextResponse(response.body, {
         headers: { 
           'Content-Type': 'audio/mpeg',
           'X-AI-Transcript': encodeURIComponent(userText),
           'X-AI-Reply': encodeURIComponent(aiReply)
         },
-      });
-    }
-
-    // --- LEGACY MODES (Keep for compatibility) ---
-    if (mode === 'stt' && file) {
-      const transcription = await openai.audio.transcriptions.create({
-        file: new File([file], 'audio.webm', { type: 'audio/webm' }),
-        model: "whisper-1",
-      });
-      return NextResponse.json({ text: transcription.text });
-    } else if (mode === 'tts' && text) {
-      const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: "alloy",
-        input: text,
-      });
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      return new NextResponse(buffer, {
-        headers: { 'Content-Type': 'audio/mpeg' },
       });
     }
 

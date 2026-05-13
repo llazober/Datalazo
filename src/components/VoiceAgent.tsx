@@ -11,7 +11,10 @@ export default function VoiceAgent() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 32000 // Low bitrate for speed (plenty for speech)
+      });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
