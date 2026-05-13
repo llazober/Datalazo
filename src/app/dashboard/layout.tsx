@@ -15,15 +15,21 @@ export default function DashboardLayout({
           </div>
         
         <nav className="flex-1 space-y-2">
-          {['Overview', 'Leads', 'Automation', 'Analytics', 'Settings'].map((item) => (
+          {[
+            { name: 'Overview', path: '/dashboard' },
+            { name: 'Knowledge Base', path: '/dashboard/knowledge' },
+            { name: 'Automation', path: '/dashboard/automation' },
+            { name: 'Analytics', path: '/dashboard/analytics' },
+            { name: 'Settings', path: '/dashboard/settings' }
+          ].map((item) => (
             <Link
-              key={item}
-              href="/dashboard"
+              key={item.name}
+              href={item.path}
               className={`block px-4 py-3 rounded-xl transition-colors ${
-                item === 'Overview' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              {item}
+              {item.name}
             </Link>
           ))}
         </nav>
