@@ -15,6 +15,17 @@ export async function POST(
   return handleRequest(req, params);
 }
 
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return NextResponse.json({ 
+    message: "Lead Status Update API is active and ready for PATCH/POST requests.",
+    id_received: id
+  });
+}
+
 async function handleRequest(
   req: Request,
   params: Promise<{ id: string }>
