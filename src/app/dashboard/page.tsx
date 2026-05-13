@@ -2,6 +2,8 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import LeadTable from '@/components/LeadTable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: 'desc' }
