@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(newLead),
     })
     .then(res => console.log('n8n Response:', res.status, res.statusText))
     .catch(err => console.error('n8n notification failed, but lead was saved:', err));
