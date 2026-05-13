@@ -22,14 +22,23 @@ export async function PATCH(
     
     if (!leadExists) {
       const totalLeads = await prisma.lead.count();
+      const recentLeads = await prisma.lead.findMany({
+        take: 3,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true }
+      });
+      
       console.error(`Lead with ID ${id} not found after retry. Total leads in DB: ${totalLeads}`);
+      console.log('Recent leads in DB:', JSON.stringify(recentLeads));
+
       // Return more info to n8n to help us debug
       return NextResponse.json({ 
         error: 'Lead not found', 
         id_requested: id,
         id_length: id?.length,
         total_leads_in_db: totalLeads,
-        message: "The ID was not found. If total_leads_in_db is 0, your API is looking at the wrong database."
+        recent_ids_in_db: recentLeads.map(l => l.id),
+        message: "The ID was not found. Look at 'recent_ids_in_db' to see if the format matches your request."
       }, { status: 404 });
     }
 
