@@ -113,7 +113,7 @@ export default function VoiceAgent() {
         status !== 'idle' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}>
         <span className="flex items-center gap-2">
-          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Click to finish...</>}
+          {status === 'listening' && <><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> [v2] Click to stop recording...</>}
           {status === 'processing' && <><div className="w-1.5 h-1.5 bg-accent-cyan rounded-full animate-bounce" /> Transcribing & Thinking...</>}
           {status === 'speaking' && <><div className="w-1.5 h-1.5 bg-accent-indigo rounded-full animate-pulse" /> AI is Speaking...</>}
         </span>
