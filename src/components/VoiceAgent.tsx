@@ -8,6 +8,7 @@ export default function VoiceAgent() {
   const [status, setStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
   useEffect(() => {
     // Initialize Web Speech API
@@ -15,19 +16,28 @@ export default function VoiceAgent() {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
+        recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = false;
         recognitionRef.current.lang = 'en-US';
 
         recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          handleVoiceInput(transcript);
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              transcriptRef.current += event.results[i][0].transcript + ' ';
+            }
+          }
         };
 
         recognitionRef.current.onend = () => {
-          // If the browser auto-stops, we only move to processing if the user hasn't already clicked stop
           setIsListening(false);
-          setStatus(current => current === 'listening' ? 'processing' : current);
+          // Check if we stopped because the user clicked or if it was an error
+          const finalTranscript = transcriptRef.current.trim();
+          if (finalTranscript) {
+            handleVoiceInput(finalTranscript);
+            transcriptRef.current = ''; // Clear for next time
+          } else {
+            setStatus('idle');
+          }
         };
 
         recognitionRef.current.onerror = (event: any) => {
