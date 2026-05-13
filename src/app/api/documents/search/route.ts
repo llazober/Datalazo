@@ -40,10 +40,17 @@ export async function POST(req: NextRequest) {
     };
 
     const results = chunks
-      .map(chunk => ({
-        ...chunk,
-        score: similarity(queryEmbedding, chunk.embedding as unknown as number[])
-      }))
+      .map(chunk => {
+        const score = similarity(queryEmbedding, chunk.embedding as unknown as number[]);
+        // Safety Net: If the chunk contains the query words, boost it!
+        const queryWords = query.toLowerCase().split(' ');
+        const matchesWords = queryWords.some((word: string) => word.length > 3 && chunk.content.toLowerCase().includes(word));
+        
+        return {
+          ...chunk,
+          score: matchesWords ? Math.max(score, 0.5) : score // Minimum 0.5 if words match
+        };
+      })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5); // Return top 5 results
 
