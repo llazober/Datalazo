@@ -11,23 +11,25 @@ export async function PATCH(
 
     console.log(`Attempting to update lead ${id} to status: ${status}`);
 
-    let leadExists = await prisma.lead.findUnique({ where: { id } });
+    let leadExists = await prisma.lead.findFirst({ where: { id } });
     
     // Race condition safety: if not found, wait 1.5 seconds and try one last time
     if (!leadExists) {
       console.log(`Lead ${id} not found immediately. Retrying in 1.5s...`);
       await new Promise(resolve => setTimeout(resolve, 1500));
-      leadExists = await prisma.lead.findUnique({ where: { id } });
+      leadExists = await prisma.lead.findFirst({ where: { id } });
     }
     
     if (!leadExists) {
-      console.error(`Lead with ID ${id} not found after retry.`);
+      const totalLeads = await prisma.lead.count();
+      console.error(`Lead with ID ${id} not found after retry. Total leads in DB: ${totalLeads}`);
       // Return more info to n8n to help us debug
       return NextResponse.json({ 
         error: 'Lead not found', 
         id_requested: id,
         id_length: id?.length,
-        message: "The ID received from n8n does not exist in the database. Check if there are extra spaces or encoding issues."
+        total_leads_in_db: totalLeads,
+        message: "The ID was not found. If total_leads_in_db is 0, your API is looking at the wrong database."
       }, { status: 404 });
     }
 
