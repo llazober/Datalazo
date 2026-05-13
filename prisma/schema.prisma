@@ -20,3 +20,27 @@ model Lead {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Document {
+  id        String          @id @default(cuid())
+  name      String
+  type      String          // pdf, txt, docx
+  size      Int
+  status    String          @default("UPLOADED") // UPLOADED, PROCESSING, READY, ERROR
+  content   String?         // Full text content if small
+  chunks    DocumentChunk[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  // We will add the vector field manually in SQL if pgvector is enabled, 
+  // or use a separate table if Prisma doesn't support the vector type directly yet.
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+}
