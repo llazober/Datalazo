@@ -100,7 +100,7 @@ export default function Home() {
       </section>
 
       <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5">
-        &copy; 2026 Datalazo Intelligence Agency. All rights reserved.
+        &copy; 2026 Datalazo Intelligence Agency. v2.1 | All rights reserved.
       </footer>
       <VoiceAgent />
     </div>
