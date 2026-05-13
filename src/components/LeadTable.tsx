@@ -16,6 +16,20 @@ interface Lead {
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+
+    try {
+      const response = await fetch(`/api/lead/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        setLeads(leads.filter(l => l.id !== id));
+      }
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete lead.');
+    }
+  };
+
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/lead/${id}/status`, {
