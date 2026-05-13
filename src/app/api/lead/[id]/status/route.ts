@@ -5,6 +5,20 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  return handleRequest(req, params);
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return handleRequest(req, params);
+}
+
+async function handleRequest(
+  req: Request,
+  params: Promise<{ id: string }>
+) {
   try {
     const { status } = await req.json();
     const { id } = await params;
