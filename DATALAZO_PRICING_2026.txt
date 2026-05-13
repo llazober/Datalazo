@@ -1,0 +1,37 @@
+=========================================
+DATALAZO AI INTELLIGENCE AGENCY - PRICING 2026
+=========================================
+
+1. AI CUSTOMER ENGAGEMENT (CRM AUTOMATION)
+-----------------------------------------
+- Basic Setup: $1,499 (One-time)
+- Advanced CRM Integration (n8n + AI): $2,999
+- Monthly Maintenance & Optimization: $499/mo
+
+2. AI VOICE AGENTS (LOW-LATENCY)
+-----------------------------------------
+- Single Voice Agent Setup: $999
+- Multi-Language Voice Matrix: $2,499
+- Usage-based fee: $0.15 per minute
+
+3. CORPORATE KNOWLEDGE BASE (RAG)
+-----------------------------------------
+- Digital Brain Implementation: $1,200
+- Document Vectorization (Up to 100 PDFs): $500
+- AI Training & Accuracy Audit: $750
+
+4. AI CUSTOMER SERVICE AGENTS (SUPPORT BOTS)
+-----------------------------------------
+- Starter Support Bot (Basic FAQ): $799
+- Advanced 24/7 Multilingual Support Agent: $1,799
+- Managed AI Support Service (Monthly Audit): $299/mo
+
+5. ENTERPRISE AI SOLUTIONS
+-----------------------------------------
+- Custom AI Strategy & Consulting: Starting at $5,000
+- Dedicated AI Support Infrastructure: $1,500/mo
+
+=========================================
+All prices are in USD. 
+Contact: sales@datalazo.net
+=========================================

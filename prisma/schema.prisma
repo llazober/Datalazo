@@ -38,8 +38,7 @@ model DocumentChunk {
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   content    String
-  // We will add the vector field manually in SQL if pgvector is enabled, 
-  // or use a separate table if Prisma doesn't support the vector type directly yet.
+  embedding  Json?    // Fallback if pgvector is not available
   createdAt  DateTime @default(now())
 
   @@index([documentId])

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { processDocument } from '@/lib/ai-processor';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +42,18 @@ export async function POST(req: NextRequest) {
 
     console.log(`File uploaded and saved: ${file.name} (${document.id})`);
 
+    // If it's a text file, process it immediately in the background
+    if (type === 'txt') {
+      const text = buffer.toString('utf-8');
+      // We don't await this so the user gets a fast response, 
+      // but the processing happens in the background.
+      processDocument(document.id, text).catch(console.error);
+    }
+
     return NextResponse.json({ 
       success: true, 
       document,
-      message: 'File uploaded successfully' 
+      message: 'File uploaded and processing started' 
     });
   } catch (error) {
     console.error('Upload Error:', error);
