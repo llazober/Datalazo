@@ -6,17 +6,37 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   let receivedId = 'unknown';
   try {
-    const { id, status } = await req.json();
-    receivedId = id;
+    const { id, email, status } = await req.json();
+    receivedId = id || email || 'unknown';
 
-    if (!id || !status) {
-      return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
+    if ((!id && !email) || !status) {
+      return NextResponse.json({ error: 'Missing id/email or status' }, { status: 400 });
     }
 
-    console.log(`Simplified Update: Lead ${id} -> ${status}`);
+    console.log(`Simplified Update: Lead ${receivedId} -> ${status}`);
+
+    // Try to find by ID first, then by Email
+    let lead;
+    if (id && !id.includes('{{')) {
+      lead = await prisma.lead.findFirst({ where: { id } });
+    }
+    
+    if (!lead && email && !email.includes('{{')) {
+      lead = await prisma.lead.findFirst({ where: { email } });
+    }
+
+    if (!lead) {
+      const totalLeads = await prisma.lead.count();
+      return NextResponse.json({ 
+        error: 'Lead not found by ID or Email',
+        id_received: id,
+        email_received: email,
+        total_leads_in_db: totalLeads
+      }, { status: 404 });
+    }
 
     const updatedLead = await prisma.lead.update({
-      where: { id },
+      where: { id: lead.id },
       data: { status },
     });
 
