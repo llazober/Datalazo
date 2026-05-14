@@ -6,7 +6,19 @@ import BookingForm from '@/components/BookingForm';
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const leadId = searchParams.get('id') || searchParams.get('leadId');
+  const [leadId, setLeadId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Priority: useSearchParams -> window.location fallback
+    const id = searchParams.get('id') || 
+               searchParams.get('leadId') || 
+               new URLSearchParams(window.location.search).get('id') ||
+               new URLSearchParams(window.location.search).get('leadId');
+    
+    console.log('Detected Lead ID:', id);
+    setLeadId(id);
+  }, [searchParams]);
+
 
 
   return (
