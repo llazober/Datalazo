@@ -1,56 +1,47 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(req: Request) {
-  let receivedId = 'unknown';
   try {
-    const { id, email, status } = await req.json();
-    receivedId = id || email || 'unknown';
+    const body = await req.json();
+    const id = body.lead_id || body.id;
+    const email = body.email;
+    const status = body.status;
 
-    if ((!id && !email) || !status) {
-      return NextResponse.json({ error: 'Missing id/email or status' }, { status: 400 });
+    if (!status) {
+      return NextResponse.json({ error: 'Missing status' }, { status: 400 });
     }
 
-    console.log(`Simplified Update: Lead ${receivedId} -> ${status}`);
+    let lead = null;
 
-    // Try to find by ID first, then by Email
-    let lead;
-    if (id && !id.includes('{{')) {
-      lead = await prisma.lead.findFirst({ where: { id } });
+    // Try ID first
+    if (id && id.length > 5) {
+      lead = await prisma.lead.findUnique({ where: { id } });
     }
-    
-    if (!lead && email && !email.includes('{{')) {
-      lead = await prisma.lead.findFirst({ where: { email } });
+
+    // Try Email fallback
+    if (!lead && email && email.length > 3) {
+      lead = await prisma.lead.findFirst({
+        where: { email },
+        orderBy: { createdAt: 'desc' }
+      });
     }
 
     if (!lead) {
-      const totalLeads = await prisma.lead.count();
       return NextResponse.json({ 
-        error: 'Lead not found by ID or Email',
-        id_received: id,
-        email_received: email,
-        total_leads_in_db: totalLeads
+        error: 'Lead not found', 
+        received: { id, email, status } 
       }, { status: 404 });
     }
 
     const updatedLead = await prisma.lead.update({
       where: { id: lead.id },
-      data: { status },
+      data: { status }
     });
 
-    return NextResponse.json({ success: true, updatedLead });
+    return NextResponse.json({ success: true, lead: updatedLead });
   } catch (error) {
-    console.error('Simplified Update Error:', error);
-    
-    // Check if it's a "Record not found" error
-    const isNotFound = error instanceof Error && error.message.includes('Record to update not found');
-    
-    return NextResponse.json({ 
-      error: isNotFound ? 'Lead ID not found in database' : 'Failed to update lead',
-      id_received: receivedId,
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: isNotFound ? 404 : 500 });
+    console.error('Update Status Error:', error);
+    return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
   }
 }
