@@ -225,24 +225,41 @@ export default function SEODashboard() {
                     </span>
                   </td>
                   <td className="px-6 py-6 text-right">
-                    {kw.status === 'PUBLISHED' ? (
-                      <button 
-                        onClick={() => setSelectedContent({ id: kw.id, term: kw.term, content: kw.content || '' })}
-                        className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
-                      >
-                        View AI Content
-                      </button>
+                    <div className="flex justify-end items-center gap-4">
+                      {kw.status === 'PUBLISHED' ? (
+                        <button 
+                          onClick={() => setSelectedContent({ id: kw.id, term: kw.term, content: kw.content || '' })}
+                          className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
+                        >
+                          View AI Content
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => generateContent(kw.id)}
+                          disabled={generatingId === kw.id}
+                          className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors border border-white/5 hover:border-cyan-500/20 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                        >
+                          {generatingId === kw.id ? 'Writing...' : 'Generate AI Content'}
+                        </button>
+                      )}
 
-                    ) : (
                       <button 
-                        onClick={() => generateContent(kw.id)}
-                        disabled={generatingId === kw.id}
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors border border-white/5 hover:border-cyan-500/20 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                        onClick={async () => {
+                          if (confirm(`Delete keyword "${kw.term}"?`)) {
+                            await fetch(`/api/admin/seo/keywords/${kw.id}`, { method: 'DELETE' });
+                            fetchKeywords();
+                          }
+                        }}
+                        className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-400 transition-all rounded-lg"
+                        title="Delete Keyword"
                       >
-                        {generatingId === kw.id ? 'Writing...' : 'Generate AI Content'}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
-                    )}
+                    </div>
                   </td>
+
                 </tr>
               ))}
             </tbody>
