@@ -97,7 +97,23 @@ export default function SEODashboard() {
     }
   };
 
+  const handleUnpublish = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/seo/unpublish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywordId: id })
+      });
+      if (res.ok) {
+        fetchKeywords();
+      }
+    } catch (err) {
+      console.error('Failed to unpublish content:', err);
+    }
+  };
+
   if (loading) {
+
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
@@ -249,13 +265,22 @@ export default function SEODashboard() {
                   <td className="px-6 py-6 text-right">
                     <div className="flex justify-end items-center gap-4">
                       {kw.status === 'PUBLISHED' ? (
-                        <button 
-                          onClick={() => setSelectedContent({ id: kw.id, term: kw.term, content: kw.content || '' })}
-                          className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
-                        >
-                          View AI Content
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => setSelectedContent({ id: kw.id, term: kw.term, content: kw.content || '' })}
+                            className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
+                          >
+                            View
+                          </button>
+                          <button 
+                            onClick={() => handleUnpublish(kw.id)}
+                            className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400 transition-colors border border-amber-500/10 hover:border-amber-500/30 px-3 py-1.5 rounded-lg"
+                          >
+                            Unpublish
+                          </button>
+                        </>
                       ) : (
+
                         <button 
                           onClick={() => generateContent(kw.id)}
                           disabled={generatingId === kw.id}
