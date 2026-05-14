@@ -15,7 +15,9 @@ export async function POST(req: Request) {
         company: data.company,
         service: data.service,
         message: data.message,
+        status: 'CONTACTED',
       }
+
     });
 
     console.log('Lead saved to DB:', newLead.id);

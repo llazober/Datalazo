@@ -26,8 +26,23 @@ export async function POST(req: Request) {
       data: { status: 'BOOKED' }
     });
 
-    // 3. Optional: Notify n8n or admin here if needed
-    // For now, the database is updated correctly.
+    // 3. Notify n8n
+    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
+    fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leadId,
+        status: 'BOOKED',
+        appointment: {
+          date,
+          timeSlot
+        }
+      }),
+    })
+    .then(res => console.log('n8n Booking Notification:', res.status))
+    .catch(err => console.error('n8n Booking notification failed:', err));
+
 
     return NextResponse.json({ 
       success: true, 

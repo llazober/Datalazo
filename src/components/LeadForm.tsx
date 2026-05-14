@@ -23,15 +23,7 @@ export default function LeadForm() {
       });
 
       if (response.ok) {
-        const result = await response.json();
         setStatus('success');
-        
-        // Redirect to the booking page after a short delay
-        if (result.id) {
-          setTimeout(() => {
-            window.location.href = `/book?id=${result.id}`;
-          }, 1500);
-        }
       } else {
         setStatus('error');
       }
@@ -50,10 +42,11 @@ export default function LeadForm() {
           </svg>
         </div>
         <h3 className="text-2xl font-bold mb-2">Request Received!</h3>
-        <p className="text-slate-400">Our AI agent is processing your request. You'll hear from us shortly.</p>
+        <p className="text-slate-400">Please check your email. We've sent you a link to schedule your AI Audit and finalize your request.</p>
       </div>
     );
   }
+
 
   return (
     <div className="glass p-8 md:p-12">
