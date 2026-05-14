@@ -6,7 +6,8 @@ import BookingForm from '@/components/BookingForm';
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const leadId = searchParams.get('id');
+  const leadId = searchParams.get('id') || searchParams.get('leadId');
+
 
   return (
     <div className="max-w-6xl mx-auto py-16 px-4">
