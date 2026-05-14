@@ -5,14 +5,24 @@ import Hero from "@/components/Hero";
 import LeadForm from "@/components/LeadForm";
 import Link from 'next/link';
 import VoiceAgent from "@/components/VoiceAgent";
+import ServiceEducationModal from "@/components/ServiceEducationModal";
 import { translations } from '@/lib/translations';
 
 export default function Home() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
+  const [selectedService, setSelectedService] = useState<string | null>(null);
   const t = translations[lang];
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Education Modal */}
+      {selectedService && (
+        <ServiceEducationModal 
+          serviceTitle={selectedService} 
+          onClose={() => setSelectedService(null)} 
+        />
+      )}
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -63,15 +73,30 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {t.services.list.map((s, i) => (
-              <div key={i} className="glass p-8 hover:bg-white/[0.05] transition-all">
-                <div className="text-4xl mb-4">{s.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{s.title}</h3>
+              <div 
+                key={i} 
+                onClick={() => setSelectedService(s.title)}
+                className="glass p-8 hover:bg-white/[0.05] transition-all cursor-pointer group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 rounded-full bg-accent-cyan/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 origin-left">{s.icon}</div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-accent-cyan transition-colors">{s.title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
+                <div className="mt-4 text-[10px] font-bold text-accent-cyan uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                  Click to learn more
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
 
       {/* Lead Generation Section */}
       <section id="contact" className="py-24 px-6">
