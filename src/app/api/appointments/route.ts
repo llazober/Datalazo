@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     });
 
     // 3. Notify n8n
-    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || '';
+    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || process.env.WEBHOOK_URL || '';
     
     if (webhookUrl) {
       try {

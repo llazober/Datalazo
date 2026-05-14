@@ -23,8 +23,8 @@ export async function POST(req: Request) {
     console.log('Lead saved to DB:', newLead.id);
 
     // 2. Notify n8n
-    // Fallback for potential typo in Easypanel settings (N8N_WEBHOOK_UR vs N8N_WEBHOOK_URL)
-    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || '';
+    // Fallback for different naming conventions in Easypanel (WEBHOOK_URL, N8N_WEBHOOK_URL, etc.)
+    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || process.env.WEBHOOK_URL || '';
     
     if (webhookUrl) {
       console.log('Notifying n8n at:', webhookUrl);
