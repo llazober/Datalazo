@@ -16,7 +16,7 @@ interface Appointment {
   };
 }
 
-const STATUS_OPTIONS = ['IN_REVIEW', 'CONTACTED', 'BOOKED', 'PROCESSED', 'CLOSED'];
+const STATUS_OPTIONS = ['IN_REVIEW', 'CONTACTED', 'BOOKED', 'MAYBE', 'WON', 'LOST', 'PROCESSED', 'CLOSED'];
 
 export default function BookingsDashboard() {
   const [bookings, setBookings] = useState<Appointment[]>([]);
@@ -52,6 +52,21 @@ export default function BookingsDashboard() {
       console.error('Failed to update status:', err);
     }
   };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm('Are you sure you want to delete this lead and all associated bookings?')) return;
+    try {
+      const res = await fetch(`/api/lead/${leadId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchBookings();
+      }
+    } catch (err) {
+      console.error('Failed to delete lead:', err);
+    }
+  };
+
 
 
   if (loading) {
@@ -103,13 +118,18 @@ export default function BookingsDashboard() {
                   </td>
                   <td className="px-6 py-6">
                     <div className="text-sm font-medium">{booking.lead.email}</div>
-                    <div className="text-xs text-slate-500 mt-1">{booking.lead.phone || 'No phone provided'}</div>
+                    <div className={`text-xs mt-1 font-bold ${booking.lead.phone ? 'text-cyan-400' : 'text-slate-500 italic'}`}>
+                      {booking.lead.phone || 'No phone provided'}
+                    </div>
                   </td>
                   <td className="px-6 py-6">
                     <select 
                       value={booking.lead.status}
                       onChange={(e) => updateStatus(booking.lead.id, e.target.value)}
                       className={`text-xs font-bold px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:border-cyan-500 transition-all ${
+                        booking.lead.status === 'WON' ? 'text-green-400 border-green-500/50' : 
+                        booking.lead.status === 'LOST' ? 'text-red-400 border-red-500/50' :
+                        booking.lead.status === 'MAYBE' ? 'text-orange-400 border-orange-500/50' :
                         booking.lead.status === 'BOOKED' ? 'text-cyan-400 border-cyan-500/50' : 
                         booking.lead.status === 'CLOSED' ? 'text-slate-500' : 'text-yellow-400'
                       }`}
@@ -120,15 +140,24 @@ export default function BookingsDashboard() {
                     </select>
                   </td>
                   <td className="px-6 py-6 text-right">
-                    <a 
-                      href={`/book?id=${booking.lead.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border border-white/5 hover:border-white/20 px-4 py-2 rounded-lg"
-                    >
-                      View Booking Page
-                    </a>
+                    <div className="flex justify-end gap-3 items-center">
+                      <a 
+                        href={`/book?id=${booking.lead.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border border-white/5 hover:border-white/20 px-3 py-1.5 rounded-lg"
+                      >
+                        View
+                      </a>
+                      <button 
+                        onClick={() => deleteLead(booking.lead.id)}
+                        className="text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors border border-red-500/10 hover:border-red-500/30 px-3 py-1.5 rounded-lg"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
+
                 </tr>
               ))}
             </tbody>
