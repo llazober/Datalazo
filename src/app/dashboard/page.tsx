@@ -34,9 +34,19 @@ export default async function DashboardPage() {
               </svg>
               Manage Bookings
             </a>
+            <a 
+              href="/dashboard/seo/plan"
+              className="px-4 py-2 bg-white/5 border border-white/10 text-indigo-400 text-sm font-bold rounded-lg hover:bg-white/10 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              SEO Matrix Roadmap
+            </a>
             <button className="px-4 py-2 bg-accent-cyan text-black text-sm font-bold rounded-lg hover:bg-cyan-500 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
               Refresh Data
             </button>
+
           </div>
 
         </div>

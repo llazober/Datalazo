@@ -21,14 +21,7 @@ export default function Hero({ lang }: { lang: 'en' | 'es' }) {
             {t.description}
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="px-10 py-5 bg-accent-cyan hover:bg-cyan-500 text-black font-bold rounded-full transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(6,182,212,0.4)]">
-              {t.cta_primary}
-            </button>
-            <button className="px-10 py-5 glass hover:bg-white/10 font-bold rounded-full transition-all">
-              {t.cta_secondary}
-            </button>
-          </div>
+
         </div>
       </div>
     </section>
