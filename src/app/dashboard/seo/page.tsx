@@ -17,6 +17,8 @@ export default function SEODashboard() {
   const [loading, setLoading] = useState(true);
   const [newTerm, setNewTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [selectedContent, setSelectedContent] = useState<{ term: string; content: string } | null>(null);
 
   useEffect(() => {
     fetchKeywords();
@@ -55,6 +57,24 @@ export default function SEODashboard() {
     }
   };
 
+  const generateContent = async (id: string) => {
+    setGeneratingId(id);
+    try {
+      const res = await fetch('/api/admin/seo/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywordId: id })
+      });
+      if (res.ok) {
+        fetchKeywords();
+      }
+    } catch (err) {
+      console.error('Failed to generate content:', err);
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -65,6 +85,43 @@ export default function SEODashboard() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white p-8">
+      {/* Content Viewer Modal */}
+      {selectedContent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedContent(null)} />
+          <div className="relative w-full max-w-4xl max-h-[85vh] bg-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <h2 className="text-xl font-bold uppercase italic tracking-tighter">
+                Preview: <span className="text-cyan-500">{selectedContent.term}</span>
+              </h2>
+              <button 
+                onClick={() => setSelectedContent(null)}
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-10 overflow-y-auto custom-scrollbar prose prose-invert prose-cyan max-w-none">
+              <div 
+                dangerouslySetInnerHTML={{ __html: selectedContent.content }} 
+                className="seo-preview-content"
+              />
+            </div>
+            <div className="p-6 border-t border-white/5 bg-white/[0.02] flex justify-end gap-4">
+               <button 
+                onClick={() => setSelectedContent(null)}
+                className="px-6 py-2 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-sm font-bold uppercase"
+               >
+                 Close Preview
+               </button>
+               <button className="px-6 py-2 rounded-xl bg-cyan-500 text-black font-black uppercase text-sm shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                 Publish to Blog
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -132,14 +189,31 @@ export default function SEODashboard() {
                     <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Google Position</div>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded">
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 border rounded ${
+                      kw.status === 'PUBLISHED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                      kw.status === 'GENERATING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' :
+                      'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                    }`}>
                       {kw.status}
                     </span>
                   </td>
                   <td className="px-6 py-6 text-right">
-                    <button className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors border border-white/5 hover:border-cyan-500/20 px-3 py-1.5 rounded-lg">
-                      Generate AI Content
-                    </button>
+                    {kw.status === 'PUBLISHED' ? (
+                      <button 
+                        onClick={() => setSelectedContent({ term: kw.term, content: kw.content || '' })}
+                        className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
+                      >
+                        View AI Content
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => generateContent(kw.id)}
+                        disabled={generatingId === kw.id}
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 transition-colors border border-white/5 hover:border-cyan-500/20 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        {generatingId === kw.id ? 'Writing...' : 'Generate AI Content'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -153,6 +227,31 @@ export default function SEODashboard() {
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(6, 182, 212, 0.3);
+        }
+        .seo-preview-content h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 2rem; color: #fff; text-transform: uppercase; font-style: italic; }
+        .seo-preview-content h2 { font-size: 1.8rem; font-weight: 800; margin-top: 2.5rem; margin-bottom: 1.5rem; color: #06b6d4; text-transform: uppercase; font-style: italic; }
+        .seo-preview-content h3 { font-size: 1.4rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; color: #fff; }
+        .seo-preview-content p { font-size: 1.1rem; line-height: 1.8; color: #94a3b8; margin-bottom: 1.5rem; }
+        .seo-preview-content blockquote { border-left: 4px solid #06b6d4; padding-left: 1.5rem; font-style: italic; background: rgba(6, 182, 212, 0.05); padding-top: 1rem; padding-bottom: 1rem; border-radius: 0 1rem 1rem 0; margin-bottom: 2rem; }
+        .seo-preview-content ul { list-style: none; padding-left: 0; margin-bottom: 2rem; }
+        .seo-preview-content li { display: flex; align-items: start; gap: 0.75rem; margin-bottom: 0.75rem; color: #cbd5e1; }
+        .seo-preview-content li::before { content: "✓"; color: #06b6d4; font-weight: bold; font-size: 0.9rem; margin-top: 0.1rem; }
+      `}</style>
     </div>
   );
 }
+
