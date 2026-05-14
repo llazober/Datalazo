@@ -31,9 +31,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success) {
-        router.push('/dashboard');
-        router.refresh();
+        // Force a full page reload to the dashboard
+        window.location.href = '/dashboard';
       }
+
     } catch (err) {
       console.error('Login Fetch Error:', err);
       setError('Connection failed. Please check your internet or server logs.');
