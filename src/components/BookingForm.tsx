@@ -56,20 +56,15 @@ export default function BookingForm({ leadId }: BookingFormProps) {
         <p className="text-slate-400 mb-8 max-w-md mx-auto">
           Your AI Audit has been confirmed for <span className="text-white font-semibold">{selectedDate}</span> at <span className="text-white font-semibold">{selectedSlot}</span>. Check your email for details.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="px-8 py-3 bg-accent-cyan text-black hover:opacity-90 rounded-xl transition-all font-bold"
-          >
-            Return Home
-          </button>
+        <div className="flex justify-center">
           <button 
             onClick={() => window.close()}
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all font-medium border border-white/10"
+            className="px-12 py-4 bg-accent-cyan text-black hover:opacity-90 rounded-2xl transition-all font-black uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.3)]"
           >
             Close Window
           </button>
         </div>
+
       </div>
     );
   }
