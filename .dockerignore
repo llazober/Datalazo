@@ -9,3 +9,12 @@ yarn-error.log*
 .vercel
 dist
 build
+out
+.cache
+.npm
+.nixpacks
+Dockerfile
+.dockerignore
+README.md
+*.md
+
