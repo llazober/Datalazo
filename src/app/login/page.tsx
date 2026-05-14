@@ -22,19 +22,25 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error || `Server Error: ${res.status}`);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success) {
         router.push('/dashboard');
         router.refresh();
-      } else {
-        setError(data.error || 'Login failed');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      console.error('Login Fetch Error:', err);
+      setError('Connection failed. Please check your internet or server logs.');
     } finally {
       setIsLoading(false);
     }
+
   };
 
   return (

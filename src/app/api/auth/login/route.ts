@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
       // Set a secure cookie for the session
       response.cookies.set('admin_session', 'authenticated', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Always true for production domains like datalazo.net
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
+        maxAge: 60 * 60 * 24 * 30, // 30 days
         path: '/',
       });
+
 
       return response;
     }
