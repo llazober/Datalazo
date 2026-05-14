@@ -3,17 +3,25 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const { email, status } = await req.json();
+    const { id, email, status } = await req.json();
 
-    if (!email || !status) {
-      return NextResponse.json({ error: 'Missing email or status' }, { status: 400 });
+    if (!status) {
+      return NextResponse.json({ error: 'Missing status' }, { status: 400 });
     }
 
-    // Find the latest lead with this email and update it
-    const lead = await prisma.lead.findFirst({
-      where: { email },
-      orderBy: { createdAt: 'desc' }
-    });
+    let lead;
+
+    // Try to find by ID first (Most Accurate)
+    if (id) {
+      lead = await prisma.lead.findUnique({ where: { id } });
+    } 
+    // Fallback to email (Less Accurate)
+    else if (email) {
+      lead = await prisma.lead.findFirst({
+        where: { email },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
 
     if (!lead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
