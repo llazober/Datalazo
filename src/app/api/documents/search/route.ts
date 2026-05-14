@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { searchKnowledge } from '@/lib/knowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,61 +11,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing query' }, { status: 400 });
     }
 
-    // 1. Embed the query
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: query,
-    });
-
-    const queryEmbedding = response.data[0].embedding;
-
-    // 2. Fetch all chunks from the database
-    const chunks = await prisma.documentChunk.findMany({
-      include: { document: true }
-    });
-
-    console.log(`Searching through ${chunks.length} chunks...`);
-
-    // 3. Manual Cosine Similarity with safety checks
-    const similarity = (vecA: any, vecB: any) => {
-      if (!Array.isArray(vecA) || !Array.isArray(vecB)) return 0;
-      const dotProduct = vecA.reduce((sum, a, i) => sum + a * (vecB[i] || 0), 0);
-      const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-      const magB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-      if (magA === 0 || magB === 0) return 0;
-      return dotProduct / (magA * magB);
-    };
-
-    const results = chunks
-      .map(chunk => {
-        const chunkEmbedding = Array.isArray(chunk.embedding) ? chunk.embedding : [];
-        const score = similarity(queryEmbedding, chunkEmbedding);
-        
-        // Aggressive Safety Net: Keyword match
-        const lowerQuery = query.toLowerCase();
-        const lowerContent = chunk.content.toLowerCase();
-        
-        // If the question and content share important words, boost the score!
-        const triggerWords = ['price', 'cost', 'fee', 'package', 'service', 'bot', 'ai', 'setup', 'cuanto', 'precio', 'costo'];
-        const hasTrigger = triggerWords.some(word => lowerQuery.includes(word) && lowerContent.includes(word));
-        
-        return {
-          ...chunk,
-          score: hasTrigger ? Math.max(score, 0.8) : score // Force 0.8 if keywords match
-        };
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5)
-      .filter(r => r.score > 0.1); 
+    const formatted = await searchKnowledge(query);
 
     return NextResponse.json({ 
       success: true, 
       query_received: query,
-      chunks_searched: chunks.length,
-      top_score: results[0]?.score || 0,
-      formatted: results.length > 0 
-        ? results.map(r => `[From ${r.document.name}]: ${r.content}`).join('\n\n---\n\n')
-        : "No relevant information found in Knowledge Base."
+      formatted: formatted || "No relevant information found in Knowledge Base."
     });
   } catch (error) {
     console.error('Search Error:', error);

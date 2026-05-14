@@ -45,12 +45,15 @@ export async function POST(req: Request) {
       });
 
       const userText = transcription.text;
+      const { searchKnowledge } = require('@/lib/knowledge');
+      const knowledge = await searchKnowledge(userText);
+      const knowledgePrompt = knowledge ? `\n\nKNOWLEDGE BASE INFO:\n${knowledge}` : "";
 
       // 2. Chat Processing (GPT-4o-mini)
       const chatCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are the Datalazo AI. Be extremely concise. 1-2 short sentences maximum. Use natural spoken language." },
+          { role: "system", content: `You are the Datalazo AI. Be extremely concise. 1-2 short sentences maximum. Use natural spoken language.${knowledgePrompt}` },
           { role: "user", content: userText }
         ],
         max_tokens: 150,

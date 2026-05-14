@@ -9,6 +9,13 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY || '',
     });
     const { message, history } = await req.json();
+    const { searchKnowledge } = require('@/lib/knowledge');
+
+    // Search Knowledge Base
+    const knowledge = await searchKnowledge(message);
+    const knowledgePrompt = knowledge 
+      ? `\n\nKNOWLEDGE BASE INFORMATION:\n${knowledge}\n\nUse this information to answer if applicable.`
+      : "";
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ 
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
           - Professional, futuristic, and highly efficient.
           - Use technical terms like "workflows", "integration", and "scalability".
           - Always encourage the user to fill out the "Get Started" form on the page for a custom consultation.
-          - Be helpful but concise.` 
+          - Be helpful but concise.${knowledgePrompt}` 
         },
         ...history,
         { role: "user", content: message }
