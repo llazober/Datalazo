@@ -36,7 +36,10 @@ model Keyword {
   status        String   @default("TRACKING") // TRACKING, GENERATING, PUBLISHED
   contentUrl    String?
   content       String?  @db.Text
+  slug          String?  @unique
+  isPublic      Boolean  @default(false)
   lastChecked   DateTime @default(now())
+
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

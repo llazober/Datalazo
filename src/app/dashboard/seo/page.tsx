@@ -20,7 +20,8 @@ export default function SEODashboard() {
   const [newTerm, setNewTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [selectedContent, setSelectedContent] = useState<{ term: string; content: string } | null>(null);
+  const [selectedContent, setSelectedContent] = useState<{ id: string; term: string; content: string } | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     fetchKeywords();
@@ -77,6 +78,25 @@ export default function SEODashboard() {
     }
   };
 
+  const handlePublish = async (id: string) => {
+    setIsPublishing(true);
+    try {
+      const res = await fetch('/api/admin/seo/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywordId: id })
+      });
+      if (res.ok) {
+        setSelectedContent(null);
+        fetchKeywords();
+      }
+    } catch (err) {
+      console.error('Failed to publish content:', err);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -116,13 +136,18 @@ export default function SEODashboard() {
                >
                  Close Preview
                </button>
-               <button className="px-6 py-2 rounded-xl bg-cyan-500 text-black font-black uppercase text-sm shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                 Publish to Blog
+               <button 
+                onClick={() => handlePublish(selectedContent.id)}
+                disabled={isPublishing}
+                className="px-6 py-2 rounded-xl bg-cyan-500 text-black font-black uppercase text-sm shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50"
+               >
+                 {isPublishing ? 'Publishing...' : 'Publish to Blog'}
                </button>
             </div>
           </div>
         </div>
       )}
+
 
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
@@ -202,11 +227,12 @@ export default function SEODashboard() {
                   <td className="px-6 py-6 text-right">
                     {kw.status === 'PUBLISHED' ? (
                       <button 
-                        onClick={() => setSelectedContent({ term: kw.term, content: kw.content || '' })}
+                        onClick={() => setSelectedContent({ id: kw.id, term: kw.term, content: kw.content || '' })}
                         className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 transition-colors border border-emerald-500/10 hover:border-emerald-500/30 px-3 py-1.5 rounded-lg"
                       >
                         View AI Content
                       </button>
+
                     ) : (
                       <button 
                         onClick={() => generateContent(kw.id)}
