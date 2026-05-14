@@ -12,6 +12,7 @@ interface Appointment {
     company: string | null;
     email: string;
     phone: string | null;
+    notes: string | null;
     status: string;
   };
 }
@@ -21,6 +22,8 @@ const STATUS_OPTIONS = ['IN_REVIEW', 'CONTACTED', 'BOOKED', 'MAYBE', 'WON', 'LOS
 export default function BookingsDashboard() {
   const [bookings, setBookings] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -53,6 +56,26 @@ export default function BookingsDashboard() {
     }
   };
 
+  const saveNotes = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: selectedLead.notes }),
+      });
+      if (res.ok) {
+        setSelectedLead(null);
+        fetchBookings();
+      }
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const deleteLead = async (leadId: string) => {
     if (!confirm('Are you sure you want to delete this lead and all associated bookings?')) return;
     try {
@@ -67,8 +90,6 @@ export default function BookingsDashboard() {
     }
   };
 
-
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -78,7 +99,48 @@ export default function BookingsDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-8">
+    <div className="min-h-screen bg-[#050505] text-white p-8 relative">
+      {/* Modal Backdrop */}
+      {selectedLead && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass w-full max-w-2xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase tracking-tight italic">
+                Meeting Notes: <span className="text-cyan-400">{selectedLead.name}</span>
+              </h2>
+              <button onClick={() => setSelectedLead(null)} className="text-slate-400 hover:text-white transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <textarea 
+              value={selectedLead.notes || ''}
+              onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
+              placeholder="Type your meeting insights here..."
+              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
+            />
+
+            <div className="flex justify-end gap-4">
+              <button 
+                onClick={() => setSelectedLead(null)}
+                className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveNotes}
+                disabled={isSaving}
+                className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save Notes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -98,7 +160,7 @@ export default function BookingsDashboard() {
               <tr className="bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-white/10">
                 <th className="px-6 py-5">Date & Time</th>
                 <th className="px-6 py-5">Customer</th>
-                <th className="px-6 py-5">Contact</th>
+                <th className="px-6 py-5">Contact & Notes</th>
                 <th className="px-6 py-5">Status</th>
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
@@ -116,11 +178,16 @@ export default function BookingsDashboard() {
                     <div className="font-bold">{booking.lead.name}</div>
                     <div className="text-xs text-slate-400">{booking.lead.company || 'Private Individual'}</div>
                   </td>
-                  <td className="px-6 py-6">
+                  <td className="px-6 py-6 max-w-xs">
                     <div className="text-sm font-medium">{booking.lead.email}</div>
                     <div className={`text-xs mt-1 font-bold ${booking.lead.phone ? 'text-cyan-400' : 'text-slate-500 italic'}`}>
                       {booking.lead.phone || 'No phone provided'}
                     </div>
+                    {booking.lead.notes && (
+                      <div className="mt-2 text-[10px] text-slate-500 line-clamp-1 italic bg-white/5 px-2 py-1 rounded">
+                        "{booking.lead.notes}"
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-6">
                     <select 
@@ -141,14 +208,15 @@ export default function BookingsDashboard() {
                   </td>
                   <td className="px-6 py-6 text-right">
                     <div className="flex justify-end gap-3 items-center">
-                      <a 
-                        href={`/book?id=${booking.lead.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors border border-white/5 hover:border-white/20 px-3 py-1.5 rounded-lg"
+                      <button 
+                        onClick={() => setSelectedLead({ id: booking.lead.id, name: booking.lead.name, notes: booking.lead.notes || '' })}
+                        className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors border border-cyan-500/20 hover:border-cyan-500 px-3 py-1.5 rounded-lg flex items-center gap-2"
                       >
-                        View
-                      </a>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Notes
+                      </button>
                       <button 
                         onClick={() => deleteLead(booking.lead.id)}
                         className="text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors border border-red-500/10 hover:border-red-500/30 px-3 py-1.5 rounded-lg"
@@ -157,6 +225,7 @@ export default function BookingsDashboard() {
                       </button>
                     </div>
                   </td>
+
 
                 </tr>
               ))}
