@@ -35,14 +35,25 @@ export default async function DashboardPage() {
               Manage Bookings
             </a>
             <a 
+              href="/dashboard/seo"
+              className="px-4 py-2 bg-white/5 border border-white/10 text-cyan-400 text-sm font-bold rounded-lg hover:bg-white/10 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+              </svg>
+              SEO Matrix Manager
+            </a>
+            <a 
               href="/dashboard/seo/plan"
-              className="px-4 py-2 bg-white/5 border border-white/10 text-indigo-400 text-sm font-bold rounded-lg hover:bg-white/10 transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-white/5 border border-white/10 text-slate-400 text-sm font-bold rounded-lg hover:bg-white/10 transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
               SEO Matrix Roadmap
             </a>
+
             <button className="px-4 py-2 bg-accent-cyan text-black text-sm font-bold rounded-lg hover:bg-cyan-500 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
               Refresh Data
             </button>
