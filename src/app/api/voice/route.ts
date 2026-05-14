@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { searchKnowledge } from '@/lib/knowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,6 @@ export async function POST(req: Request) {
       });
 
       const userText = transcription.text;
-      const { searchKnowledge } = require('@/lib/knowledge');
       const knowledge = await searchKnowledge(userText);
       const knowledgePrompt = knowledge ? `\n\nKNOWLEDGE BASE INFO:\n${knowledge}` : "";
 

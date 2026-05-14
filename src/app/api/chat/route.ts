@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { searchKnowledge } from '@/lib/knowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,6 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY || '',
     });
     const { message, history } = await req.json();
-    const { searchKnowledge } = require('@/lib/knowledge');
 
     // Search Knowledge Base
     const knowledge = await searchKnowledge(message);
