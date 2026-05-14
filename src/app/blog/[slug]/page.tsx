@@ -6,10 +6,9 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 interface Props {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<any>;
 }
+
 
 export default async function BlogPost({ params }: Props) {
   const { slug } = await params;
