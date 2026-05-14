@@ -54,13 +54,10 @@ export default async function DashboardPage() {
               SEO Matrix Roadmap
             </a>
 
-            <button className="px-4 py-2 bg-accent-cyan text-black text-sm font-bold rounded-lg hover:bg-cyan-500 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              Refresh Data
-            </button>
 
           </div>
-
         </div>
+
 
         <LeadTable initialLeads={serializedLeads} />
       </div>
