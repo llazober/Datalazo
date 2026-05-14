@@ -8,9 +8,11 @@ interface Keyword {
   volume: number;
   difficulty: number;
   currentRank: number | null;
+  content: string | null;
   status: string;
   createdAt: string;
 }
+
 
 export default function SEODashboard() {
   const [keywords, setKeywords] = useState<Keyword[]>([]);
