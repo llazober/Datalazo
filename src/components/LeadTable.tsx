@@ -46,7 +46,8 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalized = status?.toUpperCase();
+    switch (normalized) {
       case 'WON': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       case 'LOST': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
       case 'MAYBE': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
@@ -61,9 +62,9 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: 'Total Leads', value: leads.length, color: 'text-white' },
-          { label: 'Won Deals', value: leads.filter(l => l.status === 'WON').length, color: 'text-emerald-400' },
-          { label: 'Pending', value: leads.filter(l => l.status === 'IN_REVIEW').length, color: 'text-amber-400' },
-          { label: 'Conversion', value: leads.length ? `${Math.round((leads.filter(l => l.status === 'WON').length / leads.length) * 100)}%` : '0%', color: 'text-cyan-400' }
+          { label: 'Won Deals', value: leads.filter(l => l.status?.toUpperCase() === 'WON').length, color: 'text-emerald-400' },
+          { label: 'Pending', value: leads.filter(l => l.status?.toUpperCase() === 'IN_REVIEW').length, color: 'text-amber-400' },
+          { label: 'Conversion', value: leads.length ? `${Math.round((leads.filter(l => l.status?.toUpperCase() === 'WON').length / leads.length) * 100)}%` : '0%', color: 'text-cyan-400' }
         ].map((stat, i) => (
           <div key={i} className="glass p-6">
             <div className="text-sm text-slate-400 mb-1">{stat.label}</div>
@@ -113,7 +114,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               <td className="py-4 px-4 text-slate-400 text-xs max-w-xs truncate">{lead.message}</td>
               <td className="py-4 px-4">
                 <select 
-                  value={lead.status}
+                  value={lead.status?.toUpperCase()}
                   onChange={(e) => handleStatusChange(lead.id, e.target.value)}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border bg-background outline-none cursor-pointer transition-all ${getStatusColor(lead.status)}`}
                 >

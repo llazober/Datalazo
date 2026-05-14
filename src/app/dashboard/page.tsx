@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import LeadTable from '@/components/LeadTable';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   try {
