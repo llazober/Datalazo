@@ -46,18 +46,22 @@ export async function POST(req: NextRequest) {
         const chunkEmbedding = Array.isArray(chunk.embedding) ? chunk.embedding : [];
         const score = similarity(queryEmbedding, chunkEmbedding);
         
-        // Safety Net: Keyword match
-        const queryWords = query.toLowerCase().split(' ');
-        const matchesWords = queryWords.some((word: string) => word.length > 3 && chunk.content.toLowerCase().includes(word));
+        // Aggressive Safety Net: Keyword match
+        const lowerQuery = query.toLowerCase();
+        const lowerContent = chunk.content.toLowerCase();
+        
+        // If the question and content share important words, boost the score!
+        const triggerWords = ['price', 'cost', 'fee', 'package', 'service', 'bot', 'ai', 'setup', 'cuanto', 'precio', 'costo'];
+        const hasTrigger = triggerWords.some(word => lowerQuery.includes(word) && lowerContent.includes(word));
         
         return {
           ...chunk,
-          score: matchesWords ? Math.max(score, 0.6) : score 
+          score: hasTrigger ? Math.max(score, 0.8) : score // Force 0.8 if keywords match
         };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
-      .filter(r => r.score > 0.2); // Only return decent matches
+      .filter(r => r.score > 0.1); 
 
     return NextResponse.json({ 
       success: true, 
