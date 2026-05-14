@@ -3,20 +3,22 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const { id, email, status } = await req.json();
+    const body = await req.json();
+    const { id, email, status } = body;
 
     if (!status) {
       return NextResponse.json({ error: 'Missing status' }, { status: 400 });
     }
 
-    let lead;
+    let lead = null;
 
-    // Try to find by ID first (Most Accurate)
+    // 1. Try finding by ID
     if (id) {
       lead = await prisma.lead.findUnique({ where: { id } });
-    } 
-    // Fallback to email (Less Accurate)
-    else if (email) {
+    }
+
+    // 2. If not found by ID, try finding by email (Fallback)
+    if (!lead && email) {
       lead = await prisma.lead.findFirst({
         where: { email },
         orderBy: { createdAt: 'desc' }
@@ -24,7 +26,13 @@ export async function POST(req: Request) {
     }
 
     if (!lead) {
-      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      const totalLeads = await prisma.lead.count();
+      return NextResponse.json({ 
+        error: 'Lead not found by ID or Email',
+        id_received: id || 'none',
+        email_received: email || 'none',
+        total_leads_in_db: totalLeads
+      }, { status: 404 });
     }
 
     const updatedLead = await prisma.lead.update({
@@ -39,6 +47,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Update Lead Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
