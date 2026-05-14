@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { leadId, date, timeSlot } = await req.json();
+    const { leadId, date, timeSlot, phone } = await req.json();
 
     if (!leadId || !date || !timeSlot) {
       return NextResponse.json({ error: 'Missing booking details' }, { status: 400 });
@@ -20,11 +20,15 @@ export async function POST(req: Request) {
       }
     });
 
-    // 2. Update the Lead status to BOOKED
+    // 2. Update the Lead status to BOOKED and save phone
     await prisma.lead.update({
       where: { id: leadId },
-      data: { status: 'BOOKED' }
+      data: { 
+        status: 'BOOKED',
+        phone: phone || undefined
+      }
     });
+
 
     // 3. Notify n8n
     const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || process.env.WEBHOOK_URL || '';
