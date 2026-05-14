@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
 
 export const dynamic = 'force-dynamic';
@@ -9,10 +9,8 @@ const rateLimitMap = new Map<string, { count: number, lastReset: number }>();
 
 export async function POST(req: Request) {
   try {
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || '',
-    });
     const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+
     const now = Date.now();
     const limit = 10;
     const windowMs = 60000;
