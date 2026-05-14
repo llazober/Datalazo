@@ -52,6 +52,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       case 'LOST': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
       case 'MAYBE': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'CONTACTED': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+      case 'BOOKED': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
@@ -120,6 +121,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 >
                   <option value="IN_REVIEW">In Review</option>
                   <option value="CONTACTED">Contacted</option>
+                  <option value="BOOKED">Booked 📅</option>
                   <option value="MAYBE">Maybe</option>
                   <option value="WON">Won</option>
                   <option value="LOST">Lost</option>

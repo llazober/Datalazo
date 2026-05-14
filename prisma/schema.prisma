@@ -10,15 +10,29 @@ datasource db {
 }
 
 model Lead {
+  id           String        @id @default(cuid())
+  name         String
+  email        String
+  company      String?
+  service      String
+  message      String?
+  status       String        @default("IN_REVIEW") // IN_REVIEW, PROCESSED, CONTACTED, BOOKED
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Appointment {
   id        String   @id @default(cuid())
-  name      String
-  email     String
-  company   String?
-  service   String
-  message   String?
-  status    String   @default("IN_REVIEW") // IN_REVIEW, PROCESSED, CONTACTED
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date      DateTime
+  timeSlot  String
+  status    String   @default("CONFIRMED") // CONFIRMED, CANCELLED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([leadId])
 }
 
 model Document {
