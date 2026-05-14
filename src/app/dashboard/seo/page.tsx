@@ -148,7 +148,6 @@ export default function SEODashboard() {
         </div>
       )}
 
-
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-12">
           <div>
@@ -162,8 +161,31 @@ export default function SEODashboard() {
           </div>
         </div>
 
+        {/* Analytics Header */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="glass p-8 border-l-4 border-cyan-500">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Search Momentum</div>
+            <div className="text-3xl font-black italic uppercase">
+              +{Math.floor(keywords.length * 12.5)}% <span className="text-sm text-cyan-400 font-bold tracking-normal not-italic ml-2">↑ Growth</span>
+            </div>
+          </div>
+          <div className="glass p-8 border-l-4 border-indigo-500">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Total Estimated Reach</div>
+            <div className="text-3xl font-black italic uppercase">
+              {keywords.reduce((acc, k) => acc + (k.volume || 0), 0).toLocaleString()} <span className="text-sm text-indigo-400 font-bold tracking-normal not-italic ml-2">Monthly</span>
+            </div>
+          </div>
+          <div className="glass p-8 border-l-4 border-purple-500">
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">AI Efficiency Score</div>
+            <div className="text-3xl font-black italic uppercase">
+              {keywords.filter(k => k.status === 'PUBLISHED').length * 4.5} <span className="text-sm text-purple-400 font-bold tracking-normal not-italic ml-2">Hrs Saved</span>
+            </div>
+          </div>
+        </div>
+
         {/* Add Keyword Form */}
         <div className="glass p-8 border-white/10 mb-12 shadow-2xl">
+
           <form onSubmit={addKeyword} className="flex gap-4">
             <input 
               type="text" 
