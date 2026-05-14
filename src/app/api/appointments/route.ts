@@ -27,21 +27,28 @@ export async function POST(req: Request) {
     });
 
     // 3. Notify n8n
-    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
-    fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        leadId,
-        status: 'BOOKED',
-        appointment: {
-          date,
-          timeSlot
-        }
-      }),
-    })
-    .then(res => console.log('n8n Booking Notification:', res.status))
-    .catch(err => console.error('n8n Booking notification failed:', err));
+    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || '';
+    
+    if (webhookUrl) {
+      try {
+        const n8nResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            status: 'BOOKED',
+            appointment: {
+              date,
+              timeSlot
+            }
+          }),
+        });
+        console.log('n8n Booking Response:', n8nResponse.status);
+      } catch (err) {
+        console.error('n8n Booking notification failed:', err);
+      }
+    }
+
 
 
     return NextResponse.json({ 

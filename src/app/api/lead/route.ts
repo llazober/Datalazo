@@ -22,20 +22,29 @@ export async function POST(req: Request) {
 
     console.log('Lead saved to DB:', newLead.id);
 
-    // 2. Notify n8n (from Environment Variable)
-    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
+    // 2. Notify n8n
+    // Fallback for potential typo in Easypanel settings (N8N_WEBHOOK_UR vs N8N_WEBHOOK_URL)
+    const webhookUrl = process.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_UR || '';
     
-    // We send the full newLead object which includes the REAL database ID
-    fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newLead,
-        lead_id: newLead.id 
-      }),
-    })
-    .then(res => console.log('n8n Response:', res.status, res.statusText))
-    .catch(err => console.error('n8n notification failed, but lead was saved:', err));
+    if (webhookUrl) {
+      console.log('Notifying n8n at:', webhookUrl);
+      try {
+        const n8nResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newLead,
+            lead_id: newLead.id 
+          }),
+        });
+        console.log('n8n Response Status:', n8nResponse.status);
+      } catch (err) {
+        console.error('n8n notification failed:', err);
+      }
+    } else {
+      console.warn('N8N_WEBHOOK_URL is not defined in environment variables.');
+    }
+
     
     return NextResponse.json({ success: true, id: newLead.id });
   } catch (error) {
