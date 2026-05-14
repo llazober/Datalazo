@@ -23,6 +23,8 @@ export async function POST(req: Request) {
       });
     }
 
+    const safeHistory = Array.isArray(history) ? history : [];
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -42,7 +44,7 @@ export async function POST(req: Request) {
           - Always encourage the user to fill out the "Get Started" form on the page for a custom consultation.
           - Be helpful but concise.${knowledgePrompt}` 
         },
-        ...history,
+        ...safeHistory,
         { role: "user", content: message }
       ],
     });
