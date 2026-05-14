@@ -6,13 +6,14 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 interface Props {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default async function BlogPost({ params }: Props) {
   const { slug } = await params;
+
 
   const post = await prisma.keyword.findUnique({
     where: { slug }
