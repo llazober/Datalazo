@@ -36,7 +36,39 @@ export const translations = {
       efficiency: "Efficiency",
       growth: "Growth Rank"
     },
+    seo_roadmap: {
+      tag: "Module 04: Growth Engine",
+      title: "AI SEO Matrix",
+      subtitle: "Roadmap",
+      description: "A self-operating growth system that monitors keywords, generates optimized content, and automates technical SEO to dominate search results.",
+      phases: [
+        {
+          id: "01",
+          title: "Intelligence & Discovery",
+          desc: "We integrate your domain with the search intelligence grid. The AI identifies 'Low-Hanging Fruit' keywords that your business can rank for instantly.",
+          features: ["Automated Keyword Research", "Competitor Gap Analysis"]
+        },
+        {
+          id: "02",
+          title: "Automated Content Engine",
+          desc: "The AI doesn't just write; it architecturally constructs content that Google loves, using your unique Knowledge Base for expert-level facts.",
+          features: ["Semantic Keyword Clustering", "Auto-Formatted H1-H4 Tags"]
+        },
+        {
+          id: "03",
+          title: "Technical Optimization Shield",
+          desc: "Continuous monitoring of site health. The Matrix fixes technical errors, optimizes meta descriptions, and updates internal links in real-time.",
+          features: ["Automated JSON-LD Schema", "Weekly Content Refreshing"]
+        }
+      ],
+      cta: {
+        title: "Unlock the Matrix",
+        desc: "Ready to deploy the Growth Engine for your brand? Contact our lead consultants to activate Module 04.",
+        button: "Activate Now"
+      }
+    },
     footer: "Datalazo Intelligence Agency. v2.1 | All rights reserved."
+
   },
   es: {
     nav: {
@@ -75,6 +107,38 @@ export const translations = {
       efficiency: "Eficiencia",
       growth: "Rango de Crecimiento"
     },
+    seo_roadmap: {
+      tag: "Módulo 04: Motor de Crecimiento",
+      title: "Matriz SEO IA",
+      subtitle: "Hoja de Ruta",
+      description: "Un sistema de crecimiento autónomo que monitorea palabras clave, genera contenido optimizado y automatiza el SEO técnico para dominar los resultados de búsqueda.",
+      phases: [
+        {
+          id: "01",
+          title: "Inteligencia y Descubrimiento",
+          desc: "Integramos su dominio con la red de inteligencia de búsqueda. La IA identifica palabras clave de 'oportunidad inmediata' para que su negocio posicione al instante.",
+          features: ["Investigación Automatizada de Palabras Clave", "Análisis de Brecha de Competencia"]
+        },
+        {
+          id: "02",
+          title: "Motor de Contenido Automatizado",
+          desc: "La IA no solo escribe; construye contenido arquitectónicamente optimizado para Google, utilizando su Base de Conocimiento exclusiva.",
+          features: ["Agrupación Semántica de Palabras Clave", "Etiquetas H1-H4 Auto-formateadas"]
+        },
+        {
+          id: "03",
+          title: "Escudo de Optimización Técnica",
+          desc: "Monitoreo continuo de la salud del sitio. La Matriz corrige errores técnicos, optimiza meta descripciones y actualiza enlaces internos en tiempo real.",
+          features: ["Esquema JSON-LD Automatizado", "Actualización Semanal de Contenido"]
+        }
+      ],
+      cta: {
+        title: "Desbloquee la Matriz",
+        desc: "¿Listo para desplegar el Motor de Crecimiento para su marca? Contacte a nuestros consultores para activar el Módulo 04.",
+        button: "Activar Ahora"
+      }
+    },
     footer: "Agencia de Inteligencia Datalazo. v2.1 | Todos los derechos reservados."
+
   }
 };

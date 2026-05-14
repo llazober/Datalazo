@@ -6,6 +6,7 @@ import LeadForm from "@/components/LeadForm";
 import Link from 'next/link';
 import VoiceAgent from "@/components/VoiceAgent";
 import ServiceEducationModal from "@/components/ServiceEducationModal";
+import SEORoadmap from "@/components/SEORoadmap";
 import { translations } from '@/lib/translations';
 
 export default function Home() {
@@ -27,7 +28,7 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="Datalazo Logo" className="w-12 h-12 rounded-xl" />
+            <img src="/logo.png" alt="Datalazo Logo" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:scale-105 transition-transform" />
           </Link>
           
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
@@ -53,7 +54,7 @@ export default function Home() {
             </div>
           </nav>
 
-          <Link href="/dashboard" className="px-5 py-2 glass text-sm font-semibold rounded-full hover:bg-white/10 transition-all">
+          <Link href="/dashboard" className="px-6 py-2.5 bg-accent-cyan text-black text-sm font-black uppercase tracking-widest rounded-full hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
             {t.nav.dashboard}
           </Link>
         </div>
@@ -97,6 +98,8 @@ export default function Home() {
         </div>
       </section>
 
+      {/* SEO Roadmap Section */}
+      <SEORoadmap lang={lang} content={t.seo_roadmap} />
 
       {/* Lead Generation Section */}
       <section id="contact" className="py-24 px-6">
@@ -151,3 +154,4 @@ export default function Home() {
     </div>
   );
 }
+
