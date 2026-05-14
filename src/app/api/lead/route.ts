@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
@@ -18,8 +20,8 @@ export async function POST(req: Request) {
 
     console.log('Lead saved to DB:', newLead.id);
 
-    // 2. Notify n8n (Production URL)
-    const N8N_WEBHOOK_URL = 'http://161.35.119.223:5678/webhook/lead-capture';
+    // 2. Notify n8n (from Environment Variable)
+    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || '';
     
     // We send the full newLead object which includes the REAL database ID
     fetch(N8N_WEBHOOK_URL, {

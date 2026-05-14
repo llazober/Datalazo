@@ -13,6 +13,7 @@ Because this project runs on a 2GB DigitalOcean droplet alongside **n8n**, the b
 - **Install Command**: Always use `npm ci` in Easypanel settings.
 - **Node Version**: The project is optimized for Node 22+.
 - **Memory Limit**: `nixpacks.toml` is configured to limit Node's memory usage to `1536MB`.
+- **Environment Variables**: Ensure `DATABASE_URL` and `N8N_WEBHOOK_URL` are set in Easypanel.
 
 ## Domains
 - **Production**: https://datalazo.net

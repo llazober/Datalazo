@@ -23,9 +23,15 @@ export default function LeadForm() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         setStatus('success');
-        // Reset to idle after 1 second so the form reappears
-        setTimeout(() => setStatus('idle'), 1000);
+        
+        // Redirect to the booking page after a short delay
+        if (result.id) {
+          setTimeout(() => {
+            window.location.href = `/book?id=${result.id}`;
+          }, 1500);
+        }
       } else {
         setStatus('error');
       }
