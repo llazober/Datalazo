@@ -11,8 +11,12 @@ export default function SEORoadmap({ lang, content }: SEORoadmapProps) {
   const t = content;
 
   return (
-    <section id="automation" className="py-24 px-6 bg-[#050505]">
-      <div className="max-w-5xl mx-auto">
+    <section id="automation" className="py-24 px-6 bg-[#050505] border-y border-white/5 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/5 blur-[120px] pointer-events-none" />
+      
+      <div className="max-w-5xl mx-auto relative z-10">
+
         {/* Header */}
         <div className="mb-16 text-center md:text-left">
           <div className="inline-block px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-6">
