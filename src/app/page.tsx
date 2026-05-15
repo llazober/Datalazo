@@ -150,9 +150,11 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5">
-        &copy; 2026 {t.footer}
+      <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5 flex flex-col items-center gap-2">
+        <p>&copy; 2026 {t.footer}</p>
+        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v2.6 — Automation Ready</span>
       </footer>
+
       <VoiceAgent />
     </div>
   );
