@@ -49,7 +49,8 @@ export async function POST(req: Request) {
       
       if (wonWebhookUrl) {
         try {
-          await fetch(wonWebhookUrl, {
+          console.log('Attempting to notify n8n at:', wonWebhookUrl);
+          const n8nRes = await fetch(wonWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -58,10 +59,11 @@ export async function POST(req: Request) {
               timestamp: new Date().toISOString()
             }),
           });
-          console.log('n8n WON Automation Triggered');
+          console.log('n8n WON Response Status:', n8nRes.status);
         } catch (err) {
-          console.error('n8n WON notification failed:', err);
+          console.error('CRITICAL: n8n WON notification failed:', err);
         }
+
       }
     }
 
