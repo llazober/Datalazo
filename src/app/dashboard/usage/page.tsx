@@ -1,12 +1,18 @@
 "use client";
 
-import React from 'react';
+import Link from 'next/link';
 import UsageDashboard from '@/components/UsageDashboard';
 
 export default function UsagePage() {
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div>
+        <Link href="/dashboard" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 mb-4 flex items-center gap-2 uppercase tracking-widest">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Overview
+        </Link>
         <h1 className="text-4xl font-black tracking-tighter uppercase italic mb-2 text-white">
           Intelligence <span className="text-indigo-400">Consumption Matrix</span>
         </h1>

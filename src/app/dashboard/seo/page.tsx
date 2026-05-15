@@ -227,8 +227,14 @@ export default function SEODashboard() {
       )}
 
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
           <div>
+            <Link href="/dashboard" className="text-xs font-bold text-cyan-500 hover:text-cyan-400 mb-4 flex items-center gap-2 uppercase tracking-widest">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Overview
+            </Link>
             <h1 className="text-4xl font-black tracking-tighter uppercase italic mb-2">
               SEO <span className="text-cyan-500">Matrix Manager</span>
             </h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Appointment {
   id: string;
@@ -99,7 +100,7 @@ export default function BookingsDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-8 relative">
+    <div className="min-h-screen bg-[#050505] text-white p-4 md:p-8 relative">
       {/* Modal Backdrop */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -142,8 +143,14 @@ export default function BookingsDashboard() {
       )}
 
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
           <div>
+            <Link href="/dashboard" className="text-xs font-bold text-cyan-500 hover:text-cyan-400 mb-4 flex items-center gap-2 uppercase tracking-widest">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Overview
+            </Link>
             <h1 className="text-4xl font-black tracking-tighter uppercase italic mb-2">
               Intelligence <span className="text-cyan-500">Dashboard</span>
             </h1>
@@ -154,8 +161,8 @@ export default function BookingsDashboard() {
           </div>
         </div>
 
-        <div className="glass overflow-hidden border-white/10 shadow-2xl">
-          <table className="w-full text-left border-collapse">
+        <div className="glass overflow-hidden border-white/10 shadow-2xl overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px] md:min-w-full">
             <thead>
               <tr className="bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-white/10">
                 <th className="px-6 py-5">Date & Time</th>
