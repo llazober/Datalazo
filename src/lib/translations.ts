@@ -67,7 +67,7 @@ export const translations = {
         button: "Activate Now"
       }
     },
-    footer: "Datalazo Intelligence Agency. v2.1 | All rights reserved."
+    footer: "Datalazo Intelligence Agency. v2.6 | All rights reserved."
 
   },
   es: {
@@ -138,7 +138,7 @@ export const translations = {
         button: "Activar Ahora"
       }
     },
-    footer: "Agencia de Inteligencia Datalazo. v2.1 | Todos los derechos reservados."
+    footer: "Agencia de Inteligencia Datalazo. v2.6 | Todos los derechos reservados."
 
   }
 };
