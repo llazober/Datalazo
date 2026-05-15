@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const { url } = await req.json();
+    console.log('Incoming audit request for URL:', url);
 
     // Ensure the URL is valid
     let targetUrl = url;
