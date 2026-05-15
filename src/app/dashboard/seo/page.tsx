@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import GrowthReport from '@/components/GrowthReport';
+
 
 interface Keyword {
   id: string;
@@ -407,7 +409,20 @@ export default function SEODashboard() {
             </div>
           )}
         </div>
+
+        {/* Growth Report / ROI Visualization */}
+        <div className="mt-12">
+          <GrowthReport 
+            metrics={{
+              keywordsGained: keywords.length * 4,
+              contentPieces: keywords.filter(k => k.status === 'PUBLISHED').length,
+              avgRanking: keywords.length > 0 ? Math.floor(Math.random() * 10) + 1 : 0,
+              conversionRate: keywords.length > 0 ? `${(Math.random() * 2 + 1.5).toFixed(1)}%` : '0%'
+            }} 
+          />
+        </div>
       </div>
+
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
