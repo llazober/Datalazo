@@ -24,17 +24,22 @@ export default function GrowthReport({ metrics }: { metrics: GrowthMetrics }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: 'Keywords Gained', value: `+${metrics.keywordsGained}`, color: 'text-emerald-400' },
-          { label: 'Content Pieces', value: metrics.contentPieces, color: 'text-white' },
-          { label: 'Avg. Ranking', value: `#${metrics.avgRanking}`, color: 'text-cyan-400' },
-          { label: 'Conversion', value: metrics.conversionRate, color: 'text-indigo-400' },
+          { label: 'Keywords Gained', value: `+${metrics.keywordsGained}`, color: 'text-emerald-400', info: 'KEYWORDS GAINED: This tracks your search footprint expansion. For every primary keyword we target, our Matrix helps you rank for 4+ related terms naturally.' },
+          { label: 'Content Pieces', value: metrics.contentPieces, color: 'text-white', info: 'CONTENT PIECES: This is your asset library. Each article is a digital asset that works 24/7 to capture search traffic and build brand authority.' },
+          { label: 'Avg. Ranking', value: `#${metrics.avgRanking}`, color: 'text-cyan-400', info: 'AVG. RANKING: This is the average position of your business on Google. We optimize your content to move this number closer to #1.' },
+          { label: 'Conversion', value: metrics.conversionRate, color: 'text-indigo-400', info: 'CONVERSION RATE: This is your revenue efficiency. We target high-intent keywords to ensure visitors turn into high-value leads.' },
         ].map((stat, i) => (
-          <div key={i} className="space-y-1">
+          <div 
+            key={i} 
+            onClick={() => alert(stat.info)}
+            className="space-y-1 cursor-help hover:bg-white/5 p-2 rounded-xl transition-all"
+          >
             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{stat.label}</p>
             <p className={`text-3xl font-black ${stat.color} italic tracking-tighter`}>{stat.value}</p>
           </div>
         ))}
       </div>
+
 
       <div className="pt-6 border-t border-white/5">
         <div className="flex items-center gap-4">
