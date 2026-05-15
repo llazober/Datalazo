@@ -1,4 +1,6 @@
 "use client";
+// v2.6.1 - SYNC HEARTBEAT: 2026-05-15
+
 
 import React, { useState } from 'react';
 import Hero from "@/components/Hero";
