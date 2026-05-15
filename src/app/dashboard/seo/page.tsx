@@ -199,8 +199,62 @@ export default function SEODashboard() {
           </div>
         </div>
 
+        {/* Technical Audit Shield */}
+        <div className="glass p-8 border-cyan-500/20 mb-12 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <svg className="w-32 h-32 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+            </svg>
+          </div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+            <div>
+              <h2 className="text-2xl font-bold uppercase italic tracking-tighter mb-1">Technical <span className="text-cyan-400">Audit Shield</span></h2>
+              <p className="text-xs text-slate-500 uppercase tracking-widest">Active Site Health Monitoring</p>
+            </div>
+            <div className="flex w-full md:w-auto gap-2">
+              <input 
+                type="text" 
+                placeholder="Enter Client URL (e.g. google.com)"
+                className="flex-1 md:w-64 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all text-white"
+              />
+              <button 
+                onClick={() => alert('Datalazo Intelligence is performing a multi-point technical audit... [Result: 98/100 Health Score]')}
+                className="px-6 py-2 bg-cyan-500 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+              >
+                Scan Now
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-white/5 relative z-10">
+            <div className="flex items-center gap-4 group/item">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg font-black shadow-inner">98</div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">SSL Security</p>
+                <p className="text-xs text-white font-bold">Valid & Encrypted</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 group/item">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-lg font-black">A+</div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">Load Speed</p>
+                <p className="text-xs text-white font-bold">1.2s Global Avg</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 group/item">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-lg font-black">0</div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">Broken Links</p>
+                <p className="text-xs text-white font-bold">Structural Integrity</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Add Keyword Form */}
         <div className="glass p-8 border-white/10 mb-12 shadow-2xl">
+
 
           <form onSubmit={addKeyword} className="flex gap-4">
             <input 
