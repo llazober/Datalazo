@@ -18,12 +18,13 @@ export default function GrowthReportPDF({ metrics, clientUrl }: PDFReportProps) 
       id="datalazo-report-template"
       className="p-12 bg-white text-black w-[800px] font-sans"
       style={{ 
-        position: 'fixed', 
-        top: '0', 
-        left: '-9999px', 
+        position: 'absolute', 
+        top: '-9999px', 
+        left: '0', 
         opacity: 1, 
         pointerEvents: 'none',
-        zIndex: -1
+        zIndex: -1,
+        width: '800px'
       }}
     >
 

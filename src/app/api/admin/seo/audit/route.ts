@@ -13,21 +13,30 @@ export async function POST(req: Request) {
       targetUrl = `https://${targetUrl}`;
     }
 
-    // Call Real Google PageSpeed Insights API
+    // Call Real Google PageSpeed Insights API with timeout
     const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY || '';
     const googleApiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=PERFORMANCE&category=ACCESSIBILITY&key=${apiKey}`;
 
-    const response = await fetch(googleApiUrl);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+
+    const response = await fetch(googleApiUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const data = await response.json();
 
     if (data.error) {
-      throw new Error(data.error.message);
+      throw new Error(`Google API Error: ${data.error.message}`);
+    }
+
+    if (!data.lighthouseResult) {
+      throw new Error('Incomplete data received from Google');
     }
 
     // Extract real metrics from Lighthouse result
     const lighthouse = data.lighthouseResult;
     const score = Math.round(lighthouse.categories.performance.score * 100);
-    const loadSpeed = lighthouse.audits['speed-index'].displayValue;
+    const loadSpeed = lighthouse.audits['speed-index']?.displayValue || 'N/A';
 
     const realResults = {
       url: targetUrl,

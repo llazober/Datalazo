@@ -155,15 +155,21 @@ export default function SEODashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: auditUrl })
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Audit service returned an error');
+      }
+
       const data = await res.json();
-      await new Promise(r => setTimeout(r, 2000));
       setAuditResults({
         score: data.score,
         speed: data.metrics.loadSpeed,
         links: data.metrics.brokenLinks
       });
-    } catch {
-      console.error('Audit failed');
+    } catch (err: any) {
+      console.error('Audit failed:', err);
+      alert(`Audit Failed: ${err.message || 'Check your internet or API key'}`);
     } finally {
       setIsAuditing(false);
     }
