@@ -17,6 +17,7 @@ export default function DashboardLayout({
         <nav className="flex-1 space-y-2">
           {[
             { name: 'Overview', path: '/dashboard' },
+            { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
             { name: 'Automation', path: '/dashboard/automation' },
             { name: 'Analytics', path: '/dashboard/analytics' },
@@ -26,6 +27,7 @@ export default function DashboardLayout({
               key={item.name}
               href={item.path}
               className={`block px-4 py-3 rounded-xl transition-colors ${
+                item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
                 item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -34,7 +36,7 @@ export default function DashboardLayout({
           ))}
         </nav>
 
-        <div className="pt-6 border-t border-white/10">
+        <div className="pt-6 border-t border-white/10 flex flex-col gap-4">
           <div className="flex items-center gap-3 px-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent-cyan to-accent-indigo" />
             <div className="text-sm">
@@ -42,6 +44,15 @@ export default function DashboardLayout({
               <div className="text-xs text-slate-500 text-ellipsis overflow-hidden">admin@datalazo.net</div>
             </div>
           </div>
+          <button 
+            onClick={() => {
+              document.cookie = "admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+              window.location.href = '/login';
+            }}
+            className="w-full px-4 py-2 bg-red-500/10 text-red-400 text-xs font-bold uppercase rounded-xl hover:bg-red-500/20 transition-all text-center"
+          >
+            Logout Security
+          </button>
         </div>
       </aside>
 

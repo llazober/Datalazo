@@ -1,7 +1,6 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import LeadTable from '@/components/LeadTable';
-import UsageDashboard from '@/components/UsageDashboard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -47,8 +46,6 @@ export default async function DashboardPage() {
             </a>
           </div>
         </div>
-
-        <UsageDashboard />
 
         <LeadTable initialLeads={serializedLeads} />
       </div>
