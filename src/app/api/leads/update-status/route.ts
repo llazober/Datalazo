@@ -42,6 +42,28 @@ export async function POST(req: Request) {
       data: { status }
     });
 
+    // 3. Notify n8n specifically for WON deals
+    if (status.toUpperCase() === 'WON') {
+      const webhookUrl = process.env.N8N_WEBHOOK_URL || '';
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'DEAL_WON',
+              lead: updatedLead,
+              timestamp: new Date().toISOString()
+            }),
+          });
+          console.log('n8n Automation Triggered for WON deal');
+        } catch (err) {
+          console.error('n8n WON notification failed:', err);
+        }
+      }
+    }
+
+
     return NextResponse.json({ 
       success: true, 
       message: `Lead status updated to ${status}`,

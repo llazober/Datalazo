@@ -23,10 +23,20 @@ The SEO Matrix is a self-operating growth system. It is divided into two parts: 
 3.  **Automatic Analysis**: The system immediately simulates search volume and competition difficulty. Focus on keywords with **High Volume** and **Low Difficulty**.
 
 ### ✍️ AI Content Generation
-1.  Once a keyword is added, click **"Generate AI Content"**.
-2.  **The Process**: The AI reads your **Knowledge Base** (the documents you've uploaded) and "architects" a 1,000-word SEO article.
-3.  **Review**: Once the status changes to `PUBLISHED`, click **"View AI Content"**.
-4.  **Premium Formatting**: All content is pre-formatted with HTML headers, meta descriptions, and authority-focused tone, ready for your blog.
+1.  **Generate**: Once a keyword is added, click **"Generate AI Content"**.
+2.  **Review**: Once the status changes to `PUBLISHED`, click **"View"**.
+3.  **Publish**: Click the cyan **"Publish to Blog"** button to go live.
+4.  **Maintenance**: Click **"Unpublish"** to hide an article from the blog without deleting it. Click the **Trash Icon** to remove a keyword entirely.
+
+---
+
+## 3. 💸 Sales & Automation (Module 03)
+Your dashboard is connected to **n8n** for advanced fulfillment.
+
+### 🏆 Marking a Deal as WON
+1.  In the **Lead Pipeline**, change a lead status to **"Won"**.
+2.  **Automation Trigger**: This instantly signals n8n to start the onboarding process (Welcome Email, Invoicing, etc.).
+
 
 ---
 
