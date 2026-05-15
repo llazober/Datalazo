@@ -74,9 +74,36 @@ async function handleRequest(
       data: { status },
     });
 
+    // --- N8N WON TRIGGER ---
+    if (status?.toUpperCase() === 'WON') {
+      const wonWebhookUrl = process.env.N8N_WON_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || '';
+      console.log('--- N8N AUTOMATION START (SINGULAR) ---');
+      console.log('TARGET URL:', wonWebhookUrl);
+
+      if (wonWebhookUrl) {
+        try {
+          await fetch(wonWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'DEAL_WON',
+              lead: updatedLead,
+              timestamp: new Date().toISOString()
+            }),
+          });
+          console.log('N8N NOTIFIED SUCCESS');
+        } catch (err: any) {
+          console.error('N8N NOTIFY ERROR:', err.message);
+        }
+      }
+      console.log('--- N8N AUTOMATION END ---');
+    }
+    // -----------------------
+
     console.log(`Lead ${id} updated successfully!`);
     return NextResponse.json(updatedLead);
   } catch (error) {
+
     console.error('API Error updating lead status:', error);
     return NextResponse.json({ 
       error: 'Failed to update lead status',
