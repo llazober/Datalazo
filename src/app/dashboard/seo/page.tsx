@@ -112,8 +112,35 @@ export default function SEODashboard() {
     }
   };
 
-  if (loading) {
+  const [auditUrl, setAuditUrl] = useState('');
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<{ score: number; speed: string; links: number } | null>(null);
 
+  const runAudit = async () => {
+    if (!auditUrl) return;
+    setIsAuditing(true);
+    try {
+      const res = await fetch('/api/admin/seo/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: auditUrl })
+      });
+      const data = await res.json();
+      // Artificial delay for "premium" feel
+      await new Promise(r => setTimeout(r, 2000));
+      setAuditResults({
+        score: data.score,
+        speed: data.metrics.loadSpeed,
+        links: data.metrics.brokenLinks
+      });
+    } catch (err) {
+      console.error('Audit failed:', err);
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
@@ -201,11 +228,9 @@ export default function SEODashboard() {
 
         {/* Technical Audit Shield */}
         <div className="glass p-8 border-cyan-500/20 mb-12 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-32 h-32 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-            </svg>
-          </div>
+          {isAuditing && (
+            <div className="absolute inset-0 bg-cyan-500/5 animate-pulse z-0" />
+          )}
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
             <div>
@@ -215,42 +240,52 @@ export default function SEODashboard() {
             <div className="flex w-full md:w-auto gap-2">
               <input 
                 type="text" 
+                value={auditUrl}
+                onChange={(e) => setAuditUrl(e.target.value)}
                 placeholder="Enter Client URL (e.g. google.com)"
                 className="flex-1 md:w-64 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all text-white"
               />
               <button 
-                onClick={() => alert('Datalazo Intelligence is performing a multi-point technical audit... [Result: 98/100 Health Score]')}
-                className="px-6 py-2 bg-cyan-500 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                onClick={runAudit}
+                disabled={isAuditing || !auditUrl}
+                className="px-6 py-2 bg-cyan-500 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
               >
-                Scan Now
+                {isAuditing ? 'Scanning...' : 'Scan Now'}
               </button>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-white/5 relative z-10">
             <div className="flex items-center gap-4 group/item">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg font-black shadow-inner">98</div>
+              <div className={`w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg font-black shadow-inner ${isAuditing ? 'animate-bounce' : ''}`}>
+                {auditResults ? auditResults.score : '--'}
+              </div>
               <div>
-                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">SSL Security</p>
-                <p className="text-xs text-white font-bold">Valid & Encrypted</p>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">Health Score</p>
+                <p className="text-xs text-white font-bold">{auditResults ? 'Optimized' : 'Pending Scan'}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 group/item">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-lg font-black">A+</div>
+              <div className={`w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-lg font-black ${isAuditing ? 'animate-pulse' : ''}`}>
+                {auditResults ? auditResults.speed : '--'}
+              </div>
               <div>
                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">Load Speed</p>
-                <p className="text-xs text-white font-bold">1.2s Global Avg</p>
+                <p className="text-xs text-white font-bold">{auditResults ? 'Global Average' : 'Awaiting Data'}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 group/item">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-lg font-black">0</div>
+              <div className={`w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-lg font-black`}>
+                {auditResults ? auditResults.links : '--'}
+              </div>
               <div>
                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-0.5">Broken Links</p>
-                <p className="text-xs text-white font-bold">Structural Integrity</p>
+                <p className="text-xs text-white font-bold">{auditResults ? 'Structural Issues' : 'No Data'}</p>
               </div>
             </div>
           </div>
         </div>
+
 
         {/* Add Keyword Form */}
         <div className="glass p-8 border-white/10 mb-12 shadow-2xl">
