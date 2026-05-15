@@ -38,7 +38,7 @@ export default function ChatAgent() {
       } else {
         throw new Error('No reply');
       }
-    } catch (error) {
+    } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm sorry, I encountered an error. Please try again later or contact support." }]);
     } finally {
       setIsLoading(false);

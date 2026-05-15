@@ -18,7 +18,7 @@ export async function searchKnowledge(query: string) {
     });
 
     // 3. Similarity check
-    const similarity = (vecA: any, vecB: any) => {
+    const similarity = (vecA: number[], vecB: number[]) => {
       if (!Array.isArray(vecA) || !Array.isArray(vecB)) return 0;
       const dotProduct = vecA.reduce((sum, a, i) => sum + a * (vecB[i] || 0), 0);
       const magA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
@@ -29,7 +29,7 @@ export async function searchKnowledge(query: string) {
 
     const results = chunks
       .map(chunk => {
-        const chunkEmbedding = Array.isArray(chunk.embedding) ? chunk.embedding : [];
+        const chunkEmbedding = Array.isArray(chunk.embedding) ? chunk.embedding as number[] : [];
         const score = similarity(queryEmbedding, chunkEmbedding);
         const lowerQuery = query.toLowerCase();
         const lowerContent = chunk.content.toLowerCase();

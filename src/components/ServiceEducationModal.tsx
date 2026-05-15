@@ -204,7 +204,7 @@ export default function ServiceEducationModal({ serviceTitle, onClose }: ModalPr
                   {detail.examples.map((ex, i) => (
                     <li key={i} className="space-y-1">
                       <p className="text-sm text-slate-200 leading-relaxed italic">
-                        "{ex}"
+                        &quot;{ex}&quot;
                       </p>
                     </li>
                   ))}

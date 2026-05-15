@@ -46,8 +46,8 @@ export default function SEODashboard() {
       const res = await fetch('/api/admin/seo/keywords');
       const data = await res.json();
       setKeywords(data);
-    } catch (err) {
-      console.error('Failed to fetch keywords:', err);
+    } catch {
+      console.error('Failed to fetch keywords');
     } finally {
       setLoading(false);
     }
@@ -67,8 +67,8 @@ export default function SEODashboard() {
         setNewTerm('');
         fetchKeywords();
       }
-    } catch (err) {
-      console.error('Failed to add keyword:', err);
+    } catch {
+      console.error('Failed to add keyword');
     } finally {
       setIsAdding(false);
     }
@@ -85,8 +85,8 @@ export default function SEODashboard() {
       if (res.ok) {
         fetchKeywords();
       }
-    } catch (err) {
-      console.error('Failed to generate content:', err);
+    } catch {
+      console.error('Failed to generate content');
     } finally {
       setGeneratingId(null);
     }
@@ -104,8 +104,8 @@ export default function SEODashboard() {
         setSelectedContent(null);
         fetchKeywords();
       }
-    } catch (err) {
-      console.error('Failed to publish content:', err);
+    } catch {
+      console.error('Failed to publish content');
     } finally {
       setIsPublishing(false);
     }
@@ -121,8 +121,8 @@ export default function SEODashboard() {
       if (res.ok) {
         fetchKeywords();
       }
-    } catch (err) {
-      console.error('Failed to unpublish content:', err);
+    } catch {
+      console.error('Failed to unpublish content');
     }
   };
 
@@ -141,7 +141,7 @@ export default function SEODashboard() {
       setAuditResults({
         score: 98,
         speed: '1.2s',
-        links: 0
+        links: 1
       });
       setIsAuditing(false);
       return;
@@ -161,8 +161,8 @@ export default function SEODashboard() {
         speed: data.metrics.loadSpeed,
         links: data.metrics.brokenLinks
       });
-    } catch (err) {
-      console.error('Audit failed:', err);
+    } catch {
+      console.error('Audit failed');
     } finally {
       setIsAuditing(false);
     }

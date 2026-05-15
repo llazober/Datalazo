@@ -1,5 +1,5 @@
 "use client";
-// v3.5 - INTELLIGENCE AGENCY: 2026-05-15
+// v3.6 - INTELLIGENCE AGENCY: 2026-05-15
 
 
 import React, { useState } from 'react';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 import VoiceAgent from "@/components/VoiceAgent";
 import ServiceEducationModal from "@/components/ServiceEducationModal";
 import SEORoadmap from "@/components/SEORoadmap";
+import Image from 'next/image';
 import { translations } from '@/lib/translations';
 
 export default function Home() {
@@ -30,7 +31,13 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/5 bg-background/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="Datalazo Logo" className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" />
+            <Image 
+              src="/logo.png" 
+              alt="Datalazo Logo" 
+              width={128} 
+              height={128}
+              className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
+            />
           </Link>
 
           
@@ -154,7 +161,7 @@ export default function Home() {
 
       <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5 flex flex-col items-center gap-2">
         <p>&copy; 2026 {t.footer}</p>
-        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v3.5 — Intelligence Agency Edition</span>
+        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v3.6 — Intelligence Agency Edition</span>
       </footer>
 
       <VoiceAgent />

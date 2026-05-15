@@ -36,7 +36,7 @@ export async function processDocument(documentId: string, text: string) {
         data: {
           documentId,
           content: chunkContent,
-          embedding: embedding as any, // Saving as JSON
+          embedding: embedding as number[], // Saving as JSON
         },
       });
     }

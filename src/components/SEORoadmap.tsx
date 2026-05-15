@@ -2,12 +2,32 @@
 
 import React from 'react';
 
-interface SEORoadmapProps {
-  lang: 'en' | 'es';
-  content: any;
+interface SEORoadmapPhase {
+  id: string;
+  title: string;
+  desc: string;
+  features: string[];
 }
 
-export default function SEORoadmap({ lang, content }: SEORoadmapProps) {
+interface SEORoadmapContent {
+  tag: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  phases: SEORoadmapPhase[];
+  cta: {
+    title: string;
+    desc: string;
+    button: string;
+  };
+}
+
+interface SEORoadmapProps {
+  lang: 'en' | 'es';
+  content: SEORoadmapContent;
+}
+
+export default function SEORoadmap({ content }: SEORoadmapProps) {
   const t = content;
 
   return (
@@ -32,7 +52,7 @@ export default function SEORoadmap({ lang, content }: SEORoadmapProps) {
 
         {/* Roadmap Steps */}
         <div className="grid grid-cols-1 gap-8">
-          {t.phases.map((phase: any, index: number) => (
+          {t.phases.map((phase, index) => (
             <div 
               key={index}
               className={`glass p-10 border-white/5 hover:border-cyan-500/30 transition-all group relative overflow-hidden`}

@@ -97,7 +97,7 @@ export default function GrowthReportPDF({ metrics, clientUrl }: PDFReportProps) 
       {/* Footer */}
       <div className="mt-20 pt-8 border-t border-gray-100 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">
-          Confidential Intelligence Report | Datalazo v3.0
+          Confidential Intelligence Report | Datalazo v3.6
         </p>
       </div>
     </div>

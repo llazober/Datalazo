@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +34,8 @@ export default function LoginPage() {
         window.location.href = '/dashboard';
       }
 
-    } catch (err) {
-      console.error('Login Fetch Error:', err);
+    } catch {
+      console.error('Login Fetch Error');
       setError('Connection failed. Please check your internet or server logs.');
     } finally {
       setIsLoading(false);
@@ -51,7 +50,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <Link href="/" className="inline-block mb-8">
-            <img src="/logo.png" alt="Datalazo Logo" className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(6,182,212,0.2)]" />
+            <Image 
+              src="/logo.png" 
+              alt="Datalazo Logo" 
+              width={80} 
+              height={80} 
+              className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(6,182,212,0.2)]" 
+            />
           </Link>
           <h1 className="text-3xl font-black tracking-tighter uppercase italic text-white">
             Admin <span className="text-cyan-500">Access</span>

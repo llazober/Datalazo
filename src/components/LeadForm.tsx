@@ -42,7 +42,7 @@ export default function LeadForm() {
           </svg>
         </div>
         <h3 className="text-2xl font-bold mb-2">Request Received!</h3>
-        <p className="text-slate-400 mb-8">Please check your email. We've sent you a link to schedule your AI Audit and finalize your request.</p>
+        <p className="text-slate-400 mb-8">Please check your email. We&apos;ve sent you a link to schedule your AI Audit and finalize your request.</p>
         <button 
           onClick={() => setStatus('idle')}
           className="px-8 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all font-medium border border-white/10"
