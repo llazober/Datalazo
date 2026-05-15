@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import GrowthReport from '@/components/GrowthReport';
 import InfoModal from '@/components/InfoModal';
 
