@@ -129,10 +129,25 @@ export default function SEODashboard() {
   const [auditUrl, setAuditUrl] = useState('');
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<{ score: number; speed: string; links: number } | null>(null);
+  const [isLiveMode, setIsLiveMode] = useState(false);
 
   const runAudit = async () => {
     if (!auditUrl) return;
     setIsAuditing(true);
+    
+    if (!isLiveMode) {
+      // TEST MODE: Simulated perfect result
+      await new Promise(r => setTimeout(r, 1500));
+      setAuditResults({
+        score: 98,
+        speed: '1.2s',
+        links: 0
+      });
+      setIsAuditing(false);
+      return;
+    }
+
+    // LIVE MODE: Real API Call
     try {
       const res = await fetch('/api/admin/seo/audit', {
         method: 'POST',
@@ -140,7 +155,6 @@ export default function SEODashboard() {
         body: JSON.stringify({ url: auditUrl })
       });
       const data = await res.json();
-      // Artificial delay for "premium" feel
       await new Promise(r => setTimeout(r, 2000));
       setAuditResults({
         score: data.score,
@@ -260,8 +274,20 @@ export default function SEODashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
             <div>
               <h2 className="text-2xl font-bold uppercase italic tracking-tighter mb-1">Technical <span className="text-cyan-400">Audit Shield</span></h2>
-              <p className="text-xs text-slate-500 uppercase tracking-widest">Active Site Health Monitoring</p>
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Active Site Health Monitoring</p>
+                <div className="h-1 w-1 rounded-full bg-slate-700" />
+                <button 
+                  onClick={() => setIsLiveMode(!isLiveMode)}
+                  className={`text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border transition-all ${
+                    isLiveMode ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-white/5 text-slate-400 border-white/10'
+                  }`}
+                >
+                  {isLiveMode ? 'Mode: LIVE' : 'Mode: TEST'}
+                </button>
+              </div>
             </div>
+
             <div className="flex w-full md:w-auto gap-2">
               <input 
                 type="text" 

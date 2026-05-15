@@ -17,8 +17,16 @@ export default function GrowthReportPDF({ metrics, clientUrl }: PDFReportProps) 
     <div 
       id="datalazo-report-template"
       className="p-12 bg-white text-black w-[800px] font-sans"
-      style={{ position: 'fixed', left: '-9999px', top: 0 }}
+      style={{ 
+        position: 'absolute', 
+        top: '0', 
+        left: '0', 
+        opacity: 0, 
+        pointerEvents: 'none',
+        zIndex: -1
+      }}
     >
+
       {/* Header */}
       <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-10">
         <div>
