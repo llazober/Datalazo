@@ -184,7 +184,7 @@ export default function SEODashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-8">
+    <div className="min-h-screen bg-[#050505] text-white p-4 md:p-8">
       {/* Content Viewer Modal */}
       {selectedContent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -371,8 +371,8 @@ export default function SEODashboard() {
         </div>
 
         {/* Keywords Table */}
-        <div className="glass overflow-hidden border-white/10 shadow-2xl">
-          <table className="w-full text-left border-collapse">
+        <div className="glass overflow-hidden border-white/10 shadow-2xl overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[800px] md:min-w-full">
             <thead>
               <tr className="bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-white/10">
                 <th className="px-6 py-5">Keyword Term</th>
