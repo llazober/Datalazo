@@ -327,13 +327,29 @@ export default function SEODashboard() {
             <thead>
               <tr className="bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-white/10">
                 <th className="px-6 py-5">Keyword Term</th>
-                <th className="px-6 py-5">Volume</th>
-                <th className="px-6 py-5">Difficulty</th>
-                <th className="px-6 py-5">Current Rank</th>
+                <th 
+                  onClick={() => alert('MONTHLY VOLUME: This is the estimated number of people searching for this exact term every 30 days. We target high-volume terms to maximize your brand exposure.')}
+                  className="px-6 py-5 cursor-help hover:text-white transition-colors"
+                >
+                  Volume
+                </th>
+                <th 
+                  onClick={() => alert('COMPETITION DIFFICULTY: This represents how hard it is to rank on Page 1. Green (Low) means easy wins; Red (High) means we need more authority content.')}
+                  className="px-6 py-5 cursor-help hover:text-white transition-colors"
+                >
+                  Difficulty
+                </th>
+                <th 
+                  onClick={() => alert('GOOGLE POSITION: This is where the client ranks today. Our goal is to move this number closer to #1 through AI-driven content authority.')}
+                  className="px-6 py-5 cursor-help hover:text-white transition-colors"
+                >
+                  Current Rank
+                </th>
                 <th className="px-6 py-5">Status</th>
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-white/5">
               {keywords.map((kw) => (
                 <tr key={kw.id} className="hover:bg-white/[0.02] transition-colors group">
