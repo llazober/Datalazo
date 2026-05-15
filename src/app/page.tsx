@@ -1,5 +1,5 @@
 "use client";
-// v3.0 - THE GROWTH MATRIX: 2026-05-15
+// v3.5 - INTELLIGENCE AGENCY: 2026-05-15
 
 
 import React, { useState } from 'react';
@@ -154,7 +154,7 @@ export default function Home() {
 
       <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5 flex flex-col items-center gap-2">
         <p>&copy; 2026 {t.footer}</p>
-        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v3.0 — The Growth Matrix</span>
+        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v3.5 — Intelligence Agency Edition</span>
       </footer>
 
       <VoiceAgent />
