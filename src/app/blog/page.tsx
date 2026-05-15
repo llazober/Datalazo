@@ -76,7 +76,7 @@ export default async function BlogIndex() {
       </main>
 
       <footer className="py-20 text-center border-t border-white/5">
-        <p className="text-slate-500 text-xs uppercase tracking-widest">Datalazo Intelligence Agency | v2.5</p>
+        <p className="text-slate-500 text-xs uppercase tracking-widest">Datalazo Intelligence Agency | v3.6</p>
       </footer>
     </div>
   );
