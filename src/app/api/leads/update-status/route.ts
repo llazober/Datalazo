@@ -44,12 +44,13 @@ export async function POST(req: Request) {
 
     // 3. Notify n8n specifically for WON deals
     if (status.toUpperCase() === 'WON') {
-      // Use a dedicated WON webhook if it exists, otherwise fallback to the main one
       const wonWebhookUrl = process.env.N8N_WON_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || '';
       
+      console.log('--- N8N AUTOMATION START ---');
+      console.log('TARGET URL:', wonWebhookUrl);
+
       if (wonWebhookUrl) {
         try {
-          console.log('Attempting to notify n8n at:', wonWebhookUrl);
           const n8nRes = await fetch(wonWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -59,13 +60,16 @@ export async function POST(req: Request) {
               timestamp: new Date().toISOString()
             }),
           });
-          console.log('n8n WON Response Status:', n8nRes.status);
-        } catch (err) {
-          console.error('CRITICAL: n8n WON notification failed:', err);
+          console.log('RESULT STATUS:', n8nRes.status);
+        } catch (err: any) {
+          console.error('N8N ERROR:', err.message);
         }
-
+      } else {
+        console.log('WARNING: No N8N_WON_WEBHOOK_URL found in Environment Variables');
       }
+      console.log('--- N8N AUTOMATION END ---');
     }
+
 
 
 
