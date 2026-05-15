@@ -74,8 +74,8 @@ export default function DashboardLayout({
             </div>
           </div>
           <button 
-            onClick={() => {
-              document.cookie = "admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
               window.location.href = '/login';
             }}
             className="w-full px-4 py-2 bg-red-500/10 text-red-400 text-xs font-bold uppercase rounded-xl hover:bg-red-500/20 transition-all text-center"
