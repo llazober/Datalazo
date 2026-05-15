@@ -273,20 +273,23 @@ export default function SEODashboard() {
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
             <div>
-              <h2 className="text-2xl font-bold uppercase italic tracking-tighter mb-1">Technical <span className="text-cyan-400">Audit Shield</span></h2>
-              <div className="flex items-center gap-3">
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Active Site Health Monitoring</p>
-                <div className="h-1 w-1 rounded-full bg-slate-700" />
+              <h2 className="text-2xl font-bold uppercase italic tracking-tighter mb-2">Technical <span className="text-cyan-400">Audit Shield</span></h2>
+              <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setIsLiveMode(!isLiveMode)}
-                  className={`text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border transition-all ${
-                    isLiveMode ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-white/5 text-slate-400 border-white/10'
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${
+                    isLiveMode 
+                      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
+                      : 'bg-white/5 text-slate-500 border-white/10'
                   }`}
                 >
-                  {isLiveMode ? 'Mode: LIVE' : 'Mode: TEST'}
+                  <div className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-cyan-400 animate-pulse' : 'bg-slate-700'}`} />
+                  {isLiveMode ? 'System: LIVE' : 'System: TEST'}
                 </button>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest opacity-50">Active Radar</p>
               </div>
             </div>
+
 
             <div className="flex w-full md:w-auto gap-2">
               <input 
