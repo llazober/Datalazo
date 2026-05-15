@@ -81,3 +81,15 @@ model DocumentChunk {
 
   @@index([documentId])
 }
+
+model TokenUsage {
+  id               String   @id @default(cuid())
+  feature          String   // e.g., "SEO_CONTENT", "CHAT", "VOICE"
+  model            String   // e.g., "gpt-4o", "gpt-3.5-turbo"
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  estimatedCost    Float    @default(0)
+  createdAt        DateTime @default(now())
+}
+

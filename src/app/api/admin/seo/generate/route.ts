@@ -74,6 +74,22 @@ export async function POST(req: NextRequest) {
 
     const generatedContent = response.choices[0].message.content;
 
+    // Save Token Usage
+    const usage = response.usage;
+    if (usage) {
+      const estimatedCost = (usage.prompt_tokens * 0.000005) + (usage.completion_tokens * 0.000015);
+      await prisma.tokenUsage.create({
+        data: {
+          feature: 'SEO_CONTENT',
+          model: 'gpt-4o',
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalTokens: usage.total_tokens,
+          estimatedCost: estimatedCost
+        }
+      });
+    }
+
     // 4. Update Keyword with content
     const updatedKeyword = await prisma.keyword.update({
       where: { id: keywordId },

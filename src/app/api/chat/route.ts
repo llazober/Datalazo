@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     const { message, history } = await req.json();
-
 
     // Search Knowledge Base
     const knowledge = await searchKnowledge(message);
@@ -47,7 +47,25 @@ export async function POST(req: Request) {
       ],
     });
 
-    return NextResponse.json({ reply: response.choices[0].message.content });
+    const reply = response.choices[0].message.content;
+
+    // Save Token Usage
+    const usage = response.usage;
+    if (usage) {
+      const estimatedCost = (usage.prompt_tokens * 0.00000015) + (usage.completion_tokens * 0.0000006);
+      await prisma.tokenUsage.create({
+        data: {
+          feature: 'CHAT',
+          model: 'gpt-4o-mini',
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalTokens: usage.total_tokens,
+          estimatedCost: estimatedCost
+        }
+      });
+    }
+
+    return NextResponse.json({ reply });
   } catch (error) {
     console.error('Chat API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
