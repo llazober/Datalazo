@@ -15,6 +15,7 @@ import { translations } from '@/lib/translations';
 export default function Home() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const t = translations[lang];
 
   return (
@@ -36,18 +37,17 @@ export default function Home() {
               alt="Datalazo Logo" 
               width={128} 
               height={128}
-              className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
+              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
             />
           </Link>
 
-          
+          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#services" className="hover:text-accent-cyan transition-colors">{t.nav.services}</a>
             <a href="#automation" className="hover:text-accent-cyan transition-colors">{t.nav.automation}</a>
             <Link href="/blog" className="hover:text-accent-cyan transition-colors">Blog</Link>
             <a href="#contact" className="hover:text-accent-cyan transition-colors">{t.nav.contact}</a>
 
-            
             <div className="h-4 w-[1px] bg-white/10 mx-2" />
             
             <div className="flex gap-2">
@@ -66,10 +66,50 @@ export default function Home() {
             </div>
           </nav>
 
-          <Link href="/dashboard" className="px-6 py-2.5 bg-accent-cyan text-black text-sm font-black uppercase tracking-widest rounded-full hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-            {t.nav.dashboard}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="hidden sm:block px-6 py-2.5 bg-accent-cyan text-black text-sm font-black uppercase tracking-widest rounded-full hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+              {t.nav.dashboard}
+            </Link>
+            
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"} />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-[#0a0a0c] border-b border-white/10 p-6 animate-in slide-in-from-top duration-300 shadow-2xl">
+            <nav className="flex flex-col gap-6 text-lg font-bold">
+              <a href="#services" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.services}</a>
+              <a href="#automation" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.automation}</a>
+              <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">Blog</Link>
+              <a href="#contact" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.contact}</a>
+              <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="text-accent-cyan uppercase italic">{t.nav.dashboard}</Link>
+              
+              <div className="flex gap-4 pt-4 border-t border-white/5">
+                <button 
+                  onClick={() => { setLang('en'); setIsMenuOpen(false); }}
+                  className={`px-4 py-2 rounded-xl border transition-all ${lang === 'en' ? 'border-accent-cyan text-accent-cyan bg-accent-cyan/10' : 'border-white/10 text-slate-500'}`}
+                >
+                  English
+                </button>
+                <button 
+                  onClick={() => { setLang('es'); setIsMenuOpen(false); }}
+                  className={`px-4 py-2 rounded-xl border transition-all ${lang === 'es' ? 'border-accent-cyan text-accent-cyan bg-accent-cyan/10' : 'border-white/10 text-slate-500'}`}
+                >
+                  Español
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
