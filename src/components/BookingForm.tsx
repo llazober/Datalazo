@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 
+import CalendarPicker from './CalendarPicker';
+
 interface BookingFormProps {
   leadId: string | null;
 }
@@ -84,14 +86,12 @@ export default function BookingForm({ leadId }: BookingFormProps) {
         {/* Date Selection */}
         <div className="space-y-4">
           <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest">1. Select a Date</label>
-          <input 
-            type="date" 
-            min={new Date().toISOString().split('T')[0]}
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-accent-cyan transition-all cursor-pointer hover:bg-white/[0.07]"
+          <CalendarPicker 
+            selectedDate={selectedDate} 
+            onDateSelect={(date) => setSelectedDate(date)} 
           />
         </div>
+
 
         {/* Time Slot Selection */}
         <div className="space-y-4">

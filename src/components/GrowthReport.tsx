@@ -1,0 +1,49 @@
+"use client";
+
+import React from 'react';
+
+interface GrowthMetrics {
+  keywordsGained: number;
+  contentPieces: number;
+  avgRanking: number;
+  conversionRate: string;
+}
+
+export default function GrowthReport({ metrics }: { metrics: GrowthMetrics }) {
+  return (
+    <div className="glass p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-1000">
+      <div className="flex justify-between items-center border-b border-white/5 pb-6">
+        <div>
+          <h2 className="text-2xl font-bold uppercase italic tracking-tighter">Growth <span className="text-accent-cyan">Intelligence</span></h2>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.3em]">Module 04 Output • Confidential</p>
+        </div>
+        <button className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border border-white/10">
+          Export PDF
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: 'Keywords Gained', value: `+${metrics.keywordsGained}`, color: 'text-emerald-400' },
+          { label: 'Content Pieces', value: metrics.contentPieces, color: 'text-white' },
+          { label: 'Avg. Ranking', value: `#${metrics.avgRanking}`, color: 'text-cyan-400' },
+          { label: 'Conversion', value: metrics.conversionRate, color: 'text-indigo-400' },
+        ].map((stat, i) => (
+          <div key={i} className="space-y-1">
+            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{stat.label}</p>
+            <p className={`text-3xl font-black ${stat.color} italic tracking-tighter`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-6 border-t border-white/5">
+        <div className="flex items-center gap-4">
+          <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-accent-cyan to-accent-indigo w-[85%] shadow-[0_0_20px_rgba(6,182,212,0.5)]" />
+          </div>
+          <span className="text-xs font-black text-accent-cyan">85% OPTIMIZED</span>
+        </div>
+      </div>
+    </div>
+  );
+}
