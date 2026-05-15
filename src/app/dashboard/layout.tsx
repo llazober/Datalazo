@@ -50,9 +50,6 @@ export default function DashboardLayout({
             { name: 'Overview', path: '/dashboard' },
             { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
-            { name: 'Automation', path: '/dashboard/automation' },
-            { name: 'Analytics', path: '/dashboard/analytics' },
-            { name: 'Settings', path: '/dashboard/settings' }
           ].map((item) => (
             <Link
               key={item.name}

@@ -45,6 +45,25 @@ export default function ChatAgent() {
     }
   };
 
+  const formatMessage = (content: string) => {
+    // Basic markdown-like formatting
+    return content.split('\n').map((line, i) => {
+      // Handle bold text **bold**
+      const formattedLine = line.split(/(\*\*.*?\*\*)/).map((part, j) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+
+      return (
+        <div key={i} className={line.trim().startsWith('-') || line.trim().match(/^\d+\./) ? 'ml-2 mb-1' : 'mb-2'}>
+          {formattedLine}
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-[100]">
       {/* Chat Window */}
@@ -63,12 +82,12 @@ export default function ChatAgent() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
                   m.role === 'user' 
-                    ? 'bg-accent-indigo text-white' 
-                    : 'bg-white/10 text-slate-200'
+                    ? 'bg-accent-indigo text-white shadow-lg' 
+                    : 'bg-white/10 text-slate-200 border border-white/5 shadow-inner'
                 }`}>
-                  {m.content}
+                  {formatMessage(m.content)}
                 </div>
               </div>
             ))}
