@@ -44,6 +44,7 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#services" className="hover:text-accent-cyan transition-colors">{t.nav.services}</a>
             <a href="#automation" className="hover:text-accent-cyan transition-colors">{t.nav.automation}</a>
+            <Link href="/blog" className="hover:text-accent-cyan transition-colors">Blog</Link>
             <a href="#contact" className="hover:text-accent-cyan transition-colors">{t.nav.contact}</a>
 
             
