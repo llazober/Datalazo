@@ -44,10 +44,12 @@ export async function POST(req: Request) {
 
     // 3. Notify n8n specifically for WON deals
     if (status.toUpperCase() === 'WON') {
-      const webhookUrl = process.env.N8N_WEBHOOK_URL || '';
-      if (webhookUrl) {
+      // Use a dedicated WON webhook if it exists, otherwise fallback to the main one
+      const wonWebhookUrl = process.env.N8N_WON_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || '';
+      
+      if (wonWebhookUrl) {
         try {
-          await fetch(webhookUrl, {
+          await fetch(wonWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -56,12 +58,13 @@ export async function POST(req: Request) {
               timestamp: new Date().toISOString()
             }),
           });
-          console.log('n8n Automation Triggered for WON deal');
+          console.log('n8n WON Automation Triggered');
         } catch (err) {
           console.error('n8n WON notification failed:', err);
         }
       }
     }
+
 
 
     return NextResponse.json({ 
