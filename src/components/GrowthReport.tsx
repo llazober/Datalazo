@@ -18,15 +18,20 @@ export default function GrowthReport({ metrics, onInfo }: { metrics: GrowthMetri
   const generatePDF = async () => {
     setIsGenerating(true);
     try {
+      console.log('Starting PDF generation...');
       const element = document.getElementById('datalazo-report-template');
-      if (!element) return;
+      if (!element) {
+        console.error('PDF template not found');
+        return;
+      }
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
       });
       
+      console.log('Canvas generated, creating PDF...');
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -36,6 +41,7 @@ export default function GrowthReport({ metrics, onInfo }: { metrics: GrowthMetri
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
       pdf.save(`Datalazo_ROI_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      console.log('PDF saved successfully');
     } catch (err) {
       console.error('PDF Generation failed:', err);
     } finally {

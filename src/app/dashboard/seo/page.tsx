@@ -136,12 +136,13 @@ export default function SEODashboard() {
     setIsAuditing(true);
     
     if (!isLiveMode) {
-      // TEST MODE: Simulated perfect result
+      // TEST MODE: Varied simulated result
       await new Promise(r => setTimeout(r, 1500));
+      const mockScore = Math.floor(Math.random() * 15) + 85; // 85-100
       setAuditResults({
-        score: 98,
-        speed: '1.2s',
-        links: 1
+        score: mockScore,
+        speed: `${(Math.random() * 0.8 + 0.8).toFixed(1)}s`, // 0.8s - 1.6s
+        links: Math.floor(Math.random() * 3)
       });
       setIsAuditing(false);
       return;
@@ -304,7 +305,7 @@ export default function SEODashboard() {
                 disabled={isAuditing || !auditUrl}
                 className="px-6 py-2 bg-cyan-500 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
               >
-                {isAuditing ? 'Scanning...' : 'Scan Now'}
+                {isAuditing ? (isLiveMode ? 'Contacting Google...' : 'Scanning...') : 'Scan Now'}
               </button>
             </div>
           </div>
