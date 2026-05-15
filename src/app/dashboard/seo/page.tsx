@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import GrowthReport from '@/components/GrowthReport';
-
+import InfoModal from '@/components/InfoModal';
 
 interface Keyword {
   id: string;
@@ -24,6 +24,18 @@ export default function SEODashboard() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<{ id: string; term: string; content: string } | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Info Modal State
+  const [infoModal, setInfoModal] = useState<{ isOpen: boolean; title: string; content: string }>({
+    isOpen: false,
+    title: '',
+    content: ''
+  });
+
+  const showInfo = (title: string, content: string) => {
+    setInfoModal({ isOpen: true, title, content });
+  };
+
 
   useEffect(() => {
     fetchKeywords();
@@ -209,7 +221,7 @@ export default function SEODashboard() {
         {/* Analytics Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div 
-            onClick={() => alert('SEARCH MOMENTUM: This represents your SEO force multiplier. Adding a keyword through Datalazo increases your search velocity by 12.5% compared to traditional manual methods.')}
+            onClick={() => showInfo('Search Momentum', 'Search Momentum represents your SEO force multiplier. Adding a keyword through Datalazo increases your search velocity by 12.5% compared to traditional manual methods.')}
             className="glass p-8 border-l-4 border-cyan-500 cursor-help hover:bg-white/[0.05] transition-all"
           >
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Search Momentum</div>
@@ -218,7 +230,7 @@ export default function SEODashboard() {
             </div>
           </div>
           <div 
-            onClick={() => alert('ESTIMATED REACH: This is the real-time sum of monthly search volume across your entire Keyword Matrix. It represents your total potential audience footprint.')}
+            onClick={() => showInfo('Estimated Reach', 'Total Estimated Reach is the real-time sum of monthly search volume across your entire Keyword Matrix. It represents your total potential audience footprint.')}
             className="glass p-8 border-l-4 border-indigo-500 cursor-help hover:bg-white/[0.05] transition-all"
           >
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Total Estimated Reach</div>
@@ -227,7 +239,7 @@ export default function SEODashboard() {
             </div>
           </div>
           <div 
-            onClick={() => alert('AI EFFICIENCY SCORE: This tracks your saved labor. Every published article saves approximately 4.5 hours of professional human writing and research time.')}
+            onClick={() => showInfo('AI Efficiency Score', 'AI Efficiency Score tracks your saved labor. Every published article saves approximately 4.5 hours of professional human writing and research time.')}
             className="glass p-8 border-l-4 border-purple-500 cursor-help hover:bg-white/[0.05] transition-all"
           >
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">AI Efficiency Score</div>
@@ -236,6 +248,7 @@ export default function SEODashboard() {
             </div>
           </div>
         </div>
+
 
 
         {/* Technical Audit Shield */}
@@ -328,19 +341,19 @@ export default function SEODashboard() {
               <tr className="bg-white/5 text-slate-400 text-xs font-black uppercase tracking-widest border-b border-white/10">
                 <th className="px-6 py-5">Keyword Term</th>
                 <th 
-                  onClick={() => alert('MONTHLY VOLUME: This is the estimated number of people searching for this exact term every 30 days. We target high-volume terms to maximize your brand exposure.')}
+                  onClick={() => showInfo('Monthly Volume', 'Monthly Volume is the estimated number of people searching for this exact term every 30 days. We target high-volume terms to maximize your brand exposure.')}
                   className="px-6 py-5 cursor-help hover:text-white transition-colors"
                 >
                   Volume
                 </th>
                 <th 
-                  onClick={() => alert('COMPETITION DIFFICULTY: This represents how hard it is to rank on Page 1. Green (Low) means easy wins; Red (High) means we need more authority content.')}
+                  onClick={() => showInfo('Competition Difficulty', 'Competition Difficulty represents how hard it is to rank on Page 1. Green (Low) means easy wins; Red (High) means we need more authority content.')}
                   className="px-6 py-5 cursor-help hover:text-white transition-colors"
                 >
                   Difficulty
                 </th>
                 <th 
-                  onClick={() => alert('GOOGLE POSITION: This is where the client ranks today. Our goal is to move this number closer to #1 through AI-driven content authority.')}
+                  onClick={() => showInfo('Google Position', 'Google Position is where the client ranks today. Our goal is to move this number closer to #1 through AI-driven content authority.')}
                   className="px-6 py-5 cursor-help hover:text-white transition-colors"
                 >
                   Current Rank
@@ -349,6 +362,7 @@ export default function SEODashboard() {
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
+
 
             <tbody className="divide-y divide-white/5">
               {keywords.map((kw) => (
@@ -439,6 +453,7 @@ export default function SEODashboard() {
         {/* Growth Report / ROI Visualization */}
         <div className="mt-12">
           <GrowthReport 
+            onInfo={showInfo}
             metrics={{
               keywordsGained: keywords.length * 4,
               contentPieces: keywords.filter(k => k.status === 'PUBLISHED').length,
@@ -447,7 +462,16 @@ export default function SEODashboard() {
             }} 
           />
         </div>
+
+        {/* Info Modal Integration */}
+        <InfoModal 
+          isOpen={infoModal.isOpen}
+          onClose={() => setInfoModal({ ...infoModal, isOpen: false })}
+          title={infoModal.title}
+          content={infoModal.content}
+        />
       </div>
+
 
 
       <style jsx global>{`

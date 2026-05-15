@@ -9,9 +9,10 @@ interface GrowthMetrics {
   conversionRate: string;
 }
 
-export default function GrowthReport({ metrics }: { metrics: GrowthMetrics }) {
+export default function GrowthReport({ metrics, onInfo }: { metrics: GrowthMetrics, onInfo: (title: string, content: string) => void }) {
   return (
     <div className="glass p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-1000">
+
       <div className="flex justify-between items-center border-b border-white/5 pb-6">
         <div>
           <h2 className="text-2xl font-bold uppercase italic tracking-tighter">Growth <span className="text-accent-cyan">Intelligence</span></h2>
@@ -31,13 +32,14 @@ export default function GrowthReport({ metrics }: { metrics: GrowthMetrics }) {
         ].map((stat, i) => (
           <div 
             key={i} 
-            onClick={() => alert(stat.info)}
+            onClick={() => onInfo(stat.label, stat.info)}
             className="space-y-1 cursor-help hover:bg-white/5 p-2 rounded-xl transition-all"
           >
             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{stat.label}</p>
             <p className={`text-3xl font-black ${stat.color} italic tracking-tighter`}>{stat.value}</p>
           </div>
         ))}
+
       </div>
 
 
