@@ -17,6 +17,7 @@ export const translations = {
     services: {
       title: "Our Intelligence Suite",
       description: "We deploy the latest in AI and automation to give your business a competitive edge that never sleeps.",
+      learn_more: "Click to learn more",
       list: [
         { title: "AI Customer Service", desc: "Automate 90% of your customer queries with intelligent, context-aware AI agents.", icon: "💬" },
         { title: "Process Automation", desc: "Connect your tools and automate repetitive tasks using custom n8n workflows.", icon: "⚙️" },
@@ -88,6 +89,7 @@ export const translations = {
     services: {
       title: "Nuestra Suite de Inteligencia",
       description: "Desplegamos lo último en IA y automatización para darle a su negocio una ventaja competitiva que nunca duerme.",
+      learn_more: "Clic para saber más",
       list: [
         { title: "Atención al Cliente IA", desc: "Automatice el 90% de sus consultas con agentes de IA inteligentes y conscientes del contexto.", icon: "💬" },
         { title: "Automatización de Procesos", desc: "Conecte sus herramientas y automatice tareas repetitivas mediante flujos de trabajo personalizados de n8n.", icon: "⚙️" },

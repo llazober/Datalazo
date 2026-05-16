@@ -141,9 +141,13 @@ export default function Home() {
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 origin-left">{s.icon}</div>
                 <h3 className="text-xl font-bold mb-2 group-hover:text-accent-cyan transition-colors">{s.title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
-                <div className="mt-4 text-[10px] font-bold text-accent-cyan uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                  Click to learn more
+                <div className="mt-4 text-[10px] font-bold text-accent-cyan uppercase tracking-widest opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                  <span>{t.services.learn_more}</span>
+                  <svg className="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
+
               </div>
             ))}
           </div>
