@@ -67,20 +67,8 @@ export default function DashboardLayout({
             </Link>
           ))}
 
-          {/* New Landing Page Preview Link */}
-          <div className="pt-4">
-            <Link 
-              href="/v3" 
-              target="_blank"
-              className="px-4 py-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-500/20 transition-all flex items-center justify-between group"
-            >
-              Preview V3 (Hybrid)
-              <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
         </nav>
+
 
 
 

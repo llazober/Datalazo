@@ -1,6 +1,5 @@
 "use client";
-// v3.6 - INTELLIGENCE AGENCY: 2026-05-15
-
+// v3.8 - HYBRID UPGRADE: 2026-05-16
 
 import React, { useState } from 'react';
 import Hero from "@/components/Hero";
@@ -12,6 +11,67 @@ import SEORoadmap from "@/components/SEORoadmap";
 import Image from 'next/image';
 import { translations } from '@/lib/translations';
 
+// --- HYBRID SECTIONS ---
+
+const OutcomesV2 = ({ t }: { t: any }) => (
+  <section id="outcomes" className="py-24 px-6 relative border-y border-white/5 bg-white/[0.01]">
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-16">
+        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">
+          What AI Can Do <br />
+          <span className="text-accent-cyan">for Your Business</span>
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          { title: "Reduce Repetitive Work", desc: "Automate manual tasks and repetitive workflows to save time and increase efficiency.", icon: "⚙️" },
+          { title: "Capture Leads 24/7", desc: "AI agents qualify leads, answer questions, and book appointments automatically.", icon: "🎯" },
+          { title: "Improve Customer Support", desc: "Deliver instant multilingual support with intelligent AI assistants.", icon: "💬" },
+          { title: "Scale Without Hiring", desc: "Expand operations using AI systems instead of increasing overhead.", icon: "📈" },
+          { title: "Increase Online Visibility", desc: "AI-driven SEO systems designed to grow traffic and rankings automatically.", icon: "🚀" },
+          { title: "Connect Your Business Systems", desc: "Integrate CRM, scheduling, support, and operations into one intelligent workflow.", icon: "🔗" }
+        ].map((item, i) => (
+          <div key={i} className="glass p-10 hover:bg-white/[0.05] transition-all group">
+            <div className="text-4xl mb-6 grayscale group-hover:grayscale-0 transition-all">{item.icon}</div>
+            <h3 className="text-xl font-bold mb-4 uppercase tracking-tight">{item.title}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+const ProcessV2 = ({ t }: { t: any }) => (
+  <section id="process" className="py-24 px-6 relative overflow-hidden bg-white/[0.01] border-b border-white/5">
+    <div className="max-w-7xl mx-auto">
+      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic text-center mb-20">How We <span className="text-accent-indigo">Transform</span> Your Business</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative">
+        <div className="hidden lg:block absolute top-12 left-0 right-0 h-[1px] bg-white/10 -z-10" />
+        
+        {[
+          { step: "01", title: "Discovery & AI Strategy", desc: "We analyze your business operations and identify automation opportunities." },
+          { step: "02", title: "AI System Design", desc: "We build custom AI workflows, agents, and intelligent automation systems." },
+          { step: "03", title: "Deployment & Integration", desc: "Your AI systems are integrated into your existing business operations." },
+          { step: "04", title: "Optimization & Growth", desc: "We continuously optimize and improve performance as your business scales." }
+        ].map((item, i) => (
+          <div key={i} className="space-y-6">
+            <div className="w-24 h-24 rounded-full bg-black border border-white/10 flex items-center justify-center text-3xl font-black italic shadow-2xl mx-auto lg:mx-0 group">
+              {item.step}
+            </div>
+            <div className="text-center lg:text-left">
+              <h3 className="text-lg font-bold uppercase tracking-tight italic mb-3">{item.title}</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 export default function Home() {
   const [lang, setLang] = useState<'en' | 'es'>('en');
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -19,7 +79,7 @@ export default function Home() {
   const t = translations[lang];
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-[#050505] text-white selection:bg-accent-cyan selection:text-black">
       {/* Education Modal */}
       {selectedService && (
         <ServiceEducationModal 
@@ -35,42 +95,28 @@ export default function Home() {
             <Image 
               src="/logo.png" 
               alt="Datalazo Logo" 
-              width={128} 
-              height={128}
-              className="w-20 h-20 md:w-32 md:h-32 rounded-2xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
+              width={80} 
+              height={80}
+              className="w-16 h-16 md:w-20 md:h-20 rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
             />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+          <nav className="hidden md:flex items-center gap-8 text-xs font-black uppercase tracking-widest text-slate-400">
+            <a href="#outcomes" className="hover:text-accent-cyan transition-colors">Outcomes</a>
             <a href="#services" className="hover:text-accent-cyan transition-colors">{t.nav.services}</a>
-            <a href="#automation" className="hover:text-accent-cyan transition-colors">{t.nav.automation}</a>
-            <Link href="/blog" className="hover:text-accent-cyan transition-colors">Blog</Link>
+            <a href="#process" className="hover:text-accent-cyan transition-colors">Process</a>
             <a href="#contact" className="hover:text-accent-cyan transition-colors">{t.nav.contact}</a>
 
-            <div className="h-4 w-[1px] bg-white/10 mx-2" />
-            
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setLang('en')}
-                className={`w-8 h-8 rounded-full border transition-all ${lang === 'en' ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan' : 'border-white/5 text-slate-500'}`}
-              >
-                EN
-              </button>
-              <button 
-                onClick={() => setLang('es')}
-                className={`w-8 h-8 rounded-full border transition-all ${lang === 'es' ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan' : 'border-white/5 text-slate-500'}`}
-              >
-                ES
-              </button>
+            <div className="flex gap-2 ml-4">
+              <button onClick={() => setLang('en')} className={`px-2 py-1 rounded border ${lang === 'en' ? 'border-accent-cyan text-accent-cyan' : 'border-white/10 text-slate-500'}`}>EN</button>
+              <button onClick={() => setLang('es')} className={`px-2 py-1 rounded border ${lang === 'es' ? 'border-accent-cyan text-accent-cyan' : 'border-white/10 text-slate-500'}`}>ES</button>
             </div>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="hidden sm:block px-6 py-2.5 bg-accent-cyan text-black text-sm font-black uppercase tracking-widest rounded-full hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+            <Link href="/dashboard" className="hidden sm:block px-6 py-2.5 bg-accent-cyan text-black text-xs font-black uppercase tracking-widest rounded-full hover:bg-cyan-500 transition-all shadow-xl">
               {t.nav.dashboard}
             </Link>
-            
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -87,26 +133,11 @@ export default function Home() {
         {isMenuOpen && (
           <div className="md:hidden absolute top-full left-0 right-0 bg-[#0a0a0c] border-b border-white/10 p-6 animate-in slide-in-from-top duration-300 shadow-2xl">
             <nav className="flex flex-col gap-6 text-lg font-bold">
+              <a href="#outcomes" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">Outcomes</a>
               <a href="#services" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.services}</a>
-              <a href="#automation" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.automation}</a>
-              <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">Blog</Link>
+              <a href="#process" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">Process</a>
               <a href="#contact" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.contact}</a>
               <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="text-accent-cyan uppercase italic">{t.nav.dashboard}</Link>
-              
-              <div className="flex gap-4 pt-4 border-t border-white/5">
-                <button 
-                  onClick={() => { setLang('en'); setIsMenuOpen(false); }}
-                  className={`px-4 py-2 rounded-xl border transition-all ${lang === 'en' ? 'border-accent-cyan text-accent-cyan bg-accent-cyan/10' : 'border-white/10 text-slate-500'}`}
-                >
-                  English
-                </button>
-                <button 
-                  onClick={() => { setLang('es'); setIsMenuOpen(false); }}
-                  className={`px-4 py-2 rounded-xl border transition-all ${lang === 'es' ? 'border-accent-cyan text-accent-cyan bg-accent-cyan/10' : 'border-white/10 text-slate-500'}`}
-                >
-                  Español
-                </button>
-              </div>
             </nav>
           </div>
         )}
@@ -115,31 +146,27 @@ export default function Home() {
       {/* Hero Section */}
       <Hero lang={lang} />
 
+      {/* Outcomes Section */}
+      <OutcomesV2 t={t} />
+
       {/* Services Section */}
-      <section id="services" className="py-24 px-6 bg-white/[0.01]">
+      <section id="services" className="py-24 px-6 bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">{t.services.title}</h2>
-            <p className="text-slate-400 max-w-xl mx-auto">
+            <h2 className="text-4xl font-bold mb-4 italic uppercase tracking-tighter">{t.services.title}</h2>
+            <p className="text-slate-500 max-w-xl mx-auto uppercase text-[10px] font-black tracking-widest">
               {t.services.description}
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {t.services.list.map((s, i) => (
               <div 
                 key={i} 
                 onClick={() => setSelectedService(s.title)}
                 className="glass p-8 hover:bg-white/[0.05] transition-all cursor-pointer group relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-8 h-8 rounded-full bg-accent-cyan/10 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                </div>
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 origin-left">{s.icon}</div>
-                <h3 className="text-xl font-bold mb-2 group-hover:text-accent-cyan transition-colors">{s.title}</h3>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-accent-cyan transition-colors uppercase tracking-tight italic">{s.title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
                 <div className="mt-4 text-[10px] font-bold text-accent-cyan uppercase tracking-widest opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                   <span>{t.services.learn_more}</span>
@@ -147,12 +174,14 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
-
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Process Section */}
+      <ProcessV2 t={t} />
 
       {/* SEO Roadmap Section */}
       <SEORoadmap lang={lang} content={t.seo_roadmap} />
@@ -161,56 +190,34 @@ export default function Home() {
       <section id="contact" className="py-24 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
           <div>
-            <h2 className="text-4xl font-bold mb-6">{t.contact.title}</h2>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic mb-6">{t.contact.title}</h2>
             <p className="text-slate-400 mb-8 leading-relaxed">
               {t.contact.description}
             </p>
             <ul className="space-y-4">
               {t.contact.features.map((item, i) => (
                 <li key={i} className="flex items-center gap-3 text-slate-300">
-                  <div className="w-5 h-5 rounded-full bg-accent-cyan/20 flex items-center justify-center text-accent-cyan text-xs">✓</div>
+                  <div className="w-5 h-5 rounded-full bg-accent-cyan/20 flex items-center justify-center text-accent-cyan text-[10px] font-bold">✓</div>
                   {item}
                 </li>
               ))}
             </ul>
           </div>
-          <div className="glass p-8">
-             <h3 className="text-2xl font-bold mb-6 text-center">{t.contact.form_title}</h3>
+          <div className="glass p-10 relative">
+             <div className="absolute -top-10 -right-10 w-40 h-40 bg-accent-cyan/10 blur-[50px] -z-10" />
              <LeadForm />
           </div>
         </div>
       </section>
 
-      {/* Quick Stats */}
-      <section className="py-20 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-between gap-10 opacity-50 grayscale hover:grayscale-0 transition-all">
-          <div className="text-center md:text-left">
-            <div className="text-3xl font-bold">100%</div>
-            <div className="text-xs uppercase tracking-widest text-slate-400">{t.stats.automated}</div>
-          </div>
-          <div className="text-center md:text-left">
-            <div className="text-3xl font-bold">24/7</div>
-            <div className="text-xs uppercase tracking-widest text-slate-400">{t.stats.agents}</div>
-          </div>
-          <div className="text-center md:text-left">
-            <div className="text-3xl font-bold">5x</div>
-            <div className="text-xs uppercase tracking-widest text-slate-400">{t.stats.efficiency}</div>
-          </div>
-          <div className="text-center md:text-left">
-            <div className="text-3xl font-bold">SEO+</div>
-            <div className="text-xs uppercase tracking-widest text-slate-400">{t.stats.growth}</div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="py-10 text-center text-slate-500 text-sm border-t border-white/5 flex flex-col items-center gap-2">
-        <p>&copy; 2026 {t.footer}</p>
-        <span className="text-[10px] uppercase tracking-[0.2em] opacity-30">v3.6 — Intelligence Agency Edition</span>
+      <footer className="py-12 px-6 border-t border-white/5 text-center">
+         <Image src="/logo.png" alt="Datalazo" width={40} height={40} className="mx-auto grayscale opacity-50 mb-6" />
+         <p className="text-xs text-slate-500 uppercase font-black tracking-[0.3em]">
+           Datalazo Intelligence Agency. v4.0 — Main Hybrid Edition
+         </p>
       </footer>
 
       <VoiceAgent />
     </div>
   );
 }
-
- 

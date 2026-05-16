@@ -22,8 +22,10 @@ export const translations = {
         { title: "AI Customer Service", desc: "Automate 90% of your customer queries with intelligent, context-aware AI agents.", icon: "💬" },
         { title: "Process Automation", desc: "Connect your tools and automate repetitive tasks using custom n8n workflows.", icon: "⚙️" },
         { title: "AI SEO Matrix", desc: "Rank higher with AI-optimized content and technical SEO that scales automatically.", icon: "🚀" },
-        { title: "AI Voice Agents", desc: "Professional AI-driven voice systems for lead qualification and support.", icon: "🎙️" }
+        { title: "AI Voice Agents", desc: "Professional AI-driven voice systems for lead qualification and support.", icon: "🎙️" },
+        { title: "AI Company Brain", desc: "Give your team instant access to company knowledge, documents, and operational intelligence.", icon: "🧠" }
       ]
+
     },
     contact: {
       title: "Ready to Automate?",
@@ -94,8 +96,10 @@ export const translations = {
         { title: "Atención al Cliente IA", desc: "Automatice el 90% de sus consultas con agentes de IA inteligentes y conscientes del contexto.", icon: "💬" },
         { title: "Automatización de Procesos", desc: "Conecte sus herramientas y automatice tareas repetitivas mediante flujos de trabajo personalizados de n8n.", icon: "⚙️" },
         { title: "Matriz SEO IA", desc: "Alcance mejores posiciones con contenido optimizado por IA y SEO técnico que escala automáticamente.", icon: "🚀" },
-        { title: "Agentes de Voz IA", desc: "Sistemas de voz profesionales impulsados por IA para calificación de leads y soporte.", icon: "🎙️" }
+        { title: "Agentes de Voz IA", desc: "Sistemas de voz profesionales impulsados por IA para calificación de leads y soporte.", icon: "🎙️" },
+        { title: "Cerebro Empresarial IA", desc: "Brinde a su equipo acceso instantáneo al conocimiento, documentos e inteligencia operativa de la empresa.", icon: "🧠" }
       ]
+
     },
     contact: {
       title: "¿Listo para Automatizar?",

@@ -130,7 +130,38 @@ const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       "Grabación y análisis del 100% de las llamadas",
       "Soporte telefónico 24/7 sin centros de llamadas"
     ]
+  },
+  "AI Company Brain": {
+    title: "AI Company Brain",
+    icon: "🧠",
+    explanation: "We centralize your company knowledge into a private AI infrastructure. This allows your team to query documents, SOPs, and technical data instantly with 100% accuracy.",
+    examples: [
+      "Instant answers for employees on internal policies and procedures.",
+      "Vectorization of technical manuals for rapid troubleshooting.",
+      "A digital warehouse of company intelligence that grows every day."
+    ],
+    benefits: [
+      "Zero knowledge loss when staff leaves",
+      "Instant employee onboarding",
+      "Eliminate time wasted searching for documents"
+    ]
+  },
+  "Cerebro Empresarial IA": {
+    title: "Cerebro Empresarial IA",
+    icon: "🧠",
+    explanation: "Centralizamos el conocimiento de su empresa en una infraestructura privada de IA. Esto permite que su equipo consulte documentos, procedimientos y datos técnicos al instante.",
+    examples: [
+      "Respuestas instantáneas para empleados sobre políticas internas.",
+      "Vectorización de manuales técnicos para resolución rápida de problemas.",
+      "Un almacén digital de inteligencia que crece cada día."
+    ],
+    benefits: [
+      "Cero pérdida de conocimiento al rotar personal",
+      "Onboarding de empleados instantáneo",
+      "Elimina el tiempo perdido buscando documentos"
+    ]
   }
+
 };
 
 interface ModalProps {
