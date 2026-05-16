@@ -16,12 +16,13 @@ import { translations } from '@/lib/translations';
 const OutcomesV2 = ({ t }: { t: any }) => (
   <section id="outcomes" className="py-24 px-6 relative border-y border-white/5 bg-white/[0.01]">
     <div className="max-w-7xl mx-auto">
-      <div className="mb-16">
+      <div className="mb-16 text-center">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">
           What AI Can Do <br />
           <span className="text-accent-cyan">for Your Business</span>
         </h2>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
