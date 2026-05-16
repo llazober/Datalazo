@@ -48,14 +48,17 @@ export default function DashboardLayout({
         <nav className="flex-1 space-y-2 mt-20 md:mt-0">
           {[
             { name: 'Overview', path: '/dashboard' },
+            { name: 'Visitor Analytics', path: '/dashboard/analytics' },
             { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
           ].map((item) => (
+
             <Link
               key={item.name}
               href={item.path}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl transition-colors ${
+                item.name === 'Visitor Analytics' ? 'bg-cyan-500/10 text-cyan-400' :
                 item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
                 item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}

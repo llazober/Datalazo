@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import ChatAgent from "@/components/ChatAgent";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -26,7 +28,11 @@ export default function RootLayout({
           {children}
         </main>
         <ChatAgent />
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics ga_id={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        )}
       </body>
+
     </html>
   );
 }

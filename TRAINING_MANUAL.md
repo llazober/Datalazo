@@ -67,9 +67,23 @@ Located at the bottom of the SEO Matrix Manager, this section proves your value.
 *   **Growth Bar**: When the bar hits **"100% Optimized"**, it means the client's "Keyword Matrix" for that month is complete.
 
 ---
+## 6. 🛡️ Anti-Spam Human Shield (Cloudflare)
+To stop bots from spamming your lead capture forms, we use **Cloudflare Turnstile**. This is an invisible protector that ensures every lead is 100% human.
+
+### 🔑 Setting up your Keys
+1.  **Sign Up**: Go to [Cloudflare](https://dash.cloudflare.com/sign-up) and create an account.
+2.  **Navigate**: In the sidebar, click on **Turnstile**.
+3.  **Add Site**: 
+    *   **Site Name**: `Datalazo Lead Shield`
+    *   **Domain**: `datalazo.net`
+    *   **Widget Type**: Select **Managed** (best for security).
+4.  **Keys**: Copy your **Site Key** and **Secret Key**.
+5.  **Integration**: Provide these keys to the AI Assistant to activate the shield sitewide.
 
 ---
+
 ## 🚀 Future Scaling & Bookmarks
+
 For when you are ready to upgrade your v3.6 Matrix to "Full Pro" status.
 
 ### 🔗 Recommended APIs
@@ -82,7 +96,7 @@ For when you are ready to upgrade your v3.6 Matrix to "Full Pro" status.
 ## 🛠️ v4.0 Roadmap & To-Do List
 Track the upcoming intelligence upgrades for the Datalazo platform.
 
-*   `[ ]` **Anti-Spam Human Shield**: Implement Cloudflare Turnstile + Honeypot to ensure 100% human leads.
+*   `[x]` **Anti-Spam Human Shield**: Implement Cloudflare Turnstile + Honeypot to ensure 100% human leads.
 *   `[ ]` **Live Keyword Intelligence**: Integrate DataForSEO API for real-time volume/difficulty data.
 *   `[ ]` **Real-Time Rank Tracking**: Integrate Serper.dev for live Google position monitoring.
 *   `[ ]` **Social Media Content Engine**: Automate article-to-social post generation.

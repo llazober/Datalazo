@@ -6,8 +6,30 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+    const token = data['cf-turnstile-response'];
+
+    // 0. Verify Cloudflare Turnstile (Anti-Spam Shield)
+    if (!token) {
+      return NextResponse.json({ error: 'Anti-spam token missing.' }, { status: 400 });
+    }
+
+    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        response: token,
+      }),
+    });
+
+    const verifyData = await verifyRes.json();
+    if (!verifyData.success) {
+      console.error('Turnstile verification failed:', verifyData);
+      return NextResponse.json({ error: 'Anti-spam verification failed.' }, { status: 403 });
+    }
 
     // 1. Save directly to the Database
+
     const newLead = await prisma.lead.create({
       data: {
         name: data.name,

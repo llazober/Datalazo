@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Script from 'next/script';
+
 
 export default function LeadForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -11,6 +13,14 @@ export default function LeadForm() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+
+    // Add Turnstile token to data
+    const turnstileToken = formData.get('cf-turnstile-response');
+    if (!turnstileToken) {
+      setStatus('error');
+      return;
+    }
+
 
     try {
       // Point to internal API instead of direct n8n URL to avoid CORS
@@ -96,7 +106,22 @@ export default function LeadForm() {
           placeholder="How can we help you?"
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors"
         />
+        
+        {/* Anti-Spam Human Shield Widget */}
+        <div className="flex justify-center py-2">
+          <div 
+            className="cf-turnstile" 
+            data-sitekey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
+            data-theme="dark"
+          />
+        </div>
+        <Script 
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
+          strategy="lazyOnload" 
+        />
+
         <button
+
           type="submit"
           disabled={status === 'loading'}
           className="w-full py-4 bg-gradient-to-r from-accent-cyan to-accent-indigo text-black font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
