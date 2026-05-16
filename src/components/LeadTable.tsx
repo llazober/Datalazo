@@ -9,12 +9,15 @@ interface Lead {
   company: string | null;
   service: string;
   message: string | null;
+  notes: string | null;
   status: string;
   createdAt: string | Date;
 }
 
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
+  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
@@ -45,6 +48,26 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     }
   };
 
+  const saveNotes = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: selectedLead.notes }),
+      });
+      if (res.ok) {
+        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, notes: selectedLead.notes } : l));
+        setSelectedLead(null);
+      }
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const normalized = status?.toUpperCase();
     switch (normalized) {
@@ -58,7 +81,48 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* Notes Modal */}
+      {selectedLead && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="glass w-full max-w-2xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase tracking-tight italic">
+                Lead Notes: <span className="text-cyan-400">{selectedLead.name}</span>
+              </h2>
+              <button onClick={() => setSelectedLead(null)} className="text-slate-400 hover:text-white transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <textarea 
+              value={selectedLead.notes || ''}
+              onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
+              placeholder="Enter internal notes, follow-up history, or meeting highlights..."
+              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
+            />
+
+            <div className="flex justify-end gap-4">
+              <button 
+                onClick={() => setSelectedLead(null)}
+                className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveNotes}
+                disabled={isSaving}
+                className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save Notes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
@@ -96,7 +160,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
           <tr>
             <th className="py-4 px-4 font-semibold text-slate-300">Contact</th>
             <th className="py-4 px-4 font-semibold text-slate-300">Company / Service</th>
-            <th className="py-4 px-4 font-semibold text-slate-300">Message</th>
+            <th className="py-4 px-4 font-semibold text-slate-300">Message / Internal Notes</th>
             <th className="py-4 px-4 font-semibold text-slate-300">Status</th>
             <th className="py-4 px-4 font-semibold text-slate-300 text-right">Actions</th>
           </tr>
@@ -112,7 +176,18 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 <div className="text-sm text-slate-300">{lead.company || 'Personal'}</div>
                 <div className="text-[10px] uppercase font-bold text-cyan-400">{lead.service}</div>
               </td>
-              <td className="py-4 px-4 text-slate-400 text-xs max-w-xs truncate">{lead.message}</td>
+              <td className="py-4 px-4 max-w-xs">
+                <div className="text-slate-400 text-xs truncate mb-1">{lead.message}</div>
+                {lead.notes && (
+                  <div className="text-[10px] text-cyan-500 italic truncate flex items-center gap-1">
+                    <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                      <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                    </svg>
+                    {lead.notes}
+                  </div>
+                )}
+              </td>
               <td className="py-4 px-4">
                 <select 
                   value={lead.status?.toUpperCase()}
@@ -129,6 +204,15 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               </td>
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => setSelectedLead({ id: lead.id, name: lead.name, notes: lead.notes || '' })}
+                    className="p-2 hover:bg-cyan-500/20 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors"
+                    title="Edit Notes"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
                   <button 
                     onClick={() => handleDelete(lead.id)}
                     className="p-2 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors" 
@@ -156,3 +240,4 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     </div>
   );
 }
+
