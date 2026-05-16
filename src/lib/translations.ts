@@ -25,7 +25,35 @@ export const translations = {
         { title: "AI Voice Agents", desc: "Professional AI-driven voice systems for lead qualification and support.", icon: "🎙️" },
         { title: "AI Company Brain", desc: "Give your team instant access to company knowledge, documents, and operational intelligence.", icon: "🧠" }
       ]
-
+    },
+    outcomes: {
+      title: "What AI Can Do",
+      subtitle: "for Your Business",
+      list: [
+        { title: "Reduce Repetitive Work", desc: "Automate manual tasks and repetitive workflows to save time and increase efficiency.", icon: "⚙️" },
+        { title: "Capture Leads 24/7", desc: "AI agents qualify leads, answer questions, and book appointments automatically.", icon: "🎯" },
+        { title: "Improve Customer Support", desc: "Deliver instant multilingual support with intelligent AI assistants.", icon: "💬" },
+        { title: "Scale Without Hiring", desc: "Expand operations using AI systems instead of increasing overhead.", icon: "📈" },
+        { title: "Increase Online Visibility", desc: "AI-driven SEO systems designed to grow traffic and rankings automatically.", icon: "🚀" },
+        { title: "Connect Your Business Systems", desc: "Integrate CRM, scheduling, support, and operations into one intelligent workflow.", icon: "🔗" }
+      ]
+    },
+    process: {
+      title: "How We",
+      highlight: "Transform",
+      subtitle: "Your Business",
+      list: [
+        { step: "01", title: "Discovery & AI Strategy", desc: "We analyze your business operations and identify automation opportunities." },
+        { step: "02", title: "AI System Design", desc: "We build custom AI workflows, agents, and intelligent automation systems." },
+        { step: "03", title: "Deployment & Integration", desc: "Your AI systems are integrated into your existing business operations." },
+        { step: "04", title: "Optimization & Growth", desc: "We continuously optimize and improve performance as your business scales." }
+      ]
+    },
+    modal: {
+      solution: "The Solution",
+      benefits: "Core Benefits",
+      use_cases: "Real-World Use Cases",
+      cta: "Get Started with this Service"
     },
     contact: {
       title: "Ready to Automate?",
@@ -70,8 +98,7 @@ export const translations = {
         button: "Activate Now"
       }
     },
-    footer: "Datalazo Intelligence Agency. v3.6 — Intelligence Agency Edition | All rights reserved."
-
+    footer: "Datalazo Intelligence Agency. v4.0 — Main Hybrid Edition | All rights reserved."
   },
   es: {
     nav: {
@@ -99,7 +126,35 @@ export const translations = {
         { title: "Agentes de Voz IA", desc: "Sistemas de voz profesionales impulsados por IA para calificación de leads y soporte.", icon: "🎙️" },
         { title: "Cerebro Empresarial IA", desc: "Brinde a su equipo acceso instantáneo al conocimiento, documentos e inteligencia operativa de la empresa.", icon: "🧠" }
       ]
-
+    },
+    outcomes: {
+      title: "Lo que la IA Puede Hacer",
+      subtitle: "por Su Negocio",
+      list: [
+        { title: "Reducir Trabajo Repetitivo", desc: "Automatice tareas manuales y flujos de trabajo repetitivos para ahorrar tiempo y aumentar la eficiencia.", icon: "⚙️" },
+        { title: "Capturar Leads 24/7", desc: "Los agentes de IA califican leads, responden preguntas y programan citas automáticamente.", icon: "🎯" },
+        { title: "Mejorar Soporte al Cliente", desc: "Brinde soporte multilingüe instantáneo con asistentes inteligentes de IA.", icon: "💬" },
+        { title: "Escalar sin Contratar", desc: "Expanda las operaciones utilizando sistemas de IA en lugar de aumentar los gastos generales.", icon: "📈" },
+        { title: "Aumentar Visibilidad Online", desc: "Sistemas SEO impulsados por IA diseñados para aumentar el tráfico y el ranking automáticamente.", icon: "🚀" },
+        { title: "Conectar Sistemas de Negocio", desc: "Integre CRM, programación, soporte y operaciones en un flujo de trabajo inteligente.", icon: "🔗" }
+      ]
+    },
+    process: {
+      title: "Cómo",
+      highlight: "Transformamos",
+      subtitle: "Su Negocio",
+      list: [
+        { step: "01", title: "Descubrimiento y Estrategia IA", desc: "Analizamos las operaciones de su negocio e identificamos oportunidades de automatización." },
+        { step: "02", title: "Diseño del Sistema IA", desc: "Construimos flujos de trabajo personalizados, agentes y sistemas de automatización inteligentes." },
+        { step: "03", title: "Despliegue e Integración", desc: "Sus sistemas de IA se integran en las operaciones existentes de su negocio." },
+        { step: "04", title: "Optimización y Crecimiento", desc: "Optimizamos y mejoramos continuamente el rendimiento a medida que su negocio escala." }
+      ]
+    },
+    modal: {
+      solution: "La Solución",
+      benefits: "Beneficios Clave",
+      use_cases: "Casos de Uso Reales",
+      cta: "Comience con este Servicio"
     },
     contact: {
       title: "¿Listo para Automatizar?",
@@ -144,7 +199,6 @@ export const translations = {
         button: "Activar Ahora"
       }
     },
-    footer: "Agencia de Inteligencia Datalazo. v3.6 — Edición de Agencia de Inteligencia | Todos los derechos reservados."
-
+    footer: "Agencia de Inteligencia Datalazo. v4.0 — Edición Híbrida Principal | Todos los derechos reservados."
   }
 };

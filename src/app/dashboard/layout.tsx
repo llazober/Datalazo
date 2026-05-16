@@ -51,6 +51,7 @@ export default function DashboardLayout({
             { name: 'Visitor Analytics', path: '/dashboard/analytics' },
             { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
+            { name: 'SEO Roadmap', path: '/dashboard/seo/plan' },
           ].map((item) => (
 
             <Link
@@ -60,7 +61,8 @@ export default function DashboardLayout({
               className={`block px-4 py-3 rounded-xl transition-colors ${
                 item.name === 'Visitor Analytics' ? 'bg-cyan-500/10 text-cyan-400' :
                 item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
-                item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' :
+                item.name === 'SEO Roadmap' ? 'bg-purple-500/10 text-purple-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               {item.name}

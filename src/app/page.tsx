@@ -7,7 +7,6 @@ import LeadForm from "@/components/LeadForm";
 import Link from 'next/link';
 import VoiceAgent from "@/components/VoiceAgent";
 import ServiceEducationModal from "@/components/ServiceEducationModal";
-import SEORoadmap from "@/components/SEORoadmap";
 import Image from 'next/image';
 import { translations } from '@/lib/translations';
 
@@ -18,21 +17,13 @@ const OutcomesV2 = ({ t }: { t: any }) => (
     <div className="max-w-7xl mx-auto">
       <div className="mb-16 text-center">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">
-          What AI Can Do <br />
-          <span className="text-accent-cyan">for Your Business</span>
+          {t.outcomes.title} <br />
+          <span className="text-accent-cyan">{t.outcomes.subtitle}</span>
         </h2>
       </div>
 
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[
-          { title: "Reduce Repetitive Work", desc: "Automate manual tasks and repetitive workflows to save time and increase efficiency.", icon: "⚙️" },
-          { title: "Capture Leads 24/7", desc: "AI agents qualify leads, answer questions, and book appointments automatically.", icon: "🎯" },
-          { title: "Improve Customer Support", desc: "Deliver instant multilingual support with intelligent AI assistants.", icon: "💬" },
-          { title: "Scale Without Hiring", desc: "Expand operations using AI systems instead of increasing overhead.", icon: "📈" },
-          { title: "Increase Online Visibility", desc: "AI-driven SEO systems designed to grow traffic and rankings automatically.", icon: "🚀" },
-          { title: "Connect Your Business Systems", desc: "Integrate CRM, scheduling, support, and operations into one intelligent workflow.", icon: "🔗" }
-        ].map((item, i) => (
+        {t.outcomes.list.map((item: any, i: number) => (
           <div key={i} className="glass p-10 hover:bg-white/[0.05] transition-all group">
             <div className="text-4xl mb-6 grayscale group-hover:grayscale-0 transition-all">{item.icon}</div>
             <h3 className="text-xl font-bold mb-4 uppercase tracking-tight">{item.title}</h3>
@@ -47,17 +38,12 @@ const OutcomesV2 = ({ t }: { t: any }) => (
 const ProcessV2 = ({ t }: { t: any }) => (
   <section id="process" className="py-24 px-6 relative overflow-hidden bg-white/[0.01] border-b border-white/5">
     <div className="max-w-7xl mx-auto">
-      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic text-center mb-20">How We <span className="text-accent-indigo">Transform</span> Your Business</h2>
+      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic text-center mb-12 md:mb-20">{t.process.title} <span className="text-accent-indigo">{t.process.highlight}</span> {t.process.subtitle}</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative">
         <div className="hidden lg:block absolute top-12 left-0 right-0 h-[1px] bg-white/10 -z-10" />
         
-        {[
-          { step: "01", title: "Discovery & AI Strategy", desc: "We analyze your business operations and identify automation opportunities." },
-          { step: "02", title: "AI System Design", desc: "We build custom AI workflows, agents, and intelligent automation systems." },
-          { step: "03", title: "Deployment & Integration", desc: "Your AI systems are integrated into your existing business operations." },
-          { step: "04", title: "Optimization & Growth", desc: "We continuously optimize and improve performance as your business scales." }
-        ].map((item, i) => (
+        {t.process.list.map((item: any, i: number) => (
           <div key={i} className="space-y-6">
             <div className="w-24 h-24 rounded-full bg-black border border-white/10 flex items-center justify-center text-3xl font-black italic shadow-2xl mx-auto lg:mx-0 group">
               {item.step}
@@ -85,7 +71,8 @@ export default function Home() {
       {selectedService && (
         <ServiceEducationModal 
           serviceTitle={selectedService} 
-          onClose={() => setSelectedService(null)} 
+          onClose={() => setSelectedService(null)}
+          t={t}
         />
       )}
 
@@ -184,8 +171,6 @@ export default function Home() {
       {/* Process Section */}
       <ProcessV2 t={t} />
 
-      {/* SEO Roadmap Section */}
-      <SEORoadmap lang={lang} content={t.seo_roadmap} />
 
       {/* Lead Generation Section */}
       <section id="contact" className="py-24 px-6">
@@ -214,7 +199,7 @@ export default function Home() {
       <footer className="py-12 px-6 border-t border-white/5 text-center">
          <Image src="/logo.png" alt="Datalazo" width={40} height={40} className="mx-auto grayscale opacity-50 mb-6" />
          <p className="text-xs text-slate-500 uppercase font-black tracking-[0.3em]">
-           Datalazo Intelligence Agency. v4.0 — Main Hybrid Edition
+           {t.footer}
          </p>
       </footer>
 
