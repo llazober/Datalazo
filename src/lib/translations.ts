@@ -10,7 +10,7 @@ export const translations = {
       tag: "The New Era of Intelligence",
       title: "Datalazo Intelligence",
       subtitle: "Agency",
-      description: "We deploy next-generation AI agents and custom n8n automations that turn your business into a self-operating growth machine.",
+      description: "We help businesses grow with AI agents, workflow automation, and intelligent digital systems. From lead generation to customer support and operations. More than websites — we build intelligent business systems.",
       cta_primary: "Get Started",
       cta_secondary: "View Services"
     },
@@ -81,7 +81,7 @@ export const translations = {
       tag: "La Nueva Era de la Inteligencia",
       title: "Datalazo Intelligence",
       subtitle: "Agencia",
-      description: "Desplegamos agentes de IA de última generación y automatizaciones personalizadas de n8n que convierten su negocio en una máquina de crecimiento autónoma.",
+      description: "Ayudamos a las empresas a crecer con agentes de IA, automatización de flujos de trabajo y sistemas digitales inteligentes. Desde la generación de leads hasta el soporte al cliente y las operaciones. Más que sitios web: construimos sistemas de negocios inteligentes.",
       cta_primary: "Comenzar",
       cta_secondary: "Ver Servicios"
     },
