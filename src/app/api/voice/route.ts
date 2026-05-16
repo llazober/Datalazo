@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
+import { prisma } from '@/lib/prisma';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +69,26 @@ export async function POST(req: Request) {
 
       const aiReply = chatCompletion.choices[0].message.content || "I'm sorry.";
 
+      // 2.5 Save Usage Matrix
+      const usage = chatCompletion.usage;
+      if (usage) {
+        // Base cost for GPT-4o-mini + flat estimate for Whisper/TTS ($0.005 base)
+        const estimatedCost = (usage.prompt_tokens * 0.00000015) + (usage.completion_tokens * 0.0000006) + 0.005;
+        
+        await prisma.tokenUsage.create({
+          data: {
+            feature: 'VOICE_AGENT',
+            model: 'gpt-4o-mini + tts-1',
+            promptTokens: usage.prompt_tokens,
+            completionTokens: usage.completion_tokens,
+            totalTokens: usage.total_tokens,
+            estimatedCost: estimatedCost
+          }
+        });
+      }
+
       // 3. Text to Speech (TTS-1) - STREAMING
+
       const response = await openai.audio.speech.create({
         model: "tts-1",
         voice: "alloy",
