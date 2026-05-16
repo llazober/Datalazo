@@ -21,7 +21,8 @@ export default function InfoModal({ isOpen, onClose, title, content }: InfoModal
       />
       
       {/* Modal Content */}
-      <div className="relative w-full max-w-lg bg-[#0a0a0a] border border-cyan-500/30 rounded-3xl p-8 shadow-[0_0_50px_rgba(6,182,212,0.15)] animate-in zoom-in-95 fade-in duration-300">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar bg-[#0a0a0a] border border-cyan-500/30 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(6,182,212,0.15)] animate-in zoom-in-95 fade-in duration-300">
+
         <div className="flex justify-between items-start mb-6">
           <h2 className="text-2xl font-bold uppercase italic tracking-tighter text-white">
             Intelligence <span className="text-cyan-500">Briefing</span>

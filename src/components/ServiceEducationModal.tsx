@@ -147,17 +147,19 @@ export default function ServiceEducationModal({ serviceTitle, onClose }: ModalPr
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
       
-      <div className="glass w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+      <div className="glass w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-300 relative">
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-white transition-colors z-50 p-2 bg-black/20 rounded-full backdrop-blur-sm"
+          aria-label="Close Modal"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <div className="p-8 md:p-12">
+        <div className="p-6 md:p-12">
+
           <div className="flex items-center gap-6 mb-10">
             <div className="text-6xl bg-white/5 w-24 h-24 rounded-3xl flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
               {detail.icon}
