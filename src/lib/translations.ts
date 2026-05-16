@@ -19,8 +19,8 @@ export const translations = {
       description: "We deploy the latest in AI and automation to give your business a competitive edge that never sleeps.",
       learn_more: "Click to learn more",
       list: [
-        { title: "AI Customer Service", desc: "Automate 90% of your customer queries with intelligent, context-aware AI agents.", icon: "💬" },
-        { title: "Process Automation", desc: "Connect your tools and automate repetitive tasks using custom n8n workflows.", icon: "⚙️" },
+        { title: "AI Customer Support", desc: "Automate 90% of your customer queries with intelligent, context-aware AI agents.", icon: "💬" },
+        { title: "AI Business Automation", desc: "Connect your tools and automate repetitive tasks using custom n8n workflows.", icon: "⚙️" },
         { title: "AI SEO Matrix", desc: "Rank higher with AI-optimized content and technical SEO that scales automatically.", icon: "🚀" },
         { title: "AI Voice Agents", desc: "Professional AI-driven voice systems for lead qualification and support.", icon: "🎙️" },
         { title: "AI Company Brain", desc: "Give your team instant access to company knowledge, documents, and operational intelligence.", icon: "🧠" }
@@ -93,8 +93,8 @@ export const translations = {
       description: "Desplegamos lo último en IA y automatización para darle a su negocio una ventaja competitiva que nunca duerme.",
       learn_more: "Clic para saber más",
       list: [
-        { title: "Atención al Cliente IA", desc: "Automatice el 90% de sus consultas con agentes de IA inteligentes y conscientes del contexto.", icon: "💬" },
-        { title: "Automatización de Procesos", desc: "Conecte sus herramientas y automatice tareas repetitivas mediante flujos de trabajo personalizados de n8n.", icon: "⚙️" },
+        { title: "Soporte al Cliente IA", desc: "Automatice el 90% de sus consultas con agentes de IA inteligentes y conscientes del contexto.", icon: "💬" },
+        { title: "Automatización de Negocios IA", desc: "Conecte sus herramientas y automatice tareas repetitivas mediante flujos de trabajo personalizados de n8n.", icon: "⚙️" },
         { title: "Matriz SEO IA", desc: "Alcance mejores posiciones con contenido optimizado por IA y SEO técnico que escala automáticamente.", icon: "🚀" },
         { title: "Agentes de Voz IA", desc: "Sistemas de voz profesionales impulsados por IA para calificación de leads y soporte.", icon: "🎙️" },
         { title: "Cerebro Empresarial IA", desc: "Brinde a su equipo acceso instantáneo al conocimiento, documentos e inteligencia operativa de la empresa.", icon: "🧠" }

@@ -11,8 +11,8 @@ interface ServiceDetail {
 }
 
 const SERVICE_DETAILS: Record<string, ServiceDetail> = {
-  "AI Customer Service": {
-    title: "AI Customer Service",
+  "AI Customer Support": {
+    title: "AI Customer Support",
     icon: "💬",
     explanation: "Our context-aware AI agents act as the digital brain of your company. They learn your business from your website, documents, and past tickets to provide instant, human-like support 24/7.",
     examples: [
@@ -26,8 +26,8 @@ const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       "Drastic reduction in support costs"
     ]
   },
-  "Atención al Cliente IA": {
-    title: "Atención al Cliente IA",
+  "Soporte al Cliente IA": {
+    title: "Soporte al Cliente IA",
     icon: "💬",
     explanation: "Nuestros agentes de IA conscientes del contexto actúan como el cerebro digital de su empresa. Aprenden de su sitio web y documentos para brindar soporte instantáneo las 24 horas, los 7 días de la semana.",
     examples: [
@@ -41,8 +41,8 @@ const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       "Reducción drástica en costos de soporte"
     ]
   },
-  "Process Automation": {
-    title: "Process Automation",
+  "AI Business Automation": {
+    title: "AI Business Automation",
     icon: "⚙️",
     explanation: "We build custom n8n workflows that connect your favorite tools (CRM, Email, Slack, etc.) to eliminate manual data entry and repetitive busywork.",
     examples: [
@@ -56,8 +56,8 @@ const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       "Scale operations without adding headcount"
     ]
   },
-  "Automatización de Procesos": {
-    title: "Automatización de Procesos",
+  "Automatización de Negocios IA": {
+    title: "Automatización de Negocios IA",
     icon: "⚙️",
     explanation: "Creamos flujos de trabajo personalizados de n8n que conectan sus herramientas favoritas para eliminar el ingreso manual de datos y el trabajo repetitivo.",
     examples: [
