@@ -37,11 +37,19 @@ export async function POST(req: Request) {
     }
 
     if (mode === 'fast' && file) {
+      // Determine extension for OpenAI (Whisper likes correct extensions)
+      const mimeType = file.type;
+      let extension = 'webm';
+      if (mimeType.includes('mp4')) extension = 'mp4';
+      else if (mimeType.includes('wav')) extension = 'wav';
+      else if (mimeType.includes('mpeg')) extension = 'mp3';
+
       // 1. Transcription (Whisper)
       const transcription = await openai.audio.transcriptions.create({
-        file: new File([file], 'audio.webm', { type: 'audio/webm' }),
+        file: new File([file], `audio.${extension}`, { type: mimeType }),
         model: "whisper-1",
       });
+
 
       const userText = transcription.text;
       const knowledge = await searchKnowledge(userText);

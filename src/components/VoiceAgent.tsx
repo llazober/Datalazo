@@ -11,9 +11,17 @@ export default function VoiceAgent() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Determine supported mime type (iOS fallback)
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/mp4') 
+          ? 'audio/mp4' 
+          : 'audio/wav';
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 32000 // Low bitrate for speed (plenty for speech)
+        mimeType,
+        audioBitsPerSecond: 32000 
       });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -24,12 +32,15 @@ export default function VoiceAgent() {
         }
       };
 
+
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const finalMimeType = mediaRecorder.mimeType;
+        const audioBlob = new Blob(audioChunksRef.current, { type: finalMimeType });
         handleVoiceAudio(audioBlob);
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
       };
+
 
       mediaRecorder.start();
       setStatus('listening');
