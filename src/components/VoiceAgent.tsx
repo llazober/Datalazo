@@ -17,12 +17,9 @@ export default function VoiceAgent() {
         ? 'audio/webm;codecs=opus' 
         : MediaRecorder.isTypeSupported('audio/mp4') 
           ? 'audio/mp4' 
-          : 'audio/wav';
+          : 'audio/aac';
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        audioBitsPerSecond: 32000 
-      });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -32,17 +29,16 @@ export default function VoiceAgent() {
         }
       };
 
-
       mediaRecorder.onstop = async () => {
         const finalMimeType = mediaRecorder.mimeType;
         const audioBlob = new Blob(audioChunksRef.current, { type: finalMimeType });
         handleVoiceAudio(audioBlob);
-        // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
       };
 
+      // Start with 1s timeslice for better mobile reliability
+      mediaRecorder.start(1000);
 
-      mediaRecorder.start();
       setStatus('listening');
 
       // 60-second auto-stop to prevent abuse
@@ -65,15 +61,22 @@ export default function VoiceAgent() {
   };
 
   const toggleListening = () => {
+    // UNLOCK AUDIO FOR iOS: We must play/pause a sound directly in the click handler
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        audioRef.current?.pause();
+      }).catch(() => {
+        // Silent catch for initial interaction
+      });
+    }
+
     if (status === 'listening') {
       stopRecording();
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
       startRecording();
     }
   };
+
 
   const handleVoiceAudio = async (blob: Blob) => {
     setStatus('processing');
