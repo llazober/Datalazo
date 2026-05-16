@@ -108,17 +108,22 @@ export default function LeadForm() {
         />
         
         {/* Anti-Spam Human Shield Widget */}
-        <div className="flex justify-center py-2">
-          <div 
-            className="cf-turnstile" 
-            data-sitekey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
-            data-theme="dark"
-          />
+        <div className="flex justify-center py-2 min-h-[65px]">
+          {process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ? (
+            <div 
+              className="cf-turnstile" 
+              data-sitekey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
+              data-theme="dark"
+            />
+          ) : (
+            <p className="text-[10px] text-red-500 uppercase tracking-widest">Security Key Missing</p>
+          )}
         </div>
         <Script 
           src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
-          strategy="lazyOnload" 
+          strategy="afterInteractive" 
         />
+
 
         <button
 
