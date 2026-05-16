@@ -126,6 +126,21 @@ export default function Home() {
               <a href="#process" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">Process</a>
               <a href="#contact" onClick={() => setIsMenuOpen(false)} className="text-slate-300 hover:text-accent-cyan uppercase italic">{t.nav.contact}</a>
               <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="text-accent-cyan uppercase italic">{t.nav.dashboard}</Link>
+              
+              <div className="flex gap-4 pt-4 border-t border-white/10">
+                <button 
+                  onClick={() => { setLang('en'); setIsMenuOpen(false); }} 
+                  className={`flex-1 py-2 rounded border ${lang === 'en' ? 'border-accent-cyan text-accent-cyan' : 'border-white/10 text-slate-500'}`}
+                >
+                  EN
+                </button>
+                <button 
+                  onClick={() => { setLang('es'); setIsMenuOpen(false); }} 
+                  className={`flex-1 py-2 rounded border ${lang === 'es' ? 'border-accent-cyan text-accent-cyan' : 'border-white/10 text-slate-500'}`}
+                >
+                  ES
+                </button>
+              </div>
             </nav>
           </div>
         )}
