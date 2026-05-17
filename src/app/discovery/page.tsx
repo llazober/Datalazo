@@ -213,11 +213,9 @@ export default function DiscoveryQuestionnaire() {
                 <div>
                   <InputLabel>Website URL</InputLabel>
                   <input 
-                    type="url" 
+                    type="text" 
                     name="website" 
-                    placeholder="https://..." 
-                    pattern="https://.*" 
-                    title="URL must start with https://"
+                    placeholder="datalazo.net" 
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors" 
                   />
                 </div>
