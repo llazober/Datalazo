@@ -24,6 +24,11 @@ export async function POST(
       return NextResponse.json({ error: 'Resend API Key is missing.' }, { status: 500 });
     }
 
+    let settings = await prisma.settings.findUnique({ where: { id: 'global' } });
+    const fromAddress = settings 
+      ? `${settings.senderName} <${settings.senderEmail}>`
+      : 'Luis <luis@datalazo.net>';
+
     // 2. Initialize Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
     
@@ -31,7 +36,7 @@ export async function POST(
     const discoveryLink = `https://datalazo.net/discovery?id=${lead.id}`;
     
     const { data, error } = await resend.emails.send({
-      from: 'Luis <luis@datalazo.net>', // Must match verified Resend domain
+      from: fromAddress, // Uses Settings from DB
       to: lead.email,
       subject: 'Your AI Automation Assessment - Datalazo',
       html: `
@@ -46,7 +51,7 @@ export async function POST(
           </div>
 
           <p>Looking forward to reviewing your answers!</p>
-          <p>Best regards,<br/><strong>Luis Lazo</strong><br/>Datalazo Intelligence</p>
+          <p>Best regards,<br/><strong>${settings?.senderName || 'Luis Lazo'}</strong><br/>${settings?.agencyName || 'Datalazo Intelligence'}</p>
         </div>
       `,
     });

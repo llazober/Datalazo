@@ -43,12 +43,18 @@ export async function POST(
       }
     });
 
-    // 2. Send the email using Resend (Preferred) or n8n (Fallback)
+    // 2. Fetch Global Settings
+    let settings = await prisma.settings.findUnique({ where: { id: 'global' } });
+    const fromAddress = settings 
+      ? `${settings.senderName} <${settings.senderEmail}>`
+      : 'Luis <luis@datalazo.net>';
+
+    // 3. Send the email using Resend (Preferred) or n8n (Fallback)
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       
       const { data, error } = await resend.emails.send({
-        from: 'Luis <luis@datalazo.net>', // Must match verified Resend domain
+        from: fromAddress, // Uses Settings from DB
         to: updatedLead.email,
         subject: 'Your Custom AI Automation Roadmap from Datalazo',
         html: `
@@ -59,7 +65,7 @@ export async function POST(
               ${aiProposal.replace(/\n/g, '<br/>')}
             </div>
             <p>If you have any questions or want to move forward, just reply to this email!</p>
-            <p>Best regards,<br/><strong>Luis Lazo</strong><br/>Datalazo Intelligence</p>
+            <p>Best regards,<br/><strong>${settings?.senderName || 'Luis Lazo'}</strong><br/>${settings?.agencyName || 'Datalazo Intelligence'}</p>
           </div>
         `,
       });
