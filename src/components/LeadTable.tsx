@@ -19,6 +19,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string, aiProposal: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingLink, setIsSendingLink] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
@@ -113,6 +114,23 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       alert("Failed to send proposal.");
     }
     setIsSaving(false);
+  };
+
+  const sendDiscoveryLink = async (id: string) => {
+    setIsSendingLink(id);
+    try {
+      const res = await fetch(`/api/lead/${id}/send-discovery-link`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert("Discovery link emailed successfully!");
+      } else {
+        alert(data.error || "Failed to send link.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send link.");
+    }
+    setIsSendingLink(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -279,6 +297,16 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               </td>
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => sendDiscoveryLink(lead.id)}
+                    disabled={isSendingLink === lead.id}
+                    className="p-2 hover:bg-emerald-500/20 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                    title="Email Discovery Link"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                   <button 
                     onClick={() => setSelectedLead({ id: lead.id, name: lead.name, notes: lead.notes || '', aiProposal: lead.aiProposal || '' })}
                     className="p-2 hover:bg-cyan-500/20 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors"
