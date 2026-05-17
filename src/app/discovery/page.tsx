@@ -93,7 +93,7 @@ export default function DiscoveryQuestionnaire() {
       company,
       service: "AI Discovery Questionnaire",
       notes: formattedMessage,
-      status: "BOOKED",
+      status: "PROCESSED",
       "cf-turnstile-response": turnstileToken
     };
 
