@@ -20,6 +20,12 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string, aiProposal: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingLink, setIsSendingLink] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
@@ -28,10 +34,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       const response = await fetch(`/api/lead/${id}`, { method: 'DELETE' });
       if (response.ok) {
         setLeads(leads.filter(l => l.id !== id));
+        showToast('Lead deleted successfully');
+      } else {
+        showToast('Failed to delete lead', 'error');
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete lead.');
+      showToast('Failed to delete lead', 'error');
     }
   };
 
@@ -84,12 +93,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       if (data.success) {
         setSelectedLead({ ...selectedLead, aiProposal: data.aiProposal });
         setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, aiProposal: data.aiProposal } : l));
+        showToast('AI Pitch generated successfully!');
       } else {
-        alert(data.error || "Generation failed.");
+        showToast(data.error || "Generation failed.", 'error');
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to generate.");
+      showToast('Failed to generate AI proposal.', 'error');
     }
     setIsSaving(false);
   };
@@ -107,11 +117,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       if (data.success) {
         setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, aiProposal: selectedLead.aiProposal, status: 'PROCESSED' } : l));
         setSelectedLead(null);
-        alert("Proposal successfully sent via n8n!");
+        showToast('Proposal sent successfully!');
+      } else {
+        showToast(data.error || 'Failed to send proposal.', 'error');
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to send proposal.");
+      showToast('Failed to send proposal.', 'error');
     }
     setIsSaving(false);
   };
@@ -122,13 +134,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       const res = await fetch(`/api/lead/${id}/send-discovery-link`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert("Discovery link emailed successfully!");
+        showToast('Discovery link emailed successfully!');
       } else {
-        alert(data.error || "Failed to send link.");
+        showToast(data.error || 'Failed to send link.', 'error');
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to send link.");
+      showToast('Failed to send link.', 'error');
     }
     setIsSendingLink(null);
   };
@@ -147,6 +159,22 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
 
   return (
     <div className="space-y-8 relative">
+      {/* Custom Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[9999] px-6 py-4 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-5 duration-300 flex items-center gap-3 backdrop-blur-md border ${
+          toast.type === 'success' 
+            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]' 
+            : 'bg-red-500/20 border-red-500/30 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]'
+        }`}>
+          {toast.type === 'success' ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          )}
+          <span className="font-bold">{toast.message}</span>
+        </div>
+      )}
+
       {/* Notes Modal */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
