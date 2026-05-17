@@ -128,7 +128,14 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     setIsSaving(false);
   };
 
-  const sendDiscoveryLink = async (id: string) => {
+  const sendDiscoveryLink = async (id: string, status: string) => {
+    if (status?.toUpperCase() === 'IN_REVIEW') {
+      if (!confirm('This discovery email was sent already. Do you want to send it again?')) return;
+    } else if (status?.toUpperCase() !== 'BOOKED') {
+      showToast('Discovery link can only be sent to Booked or In Review leads.', 'error');
+      return;
+    }
+
     setIsSendingLink(id);
     try {
       const res = await fetch(`/api/lead/${id}/send-discovery-link`, { method: 'POST' });
@@ -149,6 +156,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     const normalized = status?.toUpperCase();
     switch (normalized) {
       case 'WON': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'PROCESSED': return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
       case 'LOST': return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
       case 'MAYBE': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'CONTACTED': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
@@ -321,12 +329,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                   <option value="MAYBE">Maybe</option>
                   <option value="WON">Won</option>
                   <option value="LOST">Lost</option>
+                  <option value="PROCESSED">Processed</option>
                 </select>
               </td>
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
-                    onClick={() => sendDiscoveryLink(lead.id)}
+                    onClick={() => sendDiscoveryLink(lead.id, lead.status)}
                     disabled={isSendingLink === lead.id}
                     className="p-2 hover:bg-emerald-500/20 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors disabled:opacity-50"
                     title="Email Discovery Link"
