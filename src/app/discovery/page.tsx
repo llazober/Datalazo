@@ -92,7 +92,7 @@ export default function DiscoveryQuestionnaire() {
       phone,
       company,
       service: "AI Discovery Questionnaire",
-      message: formattedMessage,
+      notes: formattedMessage,
       status: "BOOKED",
       "cf-turnstile-response": turnstileToken
     };
@@ -212,7 +212,14 @@ export default function DiscoveryQuestionnaire() {
                 </div>
                 <div>
                   <InputLabel>Website URL</InputLabel>
-                  <input type="url" name="website" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors" />
+                  <input 
+                    type="url" 
+                    name="website" 
+                    placeholder="https://..." 
+                    pattern="https://.*" 
+                    title="URL must start with https://"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors" 
+                  />
                 </div>
                 <div>
                   <InputLabel>Number of Employees *</InputLabel>

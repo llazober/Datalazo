@@ -37,6 +37,7 @@ export async function POST(req: Request) {
         company: data.company,
         service: data.service,
         message: data.message,
+        notes: data.notes,
         status: data.status || 'CONTACTED',
       }
 
