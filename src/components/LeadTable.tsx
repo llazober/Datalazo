@@ -193,6 +193,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                   {isSaving ? 'Saving...' : 'Save Drafts'}
                 </button>
               </div>
+            </div>
           </div>
         </div>
       )}
