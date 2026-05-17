@@ -92,6 +92,7 @@ export default function DiscoveryQuestionnaire() {
       phone,
       company,
       service: "AI Discovery Questionnaire",
+      message: "Discovery Form Submitted - See Notes",
       notes: formattedMessage,
       status: "PROCESSED",
       "cf-turnstile-response": turnstileToken
