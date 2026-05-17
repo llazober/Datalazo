@@ -29,21 +29,35 @@ export async function POST(req: Request) {
     }
 
     // 1. Save directly to the Database
-
-    const newLead = await prisma.lead.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        company: data.company,
-        service: data.service,
-        message: data.message,
-        notes: data.notes,
-        status: data.status || 'CONTACTED',
-      }
-
-    });
-
-    console.log('Lead saved to DB:', newLead.id);
+    let newLead;
+    if (data.leadId) {
+      newLead = await prisma.lead.update({
+        where: { id: data.leadId },
+        data: {
+          name: data.name,
+          email: data.email,
+          company: data.company,
+          service: data.service,
+          message: data.message,
+          notes: data.notes,
+          status: data.status || 'IN_REVIEW',
+        }
+      });
+      console.log('Lead updated in DB:', newLead.id);
+    } else {
+      newLead = await prisma.lead.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          company: data.company,
+          service: data.service,
+          message: data.message,
+          notes: data.notes,
+          status: data.status || 'CONTACTED',
+        }
+      });
+      console.log('Lead saved to DB:', newLead.id);
+    }
 
     // 2. Notify n8n
     // Fallback for different naming conventions in Easypanel (WEBHOOK_URL, N8N_WEBHOOK_URL, etc.)

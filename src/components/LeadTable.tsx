@@ -10,13 +10,14 @@ interface Lead {
   service: string;
   message: string | null;
   notes: string | null;
+  aiProposal: string | null;
   status: string;
   createdAt: string | Date;
 }
 
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
-  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string } | null>(null);
+  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string, aiProposal: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleDelete = async (id: string) => {
@@ -57,8 +58,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: selectedLead.notes }),
       });
-      if (res.ok) {
-        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, notes: selectedLead.notes } : l));
+      const res2 = await fetch(`/api/lead/${selectedLead.id}/proposal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiProposal: selectedLead.aiProposal }),
+      });
+      if (res.ok && res2.ok) {
+        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, notes: selectedLead.notes, aiProposal: selectedLead.aiProposal } : l));
         setSelectedLead(null);
       }
     } catch (err) {
@@ -66,6 +72,47 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const generateProposal = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/generate-proposal`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedLead({ ...selectedLead, aiProposal: data.aiProposal });
+        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, aiProposal: data.aiProposal } : l));
+      } else {
+        alert(data.error || "Generation failed.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to generate.");
+    }
+    setIsSaving(false);
+  };
+
+  const sendProposal = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/proposal`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiProposal: selectedLead.aiProposal })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, aiProposal: selectedLead.aiProposal, status: 'PROCESSED' } : l));
+        setSelectedLead(null);
+        alert("Proposal successfully sent via n8n!");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send proposal.");
+    }
+    setIsSaving(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -97,28 +144,55 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               </button>
             </div>
             
+            <h3 className="text-xs font-bold uppercase text-slate-400 mb-2 mt-4">Internal Notes</h3>
             <textarea 
               value={selectedLead.notes || ''}
               onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
               placeholder="Enter internal notes, follow-up history, or meeting highlights..."
-              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
+              className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-4"
             />
 
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-between items-center mb-2 mt-4">
+              <h3 className="text-xs font-bold uppercase text-slate-400">AI Proposal Draft</h3>
               <button 
-                onClick={() => setSelectedLead(null)}
-                className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={saveNotes}
+                onClick={generateProposal}
                 disabled={isSaving}
-                className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
+                className="text-xs font-bold uppercase bg-fuchsia-500/20 text-fuchsia-400 px-3 py-1 rounded-lg hover:bg-fuchsia-500/40 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                {isSaving ? 'Saving...' : 'Save Notes'}
+                ✨ Generate AI Pitch
               </button>
             </div>
+            <textarea 
+              value={selectedLead.aiProposal || ''}
+              onChange={(e) => setSelectedLead({ ...selectedLead, aiProposal: e.target.value })}
+              placeholder="Generate an AI proposal or type one manually..."
+              className="w-full h-48 bg-white/5 border border-fuchsia-500/20 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-fuchsia-500 transition-all resize-none mb-6"
+            />
+
+            <div className="flex justify-between items-center border-t border-white/10 pt-4">
+              <button 
+                onClick={sendProposal}
+                disabled={isSaving || !selectedLead.aiProposal}
+                className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+              >
+                ✉️ Approve & Send Email
+              </button>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setSelectedLead(null)}
+                  className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={saveNotes}
+                  disabled={isSaving}
+                  className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
+                >
+                  {isSaving ? 'Saving...' : 'Save Drafts'}
+                </button>
+              </div>
           </div>
         </div>
       )}
@@ -205,9 +279,9 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
-                    onClick={() => setSelectedLead({ id: lead.id, name: lead.name, notes: lead.notes || '' })}
+                    onClick={() => setSelectedLead({ id: lead.id, name: lead.name, notes: lead.notes || '', aiProposal: lead.aiProposal || '' })}
                     className="p-2 hover:bg-cyan-500/20 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors"
-                    title="Edit Notes"
+                    title="Edit Notes & Proposal"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

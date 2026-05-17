@@ -19,7 +19,7 @@ model Lead {
   phone        String?
   notes        String?       @db.Text
   status       String        @default("IN_REVIEW") // IN_REVIEW, PROCESSED, CONTACTED, BOOKED
-
+  aiProposal   String?       @db.Text
 
   appointments Appointment[]
   createdAt    DateTime      @default(now())

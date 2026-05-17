@@ -7,6 +7,33 @@ import Link from 'next/link';
 
 export default function DiscoveryQuestionnaire() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [leadId, setLeadId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const id = searchParams.get('id');
+    if (id) {
+      setLeadId(id);
+      fetch(`/api/lead/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.error) {
+            const nameInput = document.querySelector('input[name="contactName"]') as HTMLInputElement;
+            if (nameInput && data.name) nameInput.value = data.name;
+            
+            const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+            if (emailInput && data.email) emailInput.value = data.email;
+            
+            const companyInput = document.querySelector('input[name="businessName"]') as HTMLInputElement;
+            if (companyInput && data.company) companyInput.value = data.company;
+            
+            const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement;
+            if (phoneInput && data.phone) phoneInput.value = data.phone;
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,6 +114,7 @@ export default function DiscoveryQuestionnaire() {
 
     // Construct the payload for the existing /api/lead endpoint
     const payload = {
+      leadId: leadId,
       name,
       email,
       phone,
@@ -94,7 +122,7 @@ export default function DiscoveryQuestionnaire() {
       service: "AI Discovery Questionnaire",
       message: "Discovery Form Submitted - See Notes",
       notes: formattedMessage,
-      status: "PROCESSED",
+      status: "IN_REVIEW",
       "cf-turnstile-response": turnstileToken
     };
 
