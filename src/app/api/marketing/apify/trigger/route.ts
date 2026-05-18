@@ -30,6 +30,16 @@ export async function POST(req: Request) {
       includePeople: true, // Try to find emails/socials/phones if supported
       scrapeWebsite: true, // Scrapes emails from websites!
       personalData: true,  // Enables email and social link extraction!
+      scrapeContacts: true, // MUST be true in latest Compass version to scrape emails!
+      scrapeSocialMediaProfiles: {
+        facebooks: true,
+        instagrams: true,
+        youtubes: true,
+        tiktoks: true,
+        twitters: true
+      },
+      maximumLeadsEnrichmentRecords: 10,
+      verifyLeadsEnrichmentEmails: true,
     };
 
     console.log(`Triggering Apify Actor ${actorId} with queries:`, queries);

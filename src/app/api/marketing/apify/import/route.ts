@@ -60,6 +60,13 @@ export async function POST(req: Request) {
         email = item.contactInfo.email;
       } else if (item.contactInfo && Array.isArray(item.contactInfo.emails) && item.contactInfo.emails.length > 0) {
         email = item.contactInfo.emails[0];
+      } else if (Array.isArray(item.leadsEnrichment) && item.leadsEnrichment.length > 0) {
+        for (const lead of item.leadsEnrichment) {
+          if (typeof lead.email === 'string' && lead.email.trim()) {
+            email = lead.email;
+            break;
+          }
+        }
       }
 
       email = email.trim().toLowerCase();
