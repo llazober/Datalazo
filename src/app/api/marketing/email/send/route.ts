@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Lead ID is required.' }, { status: 400 });
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: 'Resend API Key is missing on the server.' }, { status: 500 });
+    const config = getDatalazoConfig();
+    const resendApiKey = config.resendApiKey || process.env.RESEND_API_KEY;
+
+    if (!resendApiKey || resendApiKey.includes('YOUR_RESEND_API_KEY_HERE')) {
+      return NextResponse.json({ error: 'Resend API Key is missing. Please add it to datalazo.config.json or your server environment variables.' }, { status: 500 });
     }
 
     // 1. Fetch Lead
@@ -35,12 +39,12 @@ export async function POST(req: Request) {
 
     // 2. Fetch Sender Settings
     let settings = await prisma.settings.findUnique({ where: { id: 'global' } });
-    const fromAddress = settings 
-      ? `${settings.senderName} <${settings.senderEmail}>`
-      : 'Luis <luis@datalazo.net>';
+    const finalSenderName = config.senderName || settings?.senderName || 'Luis Lazo';
+    const finalSenderEmail = config.senderEmail || settings?.senderEmail || 'luis@datalazo.net';
+    const fromAddress = `${finalSenderName} <${finalSenderEmail}>`;
 
     // 3. Initialize Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(resendApiKey);
 
     // Convert newlines to HTML line breaks for the email body
     const formattedHtml = `
@@ -56,7 +60,7 @@ export async function POST(req: Request) {
       to: lead.email,
       subject: emailSubject,
       html: formattedHtml,
-      replyTo: settings?.senderEmail || 'luis@datalazo.net',
+      replyTo: finalSenderEmail,
     });
 
     if (resendError) {

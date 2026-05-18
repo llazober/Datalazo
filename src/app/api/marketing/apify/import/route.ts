@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,8 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     const datasetId = data.datasetId;
-    const apiToken = data.apiToken || process.env.APIFY_API_KEY;
+    const config = getDatalazoConfig();
+    const apiToken = data.apiToken || config.apifyApiKey || process.env.APIFY_API_KEY;
     const runId = data.runId || null;
     const actorId = data.actorId || null;
 

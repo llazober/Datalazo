@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +35,13 @@ export async function POST(req: Request) {
     const runId = resource.id || null;
     const actorId = resource.actId || null;
     
-    // We fetch the API key from environment
-    const apiToken = process.env.APIFY_API_KEY;
+    // We fetch the API key from config/environment
+    const config = getDatalazoConfig();
+    const apiToken = config.apifyApiKey || process.env.APIFY_API_KEY;
 
     if (!apiToken) {
-      console.error('APIFY_API_KEY is not defined in server environment variables. Webhook failed to process.');
-      return NextResponse.json({ success: false, error: 'Server is missing APIFY_API_KEY environment variable.' }, { status: 500 });
+      console.error('APIFY_API_KEY is not defined. Webhook failed to process.');
+      return NextResponse.json({ success: false, error: 'Server is missing APIFY_API_KEY.' }, { status: 500 });
     }
 
     console.log(`Webhook triggering automatic import for dataset ${datasetId} (run: ${runId})`);

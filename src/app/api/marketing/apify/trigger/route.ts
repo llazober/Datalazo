@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,8 @@ export async function POST(req: Request) {
     const actorId = data.actorId || '2Mdma1N6Fd0y3QEjR';
     const queries = data.queries || [];
     const limit = data.limit || 20;
-    const apiToken = data.apiToken || process.env.APIFY_API_KEY;
+    const config = getDatalazoConfig();
+    const apiToken = data.apiToken || config.apifyApiKey || process.env.APIFY_API_KEY;
 
     if (!apiToken) {
       return NextResponse.json({ 
