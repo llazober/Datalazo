@@ -101,3 +101,26 @@ model Settings {
   updatedAt   DateTime @updatedAt
 }
 
+model MarketingLead {
+  id                 String    @id @default(cuid())
+  name               String?   // Contact person's name
+  email              String    // Contact email
+  phone              String?   // Contact phone number
+  company            String?   // Business/Company name
+  website            String?   // Company website URL
+  address            String?   // Physical location/address
+  category           String?   // Business industry/category (e.g. "Plumbing", "Dentist")
+  notes              String?   @db.Text // Any scraped remarks or raw notes
+  status             String    @default("NEW") // STATUSES: NEW, GENERATING, DRAFT_READY, SENT, FAILED
+  aiSubject          String?   @db.Text // AI generated cold outreach subject line
+  aiBody             String?   @db.Text // AI generated cold outreach body draft
+  apifyRunId         String?   // References the Apify scraper execution run
+  apifyActorId       String?   // References the Apify actor used
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+
