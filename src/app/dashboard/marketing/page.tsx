@@ -628,29 +628,39 @@ export default function MarketingDashboard() {
               <div className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-1">Outreach Composer</div>
               <h3 className="text-2xl font-black text-white leading-tight uppercase italic">{selectedLead.company || 'Unknown Business'}</h3>
               
-              <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-[#08080a] border border-white/5 rounded-2xl text-xs space-y-1">
+              <div className="grid grid-cols-2 gap-4 mt-6 p-4 bg-[#08080a] border border-white/5 rounded-2xl text-xs">
                 <div>
-                  <span className="text-slate-500 block uppercase font-bold text-[9px] tracking-wider">Contact Person</span>
+                  <span className="text-slate-500 block uppercase font-black text-[9px] tracking-wider mb-1">Contact Person</span>
                   <input 
                     type="text" 
                     value={selectedLead.name || ''} 
                     onChange={(e) => setSelectedLead({ ...selectedLead, name: e.target.value })}
-                    className="bg-transparent border-b border-transparent focus:border-emerald-500 text-white font-semibold focus:outline-none w-full"
+                    className="bg-[#0c0c0e] border border-white/10 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-emerald-500 transition-colors w-full"
                     placeholder="Owner/Manager"
                   />
                 </div>
                 <div>
-                  <span className="text-slate-500 block uppercase font-bold text-[9px] tracking-wider">Email Address</span>
+                  <span className="text-slate-500 block uppercase font-black text-[9px] tracking-wider mb-1">Email Address (Test Email)</span>
                   <input 
                     type="email" 
                     value={selectedLead.email || ''} 
                     onChange={(e) => setSelectedLead({ ...selectedLead, email: e.target.value })}
-                    className="bg-transparent border-b border-transparent focus:border-emerald-500 text-white font-semibold focus:outline-none w-full"
+                    className="bg-[#0c0c0e] border border-white/10 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-emerald-500 transition-colors w-full font-mono text-emerald-400"
                   />
                 </div>
+                <div className="col-span-2 pt-3 mt-1 border-t border-white/5 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 leading-tight">Change this email to send tests to your own inbox.</span>
+                  <button
+                    onClick={handleSaveLeadEdits}
+                    disabled={savingLead}
+                    className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase rounded-lg hover:bg-emerald-500/20 transition-all flex items-center gap-1.5"
+                  >
+                    {savingLead ? 'Saving...' : '💾 Save Info'}
+                  </button>
+                </div>
                 <div className="col-span-2 pt-2 border-t border-white/5">
-                  <span className="text-slate-500 block uppercase font-bold text-[9px] tracking-wider">Scraped Location/Address</span>
-                  <span className="text-slate-300 font-semibold">{selectedLead.address || 'Not Available'}</span>
+                  <span className="text-slate-500 block uppercase font-black text-[9px] tracking-wider">Scraped Location/Address</span>
+                  <span className="text-slate-300 font-semibold mt-1 block">{selectedLead.address || 'Not Available'}</span>
                 </div>
               </div>
             </div>
