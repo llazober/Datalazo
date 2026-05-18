@@ -298,6 +298,7 @@ export default function MarketingDashboard() {
   const newLeads = leads.filter(l => l.status === 'NEW').length;
   const readyDrafts = leads.filter(l => l.status === 'DRAFT_READY').length;
   const sentOutreach = leads.filter(l => l.status === 'SENT').length;
+  const generatedPitches = leads.filter(l => l.status === 'DRAFT_READY' || l.status === 'SENT').length;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 relative">
@@ -331,10 +332,11 @@ export default function MarketingDashboard() {
       </div>
 
       {/* HUD metrics dashboard */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { label: 'Scraped Leads', value: totalLeads, color: 'text-white border-white/5' },
           { label: 'Unprocessed', value: newLeads, color: 'text-amber-400 border-amber-500/20 bg-amber-500/5' },
+          { label: 'AI Pitches Generated', value: generatedPitches, color: 'text-violet-400 border-violet-500/20 bg-violet-500/5' },
           { label: 'AI Drafts Ready', value: readyDrafts, color: 'text-cyan-400 border-cyan-500/20 bg-cyan-500/5' },
           { label: 'Outreach Sent', value: sentOutreach, color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' }
         ].map((hud, idx) => (
