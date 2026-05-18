@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import fs from 'fs';
+import path from 'path';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +23,15 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(settings);
+    const config = getDatalazoConfig();
+
+    return NextResponse.json({
+      senderName: config.senderName || settings.senderName,
+      senderEmail: config.senderEmail || settings.senderEmail,
+      agencyName: config.agencyName || settings.agencyName,
+      apifyApiKey: config.apifyApiKey || '',
+      resendApiKey: config.resendApiKey || ''
+    });
   } catch (error) {
     console.error('Settings GET Error:', error);
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -31,6 +42,7 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     
+    // 1. Update database settings
     const updatedSettings = await prisma.settings.upsert({
       where: { id: 'global' },
       update: {
@@ -46,7 +58,27 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json(updatedSettings);
+    // 2. Update datalazo.config.json file
+    try {
+      const configPath = path.join(process.cwd(), 'datalazo.config.json');
+      const newConfig = {
+        apifyApiKey: data.apifyApiKey || '',
+        resendApiKey: data.resendApiKey || '',
+        senderName: data.senderName || '',
+        senderEmail: data.senderEmail || '',
+        agencyName: data.agencyName || ''
+      };
+      fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
+      console.log('Successfully saved changes to datalazo.config.json via Settings form.');
+    } catch (err) {
+      console.error('Failed to write JSON settings file:', err);
+    }
+
+    return NextResponse.json({
+      ...updatedSettings,
+      apifyApiKey: data.apifyApiKey,
+      resendApiKey: data.resendApiKey
+    });
   } catch (error) {
     console.error('Settings POST Error:', error);
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
