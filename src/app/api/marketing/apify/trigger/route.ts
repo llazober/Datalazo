@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       includeImages: false,
       includePeople: true, // Try to find emails/socials/phones if supported
       scrapeWebsite: true, // Scrapes emails from websites!
+      personalData: true,  // Enables email and social link extraction!
     };
 
     console.log(`Triggering Apify Actor ${actorId} with queries:`, queries);
