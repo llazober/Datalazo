@@ -17,6 +17,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Webhook connection active!' });
     }
 
+    // Ignore all other events except RUN.SUCCEEDED
+    if (event !== 'RUN.SUCCEEDED' && event !== 'run.succeeded') {
+      console.log(`Webhook received event ${event}. Ignoring event type and returning success.`);
+      return NextResponse.json({ success: true, message: `Event ${event} ignored successfully.` });
+    }
+
     const resource = payload.resource;
 
     if (!resource || !resource.defaultDatasetId) {
