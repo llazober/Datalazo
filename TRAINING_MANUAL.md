@@ -37,17 +37,42 @@ Your dashboard is connected to **n8n** for advanced fulfillment.
 1.  In the **Lead Pipeline**, change a lead status to **"Won"**.
 2.  **Automation Trigger**: This instantly signals n8n to start the onboarding process (Welcome Email, Invoicing, etc.).
 
-
 ---
 
-## 3. 🧠 Knowledge Base
+## 4. 🧠 Knowledge Base
 The Knowledge Base is the "Brain" of your AI.
 *   **Uploading**: Upload PDFs, TXT, or DOCX files about your agency services, pricing, or case studies.
 *   **Context**: The **AI Customer Service** and the **SEO Matrix** use these files to ensure every answer and article is 100% accurate and aligned with your brand.
 
 ---
 
-## 4. 🛡️ Technical Audit Shield (The Radar)
+## 5. ✉️ B2B Lead Generator & AI Outreach Desk (Module 05)
+The **B2B Marketing Hub** is a fully automated B2B lead generation and personalized AI cold outreach engine. It connects directly with Apify to scrape local business prospects and uses OpenAI to compose tailored, high-converting sales pitches.
+
+### 🔌 Automated "Set & Forget" Pipeline
+Datalazo utilizes an HTTP webhook integration to ingest leads automatically.
+1.  **The Webhook (HTTP Request)**: Configured in your Apify console at `https://datalazo.net/api/marketing/apify/webhook` on event `RUN.SUCCEEDED`.
+2.  **Lifecycle Filtering**: The system is highly defensive. It filters out started/running events and pings, only executing the lead import upon successful run completion, returning a clean `200 OK` status indicator across all stages.
+3.  **Continuous Scheduling**: Under the **Schedules** tab in your Apify Console, configure the Google Maps Scraper Actor (`2Mdma1N6Fd0y3QEjR`) to run periodically (e.g., daily/weekly) with target queries. Every time the schedule runs, fresh validated leads automatically flow straight into your Datalazo table!
+
+### 🔍 Launching Scrapes & Manual Imports
+*   **Cockpit Search**: Enter target search queries (e.g., `plumbers in Miami FL`) and limits, then click **"Trigger Scraper Run"** to launch the scraper directly.
+*   **Email Extraction**: Datalazo automatically instructs Apify to crawl the visited business websites to extract and verify public email addresses (`scrapeContacts: true`).
+*   **Manual Import**: Already finished a run? Copy the Apify **Dataset ID** (e.g., `TZdPHAvB0WPucaMui`), paste it into the box, and click **"Import Scraped Leads"**.
+
+### ✍️ AI Composer & Outreach Dispatcher
+Click on any imported lead to open the slide-in **Outreach Composer**:
+1.  **Dossier Review**: Inspect the company name, category, website, phone, and location.
+2.  **Campaign Selection**: Select from three pre-engineered, high-converting outreach angles:
+    *   *Free AI Workflow Audit Offer* (Highly recommended to start the relationship!)
+    *   *Direct Agency Services* (AI Voice Receptionists & SEO)
+    *   *Partnership Inquiry / Local Client Stream*
+3.  **Generate Pitch**: Click **"Generate AI Pitch"** to instruct OpenAI to compose a custom-tailored outreach email referencing their specific business.
+4.  **Send via Resend**: Click **"Send Outreach via Resend"** to instantly dispatch the email using your integrated Resend account. Once successfully dispatched, the lead's status changes to `SENT` in real-time!
+
+---
+
+## 6. 🛡️ Technical Audit Shield (The Radar)
 The Audit Shield allows you to verify the health of any client domain in real-time.
 
 *   **Scan Now**: Enter a URL and click the scan button. The system performs a multi-point check:
@@ -58,7 +83,7 @@ The Audit Shield allows you to verify the health of any client domain in real-ti
 
 ---
 
-## 5. 📈 Growth Intelligence (ROI Proof)
+## 7. 📈 Growth Intelligence (ROI Proof)
 Located at the bottom of the SEO Matrix Manager, this section proves your value.
 
 *   **Keywords Gained**: Tracks the expansion of the client's search footprint.
@@ -67,7 +92,8 @@ Located at the bottom of the SEO Matrix Manager, this section proves your value.
 *   **Growth Bar**: When the bar hits **"100% Optimized"**, it means the client's "Keyword Matrix" for that month is complete.
 
 ---
-## 6. 🛡️ Anti-Spam Human Shield (Cloudflare)
+
+## 8. 🛡️ Anti-Spam Human Shield (Cloudflare)
 To stop bots from spamming your lead capture forms, we use **Cloudflare Turnstile**. This is an invisible protector that ensures every lead is 100% human.
 
 ### 🔑 Setting up your Keys
