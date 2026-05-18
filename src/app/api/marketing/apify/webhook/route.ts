@@ -10,6 +10,13 @@ export async function POST(req: Request) {
 
     // Apify webhook events: RUN.SUCCEEDED is the one we care about
     const event = payload.eventType || payload.event;
+
+    // Handle Apify webhook test event gracefully
+    if (event === 'Test' || event === 'test') {
+      console.log('Apify test webhook received and verified successfully.');
+      return NextResponse.json({ success: true, message: 'Webhook connection active!' });
+    }
+
     const resource = payload.resource;
 
     if (!resource || !resource.defaultDatasetId) {
