@@ -206,6 +206,9 @@ export default function MarketingDashboard() {
 
     try {
       setSavingLead(true);
+      const isDraftEmpty = !draftSubject.trim() && !draftBody.trim();
+      const targetStatus = isDraftEmpty ? 'NEW' : 'DRAFT_READY';
+
       const res = await fetch(`/api/marketing/leads/${selectedLead.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -215,12 +218,18 @@ export default function MarketingDashboard() {
           name: selectedLead.name,
           company: selectedLead.company,
           email: selectedLead.email,
+          status: targetStatus
         })
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        showNotification('Lead details and draft saved successfully.', 'success');
+        showNotification(
+          isDraftEmpty 
+            ? 'Draft cleared and lead status reset to NEW.' 
+            : 'Lead details and draft saved successfully.', 
+          'success'
+        );
         setSelectedLead(data.lead);
         fetchLeads();
       } else {
@@ -724,7 +733,7 @@ export default function MarketingDashboard() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={handleSaveLeadEdits}
-                  disabled={savingLead || !draftSubject}
+                  disabled={savingLead}
                   className="px-4 py-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 text-xs font-black uppercase transition-all"
                   title="Save Draft Changes"
                 >
