@@ -72,6 +72,26 @@ Click on any imported lead to open the slide-in **Outreach Composer**:
 
 ---
 
+### 🔄 Closing the Loop: The AI Agency Flywheel
+When a prospect replies to your AI pitch, they enter your core high-value conversion and fulfillment loop:
+
+```mermaid
+graph TD
+    A["1. Scrape & Verify Emails (Apify)"] -->|Autopopulate Cockpit| B["2. Personalize & Dispatch (Resend + OpenAI)"]
+    B -->|Outreach Sent| C["3. Prospect Responds (Direct to Inbox)"]
+    C -->|Lands in Luis Inbox| D["4. Discovery & CRM Sync (Datalazo Dashboard)"]
+    D -->|Change Status to WON| E["5. n8n Fulfillment Webhook Triggered"]
+    E -->|Auto welcome & Billing| F["6. Deploy SEO Matrix & AI Content"]
+    F -->|Prove Performance & ROI| A
+```
+
+1.  **Direct Inbox Responses**: Because Datalazo dispatches pitches using your domain through Resend, replies land directly in your standard agency business inbox.
+2.  **Discovery Booking & CRM**: Once a meeting is scheduled, add the prospect to your main **Datalazo CRM Pipeline** (`/dashboard`), moving them to `CONTACTED`. Click **"Add Notes"** to record discovery items.
+3.  **The "WON" Deal Trigger**: Once they sign on, change their pipeline status to **`WON`**. This instantly triggers your backend webhook to n8n to execute onboarding (Welcome Packets, Invoicing, etc.) automatically!
+4.  **SEO Matrix Delivery**: Launch their client keywords inside the **SEO Matrix Manager**, generate AI content, publish, and use the **Growth Intelligence ROI** panel to demonstrate footprint expansion.
+
+---
+
 ## 6. 🛡️ Technical Audit Shield (The Radar)
 The Audit Shield allows you to verify the health of any client domain in real-time.
 
