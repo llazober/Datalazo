@@ -6,6 +6,7 @@ import { existsSync } from 'fs';
 import { processDocument } from '@/lib/ai-processor';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+import { pathToFileURL } from 'url';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
         const text = buffer.toString('utf-8');
         await processDocument(document.id, text);
       } else if (type === 'pdf') {
+        const workerPath = join(process.cwd(), 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.mjs');
+        const workerUrl = pathToFileURL(workerPath).href;
+        PDFParse.setWorker(workerUrl);
+
         const parser = new PDFParse({ data: buffer });
         const result = await parser.getText();
         await processDocument(document.id, result.text);
