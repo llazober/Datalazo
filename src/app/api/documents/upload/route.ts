@@ -4,6 +4,8 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { processDocument } from '@/lib/ai-processor';
+import { PDFParse } from 'pdf-parse';
+import mammoth from 'mammoth';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,16 +44,36 @@ export async function POST(req: NextRequest) {
 
     console.log(`File uploaded and saved: ${file.name} (${document.id})`);
 
-    // If it's a text file, process it immediately
-    if (type === 'txt') {
-      const text = buffer.toString('utf-8');
-      // We await this now to guarantee the status updates correctly
-      await processDocument(document.id, text);
+    // Process file immediately based on type
+    try {
+      if (type === 'txt') {
+        const text = buffer.toString('utf-8');
+        await processDocument(document.id, text);
+      } else if (type === 'pdf') {
+        const parser = new PDFParse({ data: buffer });
+        const result = await parser.getText();
+        await processDocument(document.id, result.text);
+      } else if (type === 'docx') {
+        const result = await mammoth.extractRawText({ buffer: buffer });
+        await processDocument(document.id, result.value);
+      }
+    } catch (processError) {
+      console.error(`Error parsing or processing document ${document.id}:`, processError);
+      const errorMessage = processError instanceof Error ? processError.message : 'Unknown processing error';
+      await prisma.document.update({
+        where: { id: document.id },
+        data: { status: `ERROR: ${errorMessage.slice(0, 30)}` },
+      });
     }
+
+    // Fetch the updated document state to return
+    const updatedDocument = await prisma.document.findUnique({
+      where: { id: document.id }
+    }) || document;
 
     return NextResponse.json({ 
       success: true, 
-      document,
+      document: updatedDocument,
       message: 'File uploaded and processing started' 
     });
   } catch (error) {

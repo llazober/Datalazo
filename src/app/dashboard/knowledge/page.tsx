@@ -143,7 +143,7 @@ export default function KnowledgePage() {
               <div key={file.id} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-xl">
-                    {file.type === 'pdf' ? '📄' : '📝'}
+                    {file.type === 'pdf' ? '📕' : file.type === 'docx' ? '📘' : '📝'}
                   </div>
                   <div>
                     <div className="font-bold">{file.name}</div>
@@ -154,8 +154,10 @@ export default function KnowledgePage() {
                 </div>
                 <div className="flex items-center gap-6">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    file.status === 'READY' || file.status === 'UPLOADED' 
+                    file.status === 'READY' 
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                      : file.status.startsWith('ERROR')
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                   }`}>
                     {file.status}
