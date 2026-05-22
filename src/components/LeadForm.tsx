@@ -89,12 +89,16 @@ export default function LeadForm() {
           name="company"
           type="text"
           placeholder="Company Name"
+          required
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors"
         />
         <select 
           name="service"
+          required
+          defaultValue=""
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors text-slate-400"
         >
+          <option value="" disabled>Select a service</option>
           <option value="automation">Business Process Automation</option>
           <option value="ai-agents">AI Customer Service</option>
           <option value="seo">SEO & Marketing</option>
@@ -104,6 +108,7 @@ export default function LeadForm() {
           name="message"
           rows={4}
           placeholder="How can we help you?"
+          required
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors"
         />
         
