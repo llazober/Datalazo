@@ -39,3 +39,34 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete lead.' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    
+    const updatedLead = await prisma.lead.update({
+      where: { id },
+      data: {
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        company: body.company,
+        service: body.service,
+        message: body.message,
+        notes: body.notes,
+        status: body.status,
+        aiProposal: body.aiProposal,
+      }
+    });
+    
+    return NextResponse.json(updatedLead);
+  } catch (error) {
+    console.error('Update Error:', error);
+    return NextResponse.json({ error: 'Failed to update lead.' }, { status: 500 });
+  }
+}
+

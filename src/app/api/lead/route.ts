@@ -1,31 +1,35 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
     const token = data['cf-turnstile-response'];
+    const session = req.cookies.get('admin_session')?.value;
+    const isAdmin = session === 'authenticated';
 
     // 0. Verify Cloudflare Turnstile (Anti-Spam Shield)
-    if (!token) {
+    if (!isAdmin && !token) {
       return NextResponse.json({ error: 'Anti-spam token missing.' }, { status: 400 });
     }
 
-    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
-        response: token,
-      }),
-    });
+    if (!isAdmin) {
+      const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+          response: token,
+        }),
+      });
 
-    const verifyData = await verifyRes.json();
-    if (!verifyData.success) {
-      console.error('Turnstile verification failed:', verifyData);
-      return NextResponse.json({ error: 'Anti-spam verification failed.' }, { status: 403 });
+      const verifyData = await verifyRes.json();
+      if (!verifyData.success) {
+        console.error('Turnstile verification failed:', verifyData);
+        return NextResponse.json({ error: 'Anti-spam verification failed.' }, { status: 403 });
+      }
     }
 
     // 1. Save directly to the Database
@@ -39,6 +43,7 @@ export async function POST(req: Request) {
           company: data.company,
           service: data.service,
           message: data.message,
+          phone: data.phone,
           notes: data.notes,
           status: data.status || 'IN_REVIEW',
         }
@@ -52,6 +57,7 @@ export async function POST(req: Request) {
           company: data.company,
           service: data.service,
           message: data.message,
+          phone: data.phone,
           notes: data.notes,
           status: data.status || 'CONTACTED',
         }
@@ -83,7 +89,7 @@ export async function POST(req: Request) {
     }
 
     
-    return NextResponse.json({ success: true, id: newLead.id });
+    return NextResponse.json({ success: true, id: newLead.id, lead: newLead });
   } catch (error) {
     console.error('Lead Capture Error:', error);
     return NextResponse.json({ error: 'Failed to capture lead.' }, { status: 500 });

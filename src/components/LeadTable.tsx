@@ -9,6 +9,7 @@ interface Lead {
   company: string | null;
   service: string;
   message: string | null;
+  phone: string | null;
   notes: string | null;
   aiProposal: string | null;
   status: string;
@@ -17,10 +18,31 @@ interface Lead {
 
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
-  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string, aiProposal: string } | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingLink, setIsSendingLink] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newLead, setNewLead] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    service: string;
+    message: string;
+    status: string;
+    notes: string;
+  }>({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    service: '',
+    message: '',
+    status: 'IN_REVIEW',
+    notes: '',
+  });
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -59,26 +81,65 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     }
   };
 
-  const saveNotes = async () => {
+  const saveLead = async () => {
     if (!selectedLead) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/lead/${selectedLead.id}/notes`, {
+      const res = await fetch(`/api/lead/${selectedLead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: selectedLead.notes }),
+        body: JSON.stringify(selectedLead),
       });
-      const res2 = await fetch(`/api/lead/${selectedLead.id}/proposal`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aiProposal: selectedLead.aiProposal }),
-      });
-      if (res.ok && res2.ok) {
-        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, notes: selectedLead.notes, aiProposal: selectedLead.aiProposal } : l));
+      if (res.ok) {
+        const updated = await res.json();
+        setLeads(leads.map(l => l.id === selectedLead.id ? { ...l, ...updated } : l));
         setSelectedLead(null);
+        showToast('Lead updated successfully');
+      } else {
+        showToast('Failed to update lead', 'error');
       }
     } catch (err) {
-      console.error('Failed to save notes:', err);
+      console.error('Failed to save lead:', err);
+      showToast('Failed to update lead', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCreateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLead),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const createdLead = {
+          ...data.lead,
+          createdAt: new Date(data.lead.createdAt).toISOString()
+        };
+        setLeads([createdLead, ...leads]);
+        setIsCreateModalOpen(false);
+        setNewLead({
+          name: '',
+          email: '',
+          phone: '',
+          company: '',
+          service: '',
+          message: '',
+          status: 'IN_REVIEW',
+          notes: '',
+        });
+        showToast('Lead created successfully');
+      } else {
+        showToast(data.error || 'Failed to create lead', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to create lead:', err);
+      showToast('Failed to create lead', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -183,13 +244,13 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
         </div>
       )}
 
-      {/* Notes Modal */}
+      {/* Edit Lead Modal */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="glass w-full max-w-2xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300">
+          <div className="glass w-full max-w-3xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black uppercase tracking-tight italic">
-                Lead Notes: <span className="text-cyan-400">{selectedLead.name}</span>
+                Edit Lead: <span className="text-cyan-400">{selectedLead.name}</span>
               </h2>
               <button onClick={() => setSelectedLead(null)} className="text-slate-400 hover:text-white transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,15 +259,99 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               </button>
             </div>
             
-            <h3 className="text-xs font-bold uppercase text-slate-400 mb-2 mt-4">Internal Notes</h3>
-            <textarea 
-              value={selectedLead.notes || ''}
-              onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
-              placeholder="Enter internal notes, follow-up history, or meeting highlights..."
-              className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-4"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Full Name *</label>
+                <input 
+                  type="text"
+                  value={selectedLead.name || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Email Address *</label>
+                <input 
+                  type="email"
+                  value={selectedLead.email || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, email: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  required
+                />
+              </div>
 
-            <div className="flex justify-between items-center mb-2 mt-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Phone Number</label>
+                <input 
+                  type="text"
+                  value={selectedLead.phone || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, phone: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Company</label>
+                <input 
+                  type="text"
+                  value={selectedLead.company || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, company: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Service *</label>
+                <input 
+                  type="text"
+                  value={selectedLead.service || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, service: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Status</label>
+                <select 
+                  value={selectedLead.status}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, status: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                >
+                  <option value="IN_REVIEW">In Review</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="BOOKED">Booked</option>
+                  <option value="MAYBE">Maybe</option>
+                  <option value="WON">Won</option>
+                  <option value="LOST">Lost</option>
+                  <option value="PROCESSED">Processed</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Initial Message</label>
+              <textarea 
+                value={selectedLead.message || ''}
+                onChange={(e) => setSelectedLead({ ...selectedLead, message: e.target.value })}
+                placeholder="Enter lead message..."
+                className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none text-sm"
+              />
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="text-xs font-bold uppercase text-slate-400 mb-1">Internal Notes</h3>
+              <textarea 
+                value={selectedLead.notes || ''}
+                onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
+                placeholder="Enter internal notes, follow-up history, or meeting highlights..."
+                className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none"
+              />
+            </div>
+
+            <div className="flex justify-between items-center mb-1 mt-4">
               <h3 className="text-xs font-bold uppercase text-slate-400">AI Proposal Draft</h3>
               <button 
                 onClick={generateProposal}
@@ -240,15 +385,151 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                   Cancel
                 </button>
                 <button 
-                  onClick={saveNotes}
+                  onClick={saveLead}
                   disabled={isSaving}
                   className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50"
                 >
-                  {isSaving ? 'Saving...' : 'Save Drafts'}
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Create Lead Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <form onSubmit={handleCreateLead} className="glass w-full max-w-3xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase tracking-tight italic">
+                Add New Lead
+              </h2>
+              <button 
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)} 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Full Name *</label>
+                <input 
+                  type="text"
+                  value={newLead.name}
+                  onChange={(e) => setNewLead({ ...newLead, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  placeholder="e.g. John Doe"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Email Address *</label>
+                <input 
+                  type="email"
+                  value={newLead.email}
+                  onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  placeholder="e.g. john@example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Phone Number</label>
+                <input 
+                  type="text"
+                  value={newLead.phone}
+                  onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  placeholder="e.g. +1 (555) 123-4567"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Company</label>
+                <input 
+                  type="text"
+                  value={newLead.company}
+                  onChange={(e) => setNewLead({ ...newLead, company: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  placeholder="e.g. Acme Corp"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Service *</label>
+                <input 
+                  type="text"
+                  value={newLead.service}
+                  onChange={(e) => setNewLead({ ...newLead, service: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                  placeholder="e.g. SEO Audit"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Status</label>
+                <select 
+                  value={newLead.status}
+                  onChange={(e) => setNewLead({ ...newLead, status: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+                >
+                  <option value="IN_REVIEW">In Review</option>
+                  <option value="CONTACTED">Contacted</option>
+                  <option value="BOOKED">Booked</option>
+                  <option value="MAYBE">Maybe</option>
+                  <option value="WON">Won</option>
+                  <option value="LOST">Lost</option>
+                  <option value="PROCESSED">Processed</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Initial Message</label>
+              <textarea 
+                value={newLead.message}
+                onChange={(e) => setNewLead({ ...newLead, message: e.target.value })}
+                placeholder="Enter any message details or custom description..."
+                className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none text-sm"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Internal Notes</label>
+              <textarea 
+                value={newLead.notes}
+                onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
+                placeholder="Enter internal notes, follow-up history..."
+                className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none text-sm"
+              />
+            </div>
+
+            <div className="flex justify-end gap-4 border-t border-white/10 pt-4">
+              <button 
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={isSaving}
+                className="px-8 py-2 bg-cyan-500 text-black font-black uppercase rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] disabled:opacity-50 cursor-pointer"
+              >
+                {isSaving ? 'Creating...' : 'Create Lead'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -270,7 +551,18 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       {/* Table */}
       <div className="glass overflow-hidden">
         <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-          <h3 className="font-bold text-lg">Lead Pipeline</h3>
+          <div className="flex items-center gap-4">
+            <h3 className="font-bold text-lg">Lead Pipeline</h3>
+            <button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-black uppercase rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-1.5 cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Lead
+            </button>
+          </div>
           <div className="flex gap-2">
              <div className="text-[10px] uppercase text-slate-500 font-bold flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-amber-500" /> New
@@ -345,9 +637,9 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                     </svg>
                   </button>
                   <button 
-                    onClick={() => setSelectedLead({ id: lead.id, name: lead.name, notes: lead.notes || '', aiProposal: lead.aiProposal || '' })}
+                    onClick={() => setSelectedLead({ ...lead })}
                     className="p-2 hover:bg-cyan-500/20 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors"
-                    title="Edit Notes & Proposal"
+                    title="Edit Lead Details"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
