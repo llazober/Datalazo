@@ -24,6 +24,21 @@ interface Lead {
   appointments?: Appointment[];
 }
 
+function formatBookingDate(dateStr: string | Date) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Invalid Date';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
+function formatFullBookingDate(dateStr: string | Date) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Invalid Date';
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return `${days[d.getUTCDay()]}, ${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -272,7 +287,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 <div>
                   <h4 className="text-xs font-black uppercase text-purple-400 mb-1">Active Booking</h4>
                   <p className="text-sm text-white font-bold">
-                    {new Date(selectedLead.appointments[0].date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at {selectedLead.appointments[0].timeSlot}
+                    {formatFullBookingDate(selectedLead.appointments[0].date)} at {selectedLead.appointments[0].timeSlot}
                   </p>
                 </div>
                 <div className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-black uppercase">
@@ -621,7 +636,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 <div className="text-[10px] uppercase font-bold text-cyan-400">{lead.service}</div>
                 {lead.status === 'BOOKED' && lead.appointments && lead.appointments.length > 0 && (
                   <div className="mt-1.5 inline-flex items-center gap-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] px-2 py-0.5 rounded font-black uppercase">
-                    📅 {new Date(lead.appointments[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} @ {lead.appointments[0].timeSlot}
+                    📅 {formatBookingDate(lead.appointments[0].date)} @ {lead.appointments[0].timeSlot}
                   </div>
                 )}
               </td>

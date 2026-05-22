@@ -18,6 +18,13 @@ interface Appointment {
   };
 }
 
+function formatBookingDate(dateStr: string | Date) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Invalid Date';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
 const STATUS_OPTIONS = ['IN_REVIEW', 'CONTACTED', 'BOOKED', 'MAYBE', 'WON', 'LOST', 'PROCESSED', 'CLOSED'];
 
 export default function BookingsDashboard() {
@@ -223,10 +230,9 @@ export default function BookingsDashboard() {
               {bookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-white/[0.02] transition-colors group">
                   <td className="px-6 py-6">
-                    <div className="font-bold text-cyan-400">
-                      {new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <div className="inline-flex items-center gap-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] px-2 py-0.5 rounded font-black uppercase">
+                      📅 {formatBookingDate(booking.date)} @ {booking.timeSlot}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1 uppercase font-bold">{booking.timeSlot}</div>
                   </td>
                   <td className="px-6 py-6">
                     <div className="font-bold">{booking.lead.name}</div>
@@ -238,8 +244,12 @@ export default function BookingsDashboard() {
                       {booking.lead.phone || 'No phone provided'}
                     </div>
                     {booking.lead.notes && (
-                      <div className="mt-2 text-[10px] text-slate-500 line-clamp-1 italic bg-white/5 px-2 py-1 rounded">
-                        "{booking.lead.notes}"
+                      <div className="text-[10px] text-cyan-500 italic truncate flex items-center gap-1 mt-2">
+                        <svg className="w-2.5 h-2.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                          <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                        </svg>
+                        <span className="truncate">{booking.lead.notes}</span>
                       </div>
                     )}
                   </td>

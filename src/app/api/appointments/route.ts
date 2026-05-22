@@ -86,8 +86,38 @@ export async function POST(req: Request) {
           `
         });
         console.log('Office booking email notification sent.');
+
+        // Send email confirmation to customer
+        await resend.emails.send({
+          from: fromAddress,
+          to: lead.email,
+          subject: `Confirmed: Your AI Audit with Datalazo`,
+          html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #06b6d4; border-bottom: 2px solid #06b6d4; padding-bottom: 10px; margin-top: 0;">AI Audit Confirmed</h2>
+              
+              <p>Hi ${lead.name},</p>
+              <p>Your AI Audit appointment has been successfully scheduled. Here are your booking details:</p>
+              
+              <div style="background-color: #f0fdfa; border-left: 4px solid #0d9488; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; font-weight: bold; color: #0f766e;">Appointment Details:</p>
+                <p style="margin: 5px 0 0 0;"><strong>Date:</strong> ${formattedDate}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Time Slot:</strong> ${timeSlot}</p>
+              </div>
+
+              <p>If you need to make any changes or reschedule, please reply directly to this email.</p>
+              
+              <p>Looking forward to speaking with you!</p>
+              <p>Best regards,<br/><strong>${settings?.senderName || 'Luis Lazo'}</strong><br/>${settings?.agencyName || 'Datalazo Intelligence'}</p>
+              
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 11px; color: #999; text-align: center;">Powered by Datalazo Intelligence</p>
+            </div>
+          `
+        });
+        console.log('Customer booking confirmation email sent.');
       } catch (emailErr) {
-        console.error('Failed to send office booking notification email:', emailErr);
+        console.error('Failed to send booking emails:', emailErr);
       }
     }
 

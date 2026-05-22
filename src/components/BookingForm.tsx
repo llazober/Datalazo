@@ -60,7 +60,12 @@ export default function BookingForm({ leadId }: BookingFormProps) {
         </p>
         <div className="flex justify-center">
           <button 
-            onClick={() => window.close()}
+            onClick={() => {
+              try {
+                window.close();
+              } catch (e) {}
+              window.location.href = '/';
+            }}
             className="px-12 py-4 bg-accent-cyan text-black hover:opacity-90 rounded-2xl transition-all font-black uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.3)]"
           >
             Close Window
