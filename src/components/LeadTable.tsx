@@ -2,6 +2,13 @@
 
 import React, { useState } from 'react';
 
+interface Appointment {
+  id: string;
+  date: string | Date;
+  timeSlot: string;
+  status: string;
+}
+
 interface Lead {
   id: string;
   name: string;
@@ -14,6 +21,7 @@ interface Lead {
   aiProposal: string | null;
   status: string;
   createdAt: string | Date;
+  appointments?: Appointment[];
 }
 
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
@@ -258,6 +266,20 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 </svg>
               </button>
             </div>
+
+            {selectedLead.appointments && selectedLead.appointments.length > 0 && (
+              <div className="mb-6 bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black uppercase text-purple-400 mb-1">Active Booking</h4>
+                  <p className="text-sm text-white font-bold">
+                    {new Date(selectedLead.appointments[0].date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at {selectedLead.appointments[0].timeSlot}
+                  </p>
+                </div>
+                <div className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-black uppercase">
+                  Confirmed
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
@@ -592,10 +614,16 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               <td className="py-4 px-4">
                 <div className="font-bold text-white">{lead.name}</div>
                 <div className="text-xs text-slate-500">{lead.email}</div>
+                {lead.phone && <div className="text-[10px] text-slate-400 mt-1">{lead.phone}</div>}
               </td>
               <td className="py-4 px-4">
                 <div className="text-sm text-slate-300">{lead.company || 'Personal'}</div>
                 <div className="text-[10px] uppercase font-bold text-cyan-400">{lead.service}</div>
+                {lead.status === 'BOOKED' && lead.appointments && lead.appointments.length > 0 && (
+                  <div className="mt-1.5 inline-flex items-center gap-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] px-2 py-0.5 rounded font-black uppercase">
+                    📅 {new Date(lead.appointments[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} @ {lead.appointments[0].timeSlot}
+                  </div>
+                )}
               </td>
               <td className="py-4 px-4 max-w-xs">
                 <div className="text-slate-400 text-xs truncate mb-1">{lead.message}</div>

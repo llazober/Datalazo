@@ -8,13 +8,25 @@ export const revalidate = 0;
 export default async function DashboardPage() {
   try {
     const leads = await prisma.lead.findMany({
+      include: {
+        appointments: {
+          orderBy: { date: 'desc' },
+          take: 1
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
     // Convert Date objects to strings for Client Component serialization
     const serializedLeads = leads.map(lead => ({
       ...lead,
-      createdAt: lead.createdAt.toISOString()
+      createdAt: lead.createdAt.toISOString(),
+      appointments: lead.appointments.map(apt => ({
+        ...apt,
+        date: apt.date.toISOString(),
+        createdAt: apt.createdAt.toISOString(),
+        updatedAt: apt.updatedAt.toISOString(),
+      }))
     }));
 
     return (
