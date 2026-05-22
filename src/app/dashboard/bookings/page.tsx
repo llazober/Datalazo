@@ -15,6 +15,8 @@ interface Appointment {
     phone: string | null;
     notes: string | null;
     status: string;
+    aiProposal: string | null;
+    service: string;
   };
 }
 
@@ -30,7 +32,16 @@ const STATUS_OPTIONS = ['IN_REVIEW', 'CONTACTED', 'BOOKED', 'MAYBE', 'WON', 'LOS
 export default function BookingsDashboard() {
   const [bookings, setBookings] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLead, setSelectedLead] = useState<{ id: string, name: string, notes: string } | null>(null);
+  const [selectedLead, setSelectedLead] = useState<{ 
+    id: string; 
+    name: string; 
+    notes: string; 
+    status: string; 
+    aiProposal: string | null; 
+    email: string;
+    service: string;
+    company: string | null;
+  } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingLink, setIsSendingLink] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
@@ -75,20 +86,76 @@ export default function BookingsDashboard() {
     if (!selectedLead) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/lead/${selectedLead.id}/notes`, {
+      const res = await fetch(`/api/lead/${selectedLead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: selectedLead.notes }),
+        body: JSON.stringify({ 
+          notes: selectedLead.notes,
+          aiProposal: selectedLead.aiProposal,
+          name: selectedLead.name,
+          email: selectedLead.email,
+          company: selectedLead.company,
+          service: selectedLead.service,
+          status: selectedLead.status
+        }),
       });
       if (res.ok) {
         setSelectedLead(null);
         fetchBookings();
+        showToast('Notes saved successfully');
+      } else {
+        showToast('Failed to save changes', 'error');
       }
     } catch (err) {
-      console.error('Failed to save notes:', err);
+      console.error('Failed to save changes:', err);
+      showToast('Failed to save changes', 'error');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const generateProposal = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/generate-proposal`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedLead({ ...selectedLead, aiProposal: data.aiProposal });
+        fetchBookings();
+        showToast('AI Pitch generated successfully!');
+      } else {
+        showToast(data.error || "Generation failed.", 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to generate AI proposal.', 'error');
+    }
+    setIsSaving(false);
+  };
+
+  const sendProposal = async () => {
+    if (!selectedLead) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/lead/${selectedLead.id}/proposal`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiProposal: selectedLead.aiProposal })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedLead(null);
+        fetchBookings();
+        showToast('Proposal sent successfully!');
+      } else {
+        showToast(data.error || 'Failed to send proposal.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to send proposal.', 'error');
+    }
+    setIsSaving(false);
   };
 
   const deleteLead = async (leadId: string) => {
@@ -158,7 +225,7 @@ export default function BookingsDashboard() {
       {/* Modal Backdrop */}
       {selectedLead && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass w-full max-w-2xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300">
+          <div className="glass w-full max-w-3xl p-8 border-cyan-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black uppercase tracking-tight italic">
                 Meeting Notes: <span className="text-cyan-400">{selectedLead.name}</span>
@@ -174,10 +241,41 @@ export default function BookingsDashboard() {
               value={selectedLead.notes || ''}
               onChange={(e) => setSelectedLead({ ...selectedLead, notes: e.target.value })}
               placeholder="Type your meeting insights here..."
-              className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
+              className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
             />
 
-            <div className="flex justify-end gap-4">
+            {selectedLead.status === 'BOOKED' && (
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-xs font-bold uppercase text-slate-400">AI Proposal Draft</h3>
+                  <button 
+                    onClick={generateProposal}
+                    disabled={isSaving}
+                    className="text-xs font-bold uppercase bg-fuchsia-500/20 text-fuchsia-400 px-3 py-1 rounded-lg hover:bg-fuchsia-500/40 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    ✨ Generate AI Pitch
+                  </button>
+                </div>
+                <textarea 
+                  value={selectedLead.aiProposal || ''}
+                  onChange={(e) => setSelectedLead({ ...selectedLead, aiProposal: e.target.value })}
+                  placeholder="Generate an AI proposal or type one manually..."
+                  className="w-full h-48 bg-white/5 border border-fuchsia-500/20 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-fuchsia-500 transition-all resize-none mb-6"
+                />
+
+                <div className="flex justify-start mb-6">
+                  <button 
+                    onClick={sendProposal}
+                    disabled={isSaving || !selectedLead.aiProposal}
+                    className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                  >
+                    ✉️ Approve & Send Email
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-4 border-t border-white/10 pt-4">
               <button 
                 onClick={() => setSelectedLead(null)}
                 className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
@@ -284,7 +382,16 @@ export default function BookingsDashboard() {
                         Email Form
                       </button>
                       <button 
-                        onClick={() => setSelectedLead({ id: booking.lead.id, name: booking.lead.name, notes: booking.lead.notes || '' })}
+                        onClick={() => setSelectedLead({ 
+                          id: booking.lead.id, 
+                          name: booking.lead.name, 
+                          notes: booking.lead.notes || '', 
+                          status: booking.lead.status,
+                          aiProposal: booking.lead.aiProposal || '',
+                          email: booking.lead.email,
+                          service: booking.lead.service || '',
+                          company: booking.lead.company || ''
+                        })}
                         className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors border border-cyan-500/20 hover:border-cyan-500 px-3 py-1.5 rounded-lg flex items-center gap-2"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

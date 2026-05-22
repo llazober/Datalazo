@@ -3,6 +3,41 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const dateParam = searchParams.get('date');
+    
+    if (!dateParam) {
+      return NextResponse.json({ error: 'Missing date parameter' }, { status: 400 });
+    }
+
+    const startOfDay = new Date(dateParam);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(dateParam);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      },
+      select: {
+        timeSlot: true
+      }
+    });
+
+    const bookedSlots = appointments.map(apt => apt.timeSlot);
+    return NextResponse.json({ bookedSlots });
+  } catch (error) {
+    console.error('Fetch Booked Slots Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { leadId, date, timeSlot, phone } = await req.json();

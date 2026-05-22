@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import CalendarPicker from './CalendarPicker';
 
@@ -18,6 +18,29 @@ export default function BookingForm({ leadId }: BookingFormProps) {
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!selectedDate) {
+      setBookedSlots([]);
+      return;
+    }
+
+    const fetchBookedSlots = async () => {
+      try {
+        const res = await fetch(`/api/appointments?date=${selectedDate}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBookedSlots(data.bookedSlots || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch booked slots:', err);
+      }
+    };
+
+    fetchBookedSlots();
+    setSelectedSlot('');
+  }, [selectedDate]);
 
   const handleSubmit = async () => {
     if (!leadId || !selectedDate || !selectedSlot || !phone) return;
@@ -102,19 +125,25 @@ export default function BookingForm({ leadId }: BookingFormProps) {
         <div className="space-y-4">
           <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest">2. Select a Time</label>
           <div className="grid grid-cols-2 gap-3">
-            {TIME_SLOTS.map((slot) => (
-              <button
-                key={slot}
-                onClick={() => setSelectedSlot(slot)}
-                className={`py-3 px-4 rounded-xl text-sm font-semibold transition-all border ${
-                  selectedSlot === slot 
-                    ? 'bg-accent-cyan text-black border-accent-cyan shadow-[0_0_20px_rgba(6,182,212,0.3)]' 
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {slot}
-              </button>
-            ))}
+            {TIME_SLOTS.map((slot) => {
+              const isBooked = bookedSlots.includes(slot);
+              return (
+                <button
+                  key={slot}
+                  disabled={isBooked}
+                  onClick={() => setSelectedSlot(slot)}
+                  className={`py-3 px-4 rounded-xl text-sm font-semibold transition-all border ${
+                    isBooked
+                      ? 'bg-red-500/10 border-red-500/10 text-red-500/30 cursor-not-allowed line-through'
+                      : selectedSlot === slot 
+                        ? 'bg-accent-cyan text-black border-accent-cyan shadow-[0_0_20px_rgba(6,182,212,0.3)]' 
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {slot}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
