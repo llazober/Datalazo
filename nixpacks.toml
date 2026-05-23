@@ -2,5 +2,5 @@
 cmds = ["npm install --no-audit --no-fund --no-progress"]
 
 [phases.build]
-cmds = ["npx prisma generate", "NODE_OPTIONS='--max-old-space-size=1536' npm run build"]
+cmds = ["npx prisma generate", "NODE_OPTIONS='--max-old-space-size=1024' npm run build"]
 
