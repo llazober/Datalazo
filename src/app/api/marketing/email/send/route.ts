@@ -39,8 +39,8 @@ export async function POST(req: Request) {
 
     // 2. Fetch Sender Settings
     let settings = await prisma.settings.findUnique({ where: { id: 'global' } });
-    const finalSenderName = config.senderName || settings?.senderName || 'Luis Lazo';
-    const finalSenderEmail = config.senderEmail || settings?.senderEmail || 'luis@datalazo.net';
+    const finalSenderName = settings?.senderName || config.senderName || 'Luis Lazo';
+    const finalSenderEmail = settings?.senderEmail || config.senderEmail || 'luis@datalazo.net';
     const fromAddress = `${finalSenderName} <${finalSenderEmail}>`;
 
     // 3. Initialize Resend

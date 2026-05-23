@@ -73,15 +73,18 @@ export async function POST(req: NextRequest) {
       try {
         const { Resend } = await import('resend');
         const resend = new Resend(resendKey);
+        const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
         
         const isDiscovery = data.service === 'AI Discovery Questionnaire' || data.status === 'IN_REVIEW';
         const subject = isDiscovery 
           ? `🚨 New AI Discovery Questionnaire: ${newLead.name}` 
           : `📥 New Lead Captured: ${newLead.name}`;
           
-        const fromAddress = config.senderEmail 
-          ? `${config.senderName || 'Datalazo'} <${config.senderEmail}>`
-          : 'Datalazo Intelligence <luis@datalazo.net>';
+        const fromAddress = settings?.senderEmail 
+          ? `${settings.senderName || 'Datalazo'} <${settings.senderEmail}>`
+          : config.senderEmail
+            ? `${config.senderName || 'Datalazo'} <${config.senderEmail}>`
+            : 'Datalazo Intelligence <luis@datalazo.net>';
 
         await resend.emails.send({
           from: fromAddress,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,14 +45,19 @@ export async function POST(
     });
 
     // 2. Fetch Global Settings
+    const config = getDatalazoConfig();
+    const resendKey = config.resendApiKey || process.env.RESEND_API_KEY;
+    
     let settings = await prisma.settings.findUnique({ where: { id: 'global' } });
-    const fromAddress = settings 
-      ? `${settings.senderName} <${settings.senderEmail}>`
-      : 'Luis <luis@datalazo.net>';
+    const fromAddress = settings?.senderEmail 
+      ? `${settings.senderName || 'Datalazo'} <${settings.senderEmail}>`
+      : config.senderEmail
+        ? `${config.senderName || 'Datalazo'} <${config.senderEmail}>`
+        : 'Datalazo Intelligence <luis@datalazo.net>';
 
     // 3. Send the email using Resend (Preferred) or n8n (Fallback)
-    if (process.env.RESEND_API_KEY) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
+    if (resendKey) {
+      const resend = new Resend(resendKey);
       
       const { data, error } = await resend.emails.send({
         from: fromAddress, // Uses Settings from DB
