@@ -67,6 +67,79 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
     notes: '',
   });
 
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [newClient, setNewClient] = useState<{
+    leadId: string;
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    services: string;
+    notes: string;
+    totalPayment: string;
+  }>({
+    leadId: '',
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    services: '',
+    notes: '',
+    totalPayment: '0',
+  });
+
+  const openConvertClientModal = (lead: Lead) => {
+    setNewClient({
+      leadId: lead.id,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone || '',
+      company: lead.company || '',
+      services: lead.service,
+      notes: lead.notes || '',
+      totalPayment: '0',
+    });
+    setIsClientModalOpen(true);
+  };
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClient),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setIsClientModalOpen(false);
+        setNewClient({
+          leadId: '',
+          name: '',
+          email: '',
+          phone: '',
+          company: '',
+          services: '',
+          notes: '',
+          totalPayment: '0',
+        });
+        if (newClient.leadId) {
+          setLeads(leads.map(l => l.id === newClient.leadId ? { ...l, status: 'WON' } : l));
+        }
+        showToast('Client created successfully');
+      } else {
+        showToast(data.error || 'Failed to create client', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to create client:', err);
+      showToast('Failed to create client', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -406,13 +479,25 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
             />
 
             <div className="flex justify-between items-center border-t border-white/10 pt-4">
-              <button 
-                onClick={sendProposal}
-                disabled={isSaving || !selectedLead.aiProposal}
-                className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
-              >
-                ✉️ Approve & Send Email
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={sendProposal}
+                  disabled={isSaving || !selectedLead.aiProposal}
+                  className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 text-xs"
+                >
+                  ✉️ Approve & Send Email
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setSelectedLead(null);
+                    openConvertClientModal(selectedLead);
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase rounded-xl transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] flex items-center gap-1.5"
+                >
+                  👤 Create Client
+                </button>
+              </div>
               
               <div className="flex gap-4">
                 <button 
@@ -570,6 +655,127 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
         </div>
       )}
 
+      {/* Create / Convert Client Modal */}
+      {isClientModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <form onSubmit={handleCreateClient} className="glass w-full max-w-3xl p-8 border-purple-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase tracking-tight italic">
+                {newClient.leadId ? 'Convert Lead to Client' : 'Add New Client'}
+              </h2>
+              <button 
+                type="button"
+                onClick={() => setIsClientModalOpen(false)} 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Full Name *</label>
+                <input 
+                  type="text"
+                  value={newClient.name}
+                  onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="e.g. John Doe"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Email Address *</label>
+                <input 
+                  type="email"
+                  value={newClient.email}
+                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="e.g. john@example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Phone Number</label>
+                <input 
+                  type="text"
+                  value={newClient.phone}
+                  onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="e.g. +1 (555) 123-4567"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Company</label>
+                <input 
+                  type="text"
+                  value={newClient.company}
+                  onChange={(e) => setNewClient({ ...newClient, company: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="e.g. Acme Corp"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Type of Services *</label>
+                <input 
+                  type="text"
+                  value={newClient.services}
+                  onChange={(e) => setNewClient({ ...newClient, services: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="e.g. Premium SEO + AI Automation Retainer"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Initial / Total Payment ($)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  value={newClient.totalPayment}
+                  onChange={(e) => setNewClient({ ...newClient, totalPayment: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Notes</label>
+              <textarea 
+                value={newClient.notes}
+                onChange={(e) => setNewClient({ ...newClient, notes: e.target.value })}
+                placeholder="Enter client specific notes, instructions or contract details..."
+                className="w-full h-28 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-purple-500 transition-all resize-none text-sm"
+              />
+            </div>
+
+            <div className="flex justify-end gap-4 border-t border-white/10 pt-4">
+              <button 
+                type="button"
+                onClick={() => setIsClientModalOpen(false)}
+                className="px-6 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={isSaving}
+                className="px-8 py-2 bg-purple-600 text-white font-black uppercase rounded-xl hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(147,51,234,0.3)] disabled:opacity-50 cursor-pointer"
+              >
+                {isSaving ? 'Creating...' : 'Create Client'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
@@ -598,6 +804,27 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
               </svg>
               Add Lead
+            </button>
+            <button
+              onClick={() => {
+                setNewClient({
+                  leadId: '',
+                  name: '',
+                  email: '',
+                  phone: '',
+                  company: '',
+                  services: '',
+                  notes: '',
+                  totalPayment: '0',
+                });
+                setIsClientModalOpen(true);
+              }}
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase rounded-lg transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)] flex items-center gap-1.5 cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Client
             </button>
           </div>
           <div className="flex gap-2">
@@ -669,6 +896,15 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
               </td>
               <td className="py-4 px-4 text-right">
                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => openConvertClientModal(lead)}
+                    className="p-2 hover:bg-purple-500/20 rounded-lg text-slate-400 hover:text-purple-400 transition-colors"
+                    title="Convert to Client"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </button>
                   <button 
                     onClick={() => sendDiscoveryLink(lead.id, lead.status)}
                     disabled={isSendingLink === lead.id}

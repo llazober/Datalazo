@@ -53,6 +53,8 @@ export default function DashboardLayout({
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
             { name: 'SEO Roadmap', path: '/dashboard/seo/plan' },
             { name: 'B2B Marketing', path: '/dashboard/marketing' },
+            { name: 'Clients', path: '/dashboard/clients' },
+            { name: 'Bookings', path: '/dashboard/bookings' },
           ].map((item) => (
 
             <Link
@@ -64,7 +66,9 @@ export default function DashboardLayout({
                 item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
                 item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' :
                 item.name === 'SEO Roadmap' ? 'bg-purple-500/10 text-purple-400' : 
-                item.name === 'B2B Marketing' ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                item.name === 'B2B Marketing' ? 'bg-emerald-500/10 text-emerald-400' : 
+                item.name === 'Clients' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 
+                item.name === 'Bookings' ? 'bg-pink-500/10 text-pink-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               {item.name}

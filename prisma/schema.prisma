@@ -22,6 +22,7 @@ model Lead {
   aiProposal   String?       @db.Text
 
   appointments Appointment[]
+  client       Client?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -121,6 +122,28 @@ model MarketingLead {
 
   @@index([email])
   @@index([status])
+}
+
+model Client {
+  id               String    @id @default(cuid())
+  leadId           String?   @unique
+  lead             Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  name             String
+  email            String    @unique
+  phone            String?
+  company          String?
+  services         String
+  paymentDate      DateTime?
+  totalPayment     Float     @default(0.0)
+  notes            String?   @db.Text
+  
+  stripeCustomerId String?   @unique
+  stripeSubId      String?   @unique
+  stripeStatus     String?   
+  recurringAmount  Float?    
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 

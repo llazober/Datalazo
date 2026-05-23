@@ -244,36 +244,34 @@ export default function BookingsDashboard() {
               className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-cyan-500 transition-all resize-none mb-6"
             />
 
-            {selectedLead.status === 'BOOKED' && (
-              <div className="mt-6 border-t border-white/10 pt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-xs font-bold uppercase text-slate-400">AI Proposal Draft</h3>
-                  <button 
-                    onClick={generateProposal}
-                    disabled={isSaving}
-                    className="text-xs font-bold uppercase bg-fuchsia-500/20 text-fuchsia-400 px-3 py-1 rounded-lg hover:bg-fuchsia-500/40 transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    ✨ Generate AI Pitch
-                  </button>
-                </div>
-                <textarea 
-                  value={selectedLead.aiProposal || ''}
-                  onChange={(e) => setSelectedLead({ ...selectedLead, aiProposal: e.target.value })}
-                  placeholder="Generate an AI proposal or type one manually..."
-                  className="w-full h-48 bg-white/5 border border-fuchsia-500/20 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-fuchsia-500 transition-all resize-none mb-6"
-                />
-
-                <div className="flex justify-start mb-6">
-                  <button 
-                    onClick={sendProposal}
-                    disabled={isSaving || !selectedLead.aiProposal}
-                    className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
-                  >
-                    ✉️ Approve & Send Email
-                  </button>
-                </div>
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-bold uppercase text-slate-400">AI Proposal Draft</h3>
+                <button 
+                  onClick={generateProposal}
+                  disabled={isSaving}
+                  className="text-xs font-bold uppercase bg-fuchsia-500/20 text-fuchsia-400 px-3 py-1 rounded-lg hover:bg-fuchsia-500/40 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  ✨ Generate AI Pitch
+                </button>
               </div>
-            )}
+              <textarea 
+                value={selectedLead.aiProposal || ''}
+                onChange={(e) => setSelectedLead({ ...selectedLead, aiProposal: e.target.value })}
+                placeholder="Generate an AI proposal or type one manually..."
+                className="w-full h-48 bg-white/5 border border-fuchsia-500/20 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-fuchsia-500 transition-all resize-none mb-6"
+              />
+
+              <div className="flex justify-start mb-6">
+                <button 
+                  onClick={sendProposal}
+                  disabled={isSaving || !selectedLead.aiProposal}
+                  className="px-6 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                >
+                  ✉️ Approve & Send Email
+                </button>
+              </div>
+            </div>
 
             <div className="flex justify-end gap-4 border-t border-white/10 pt-4">
               <button 
