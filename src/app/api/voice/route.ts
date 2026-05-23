@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 
 export const dynamic = 'force-dynamic';
@@ -57,9 +58,12 @@ export async function POST(req: Request) {
       const knowledge = await searchKnowledge(userText);
       const knowledgePrompt = knowledge ? `\n\nKNOWLEDGE BASE INFO:\n${knowledge}` : "";
 
-      // 2. Chat Processing (GPT-4o-mini)
+      const config = getDatalazoConfig();
+      const chosenModel = config.models?.voiceChat || 'gpt-4o-mini';
+
+      // 2. Chat Processing
       const chatCompletion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: chosenModel,
         messages: [
           { role: "system", content: `You are the Datalazo AI. Be extremely concise. 1-2 short sentences maximum. Use natural spoken language.${knowledgePrompt}` },
           { role: "user", content: userText }
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
         await prisma.tokenUsage.create({
           data: {
             feature: 'VOICE_AGENT',
-            model: 'gpt-4o-mini + tts-1',
+            model: `${chosenModel} + tts-1`,
             promptTokens: usage.prompt_tokens,
             completionTokens: usage.completion_tokens,
             totalTokens: usage.total_tokens,

@@ -7,6 +7,15 @@ interface DatalazoConfig {
   senderEmail?: string;
   agencyName?: string;
   apifyApiKey?: string;
+  stripeSecretKey?: string;
+  stripeWebhookSecret?: string;
+  models?: {
+    voiceChat?: string;
+    outreach?: string;
+    proposal?: string;
+    chat?: string;
+    seo?: string;
+  };
 }
 
 export function getDatalazoConfig(): DatalazoConfig {

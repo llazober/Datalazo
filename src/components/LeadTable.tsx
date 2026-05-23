@@ -286,10 +286,11 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   };
 
   const sendDiscoveryLink = async (id: string, status: string) => {
-    if (status?.toUpperCase() === 'IN_REVIEW') {
+    const normalizedStatus = status?.toUpperCase();
+    if (normalizedStatus === 'CONTACTED' || normalizedStatus === 'IN_REVIEW') {
       if (!confirm('This discovery email was sent already. Do you want to send it again?')) return;
-    } else if (status?.toUpperCase() !== 'BOOKED') {
-      showToast('Discovery link can only be sent to Booked or In Review leads.', 'error');
+    } else if (normalizedStatus !== 'BOOKED') {
+      showToast('Discovery link can only be sent to Booked, Contacted, or In Review leads.', 'error');
       return;
     }
 
@@ -298,6 +299,7 @@ export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
       const res = await fetch(`/api/lead/${id}/send-discovery-link`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
+        setLeads(leads.map(l => l.id === id ? { ...l, status: 'CONTACTED' } : l));
         showToast('Discovery link emailed successfully!');
       } else {
         showToast(data.error || 'Failed to send link.', 'error');

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,8 +45,11 @@ Your task: Write a highly professional, compelling 4-paragraph proposal emailing
 Include placeholder text like "[INSERT PRICING TIER HERE]" so the user knows where to manually add pricing later.
 Format it nicely with clean spacing.`;
 
+    const config = getDatalazoConfig();
+    const chosenModel = config.models?.proposal || 'gpt-4o';
+
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: chosenModel,
       messages: [
         { role: 'system', content: 'You are an expert AI sales architect.' },
         { role: 'user', content: prompt }

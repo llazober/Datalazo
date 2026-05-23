@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,16 +75,20 @@ export async function POST(req: Request) {
     });
 
     // 2.5. Send email notification to the office
-    if (process.env.RESEND_API_KEY) {
+    const config = getDatalazoConfig();
+    const resendKey = config.resendApiKey || process.env.RESEND_API_KEY;
+    if (resendKey) {
       try {
         const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
+        const resend = new Resend(resendKey);
         const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
         
-        const officeEmail = settings?.senderEmail || 'luis@datalazo.net';
-        const fromAddress = settings 
-          ? `${settings.senderName} <${settings.senderEmail}>`
-          : 'Datalazo Intelligence <luis@datalazo.net>';
+        const officeEmail = 'luislazo@datalazo.net';
+        const fromAddress = settings?.senderEmail 
+          ? `${settings.senderName || 'Datalazo'} <${settings.senderEmail}>`
+          : config.senderEmail
+            ? `${config.senderName || 'Datalazo'} <${config.senderEmail}>`
+            : 'Datalazo Intelligence <luis@datalazo.net>';
 
         const formattedDate = new Date(date).toLocaleDateString('en-US', {
           weekday: 'long',

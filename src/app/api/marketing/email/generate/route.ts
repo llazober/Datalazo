@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,9 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     leadId = data.leadId;
+    const config = getDatalazoConfig();
     const { templateId = 'audit', model = 'gpt-4o-mini' } = data;
+    const chosenModel = config.models?.outreach || model || 'gpt-4o-mini';
 
     if (!leadId) {
       return NextResponse.json({ error: 'Lead ID is required.' }, { status: 400 });
@@ -77,7 +80,7 @@ Return a JSON object exactly like this:
 
     // 5. Generate with OpenAI
     const response = await openai.chat.completions.create({
-      model: model,
+      model: chosenModel,
       messages: [
         { role: 'system', content: 'You are an expert B2B copywriter specializing in cold email outreach. Always reply in clean, valid JSON format matching the requested schema.' },
         { role: 'user', content: prompt }

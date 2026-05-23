@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,55 @@ export async function POST(req: NextRequest) {
         }
       });
       console.log('Lead saved to DB:', newLead.id);
+    }
+
+    // 1.5. Send email notification to luislazo@datalazo.net
+    const config = getDatalazoConfig();
+    const resendKey = config.resendApiKey || process.env.RESEND_API_KEY;
+    if (resendKey) {
+      try {
+        const { Resend } = await import('resend');
+        const resend = new Resend(resendKey);
+        
+        const isDiscovery = data.service === 'AI Discovery Questionnaire' || data.status === 'IN_REVIEW';
+        const subject = isDiscovery 
+          ? `🚨 New AI Discovery Questionnaire: ${newLead.name}` 
+          : `📥 New Lead Captured: ${newLead.name}`;
+          
+        const fromAddress = config.senderEmail 
+          ? `${config.senderName || 'Datalazo'} <${config.senderEmail}>`
+          : 'Datalazo Intelligence <luis@datalazo.net>';
+
+        await resend.emails.send({
+          from: fromAddress,
+          to: 'luislazo@datalazo.net',
+          subject: subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #06b6d4; border-bottom: 2px solid #06b6d4; padding-bottom: 10px; margin-top: 0;">
+                ${isDiscovery ? 'AI Discovery Profile Submission' : 'New Lead Contact Details'}
+              </h2>
+              
+              <p><strong>Name:</strong> ${newLead.name}</p>
+              <p><strong>Email:</strong> <a href="mailto:${newLead.email}">${newLead.email}</a></p>
+              <p><strong>Phone:</strong> ${newLead.phone || 'N/A'}</p>
+              <p><strong>Company:</strong> ${newLead.company || 'N/A'}</p>
+              <p><strong>Service Focus:</strong> ${newLead.service || 'N/A'}</p>
+              <p><strong>Status:</strong> ${newLead.status}</p>
+              
+              ${newLead.message ? `<div style="background-color: #f8fafc; padding: 15px; margin: 15px 0; border-radius: 4px; border-left: 4px solid #cbd5e1;"><strong>Message:</strong><br/><em>${newLead.message}</em></div>` : ''}
+              
+              ${newLead.notes ? `<div style="background-color: #f0fdfa; padding: 15px; margin: 15px 0; border-radius: 4px; border-left: 4px solid #0d9488; font-family: monospace; white-space: pre-wrap; font-size: 13px;"><strong>Discovery Questionnaire:</strong><br/>${newLead.notes}</div>` : ''}
+              
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 11px; color: #999; text-align: center;">Datalazo Intelligence Lead Capture</p>
+            </div>
+          `
+        });
+        console.log('Office notification email sent for lead submission/update.');
+      } catch (emailErr) {
+        console.error('Failed to send lead email notification:', emailErr);
+      }
     }
 
     // 2. Notify n8n

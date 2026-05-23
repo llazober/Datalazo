@@ -30,7 +30,16 @@ export async function GET() {
       senderEmail: config.senderEmail || settings.senderEmail,
       agencyName: config.agencyName || settings.agencyName,
       apifyApiKey: config.apifyApiKey || '',
-      resendApiKey: config.resendApiKey || ''
+      resendApiKey: config.resendApiKey || '',
+      stripeSecretKey: config.stripeSecretKey || '',
+      stripeWebhookSecret: config.stripeWebhookSecret || '',
+      models: config.models || {
+        voiceChat: 'gpt-4o-mini',
+        outreach: 'gpt-4o-mini',
+        proposal: 'gpt-4o',
+        chat: 'gpt-4o-mini',
+        seo: 'gpt-4o'
+      }
     });
   } catch (error) {
     console.error('Settings GET Error:', error);
@@ -66,7 +75,16 @@ export async function POST(req: Request) {
         resendApiKey: data.resendApiKey || '',
         senderName: data.senderName || '',
         senderEmail: data.senderEmail || '',
-        agencyName: data.agencyName || ''
+        agencyName: data.agencyName || '',
+        stripeSecretKey: data.stripeSecretKey || '',
+        stripeWebhookSecret: data.stripeWebhookSecret || '',
+        models: data.models || {
+          voiceChat: 'gpt-4o-mini',
+          outreach: 'gpt-4o-mini',
+          proposal: 'gpt-4o',
+          chat: 'gpt-4o-mini',
+          seo: 'gpt-4o'
+        }
       };
       fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
       console.log('Successfully saved changes to datalazo.config.json via Settings form.');
@@ -77,7 +95,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...updatedSettings,
       apifyApiKey: data.apifyApiKey,
-      resendApiKey: data.resendApiKey
+      resendApiKey: data.resendApiKey,
+      stripeSecretKey: data.stripeSecretKey,
+      stripeWebhookSecret: data.stripeWebhookSecret,
+      models: data.models
     });
   } catch (error) {
     console.error('Settings POST Error:', error);

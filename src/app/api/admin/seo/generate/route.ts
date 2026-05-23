@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,8 +64,11 @@ export async function POST(req: NextRequest) {
       - H2: Conclusion & Call to Action.
     `;
 
+    const config = getDatalazoConfig();
+    const chosenModel = config.models?.seo || 'gpt-4o';
+
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: chosenModel,
       messages: [
         { role: 'system', content: 'You are a world-class SEO content generator.' },
         { role: 'user', content: prompt }
@@ -81,7 +85,7 @@ export async function POST(req: NextRequest) {
       await prisma.tokenUsage.create({
         data: {
           feature: 'SEO_CONTENT',
-          model: 'gpt-4o',
+          model: chosenModel,
           promptTokens: usage.prompt_tokens,
           completionTokens: usage.completion_tokens,
           totalTokens: usage.total_tokens,

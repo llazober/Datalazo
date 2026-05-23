@@ -61,6 +61,12 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to send via Resend', details: error }, { status: 500 });
     }
 
+    // Update Lead status to CONTACTED
+    await prisma.lead.update({
+      where: { id },
+      data: { status: 'CONTACTED' }
+    });
+
     return NextResponse.json({ success: true, messageId: data?.id });
   } catch (error: any) {
     console.error('Send Link Error:', error);

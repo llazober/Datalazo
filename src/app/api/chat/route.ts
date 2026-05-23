@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
 import { prisma } from '@/lib/prisma';
+import { getDatalazoConfig } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     const { message, history } = await req.json();
+    const config = getDatalazoConfig();
+    const chosenModel = config.models?.chat || 'gpt-4o-mini';
 
     // Search Knowledge Base
     const knowledge = await searchKnowledge(message);
@@ -24,7 +27,7 @@ export async function POST(req: Request) {
     const safeHistory = Array.isArray(history) ? history : [];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: chosenModel,
       messages: [
         { 
           role: "system", 
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
       await prisma.tokenUsage.create({
         data: {
           feature: 'CHAT',
-          model: 'gpt-4o-mini',
+          model: chosenModel,
           promptTokens: usage.prompt_tokens,
           completionTokens: usage.completion_tokens,
           totalTokens: usage.total_tokens,
