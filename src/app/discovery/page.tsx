@@ -1,82 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import Script from 'next/script';
 import Image from 'next/image';
 import Link from 'next/link';
 
 export default function DiscoveryQuestionnaire() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [leadId, setLeadId] = useState<string | null>(null);
-  const [siteKey, setSiteKey] = useState<string | null>(null);
-  const turnstileRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    fetch('/api/config')
-      .then(res => res.json())
-      .then(data => {
-        setSiteKey(data.siteKey || '');
-      })
-      .catch(err => {
-        console.error('Failed to load Turnstile config:', err);
-        setSiteKey('');
-      });
-  }, []);
-
-  React.useEffect(() => {
-    if (!siteKey || !turnstileRef.current) return;
-
-    let active = true;
-    let widgetId: string | null = null;
-
-    const renderWidget = () => {
-      const turnstile = (window as any).turnstile;
-      if (turnstile && turnstileRef.current && active) {
-        try {
-          turnstileRef.current.innerHTML = '';
-          widgetId = turnstile.render(turnstileRef.current, {
-            sitekey: siteKey,
-            theme: 'dark',
-          });
-        } catch (e) {
-          console.error('Turnstile render error:', e);
-        }
-      }
-    };
-
-    if ((window as any).turnstile) {
-      renderWidget();
-    } else {
-      const interval = setInterval(() => {
-        if ((window as any).turnstile) {
-          renderWidget();
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => {
-        active = false;
-        clearInterval(interval);
-        if (widgetId && (window as any).turnstile) {
-          try {
-            (window as any).turnstile.remove(widgetId);
-          } catch (e) {
-            // Ignore
-          }
-        }
-      };
-    }
-
-    return () => {
-      active = false;
-      if (widgetId && (window as any).turnstile) {
-        try {
-          (window as any).turnstile.remove(widgetId);
-        } catch (e) {
-          // Ignore
-        }
-      }
-    };
-  }, [siteKey]);
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -110,12 +40,7 @@ export default function DiscoveryQuestionnaire() {
 
     const formData = new FormData(e.currentTarget);
     
-    // Cloudflare Turnstile token
-    const turnstileToken = formData.get('cf-turnstile-response');
-    if (!turnstileToken && siteKey) {
-      setStatus('error');
-      return;
-    }
+
 
     // Extract basic Lead fields
     const name = formData.get('contactName') as string;
@@ -191,8 +116,7 @@ export default function DiscoveryQuestionnaire() {
       service: "AI Discovery Questionnaire",
       message: "Discovery Form Submitted - See Notes",
       notes: formattedMessage,
-      status: "IN_REVIEW",
-      "cf-turnstile-response": turnstileToken
+      status: "IN_REVIEW"
     };
 
     try {
@@ -597,18 +521,7 @@ export default function DiscoveryQuestionnaire() {
               </div>
             </section>
 
-            {/* Cloudflare Turnstile */}
-            <div className="flex justify-center py-4">
-              {siteKey === null ? (
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest animate-pulse">Loading Security Shield...</p>
-              ) : siteKey ? (
-                <div ref={turnstileRef} />
-              ) : null}
-            </div>
-            <Script 
-              src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
-              strategy="afterInteractive" 
-            />
+
 
             {/* Submit Button */}
             <div className="text-center pt-8 border-t border-white/10">

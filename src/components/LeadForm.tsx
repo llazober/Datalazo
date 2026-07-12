@@ -1,80 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Script from 'next/script';
+import React, { useState } from 'react';
 
 
 export default function LeadForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [siteKey, setSiteKey] = useState<string | null>(null);
-  const turnstileRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    fetch('/api/config')
-      .then(res => res.json())
-      .then(data => {
-        setSiteKey(data.siteKey || '');
-      })
-      .catch(err => {
-        console.error('Failed to load Turnstile config:', err);
-        setSiteKey('');
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!siteKey || !turnstileRef.current) return;
-
-    let active = true;
-    let widgetId: string | null = null;
-
-    const renderWidget = () => {
-      const turnstile = (window as any).turnstile;
-      if (turnstile && turnstileRef.current && active) {
-        try {
-          turnstileRef.current.innerHTML = '';
-          widgetId = turnstile.render(turnstileRef.current, {
-            sitekey: siteKey,
-            theme: 'dark',
-          });
-        } catch (e) {
-          console.error('Turnstile render error:', e);
-        }
-      }
-    };
-
-    if ((window as any).turnstile) {
-      renderWidget();
-    } else {
-      const interval = setInterval(() => {
-        if ((window as any).turnstile) {
-          renderWidget();
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => {
-        active = false;
-        clearInterval(interval);
-        if (widgetId && (window as any).turnstile) {
-          try {
-            (window as any).turnstile.remove(widgetId);
-          } catch (e) {
-            // Ignore
-          }
-        }
-      };
-    }
-
-    return () => {
-      active = false;
-      if (widgetId && (window as any).turnstile) {
-        try {
-          (window as any).turnstile.remove(widgetId);
-        } catch (e) {
-          // Ignore
-        }
-      }
-    };
-  }, [siteKey]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,13 +12,6 @@ export default function LeadForm() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
-
-    // Add Turnstile token to data
-    const turnstileToken = formData.get('cf-turnstile-response');
-    if (!turnstileToken) {
-      setStatus('error');
-      return;
-    }
 
 
     try {
@@ -180,21 +103,7 @@ export default function LeadForm() {
           required
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-cyan transition-colors"
         />
-        
-        {/* Anti-Spam Human Shield Widget */}
-        <div className="flex justify-center py-2 min-h-[65px]">
-          {siteKey === null ? (
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest animate-pulse">Loading Security Shield...</p>
-          ) : siteKey ? (
-            <div ref={turnstileRef} />
-          ) : (
-            <p className="text-[10px] text-red-500 uppercase tracking-widest">Security Key Missing</p>
-          )}
-        </div>
-        <Script 
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
-          strategy="afterInteractive" 
-        />
+
 
 
         <button

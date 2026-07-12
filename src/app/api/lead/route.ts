@@ -7,31 +7,6 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const token = data['cf-turnstile-response'];
-    const session = req.cookies.get('admin_session')?.value;
-    const isAdmin = session === 'authenticated';
-
-    // 0. Verify Cloudflare Turnstile (Anti-Spam Shield)
-    if (!isAdmin && !token) {
-      return NextResponse.json({ error: 'Anti-spam token missing.' }, { status: 400 });
-    }
-
-    if (!isAdmin) {
-      const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
-          response: token,
-        }),
-      });
-
-      const verifyData = await verifyRes.json();
-      if (!verifyData.success) {
-        console.error('Turnstile verification failed:', verifyData);
-        return NextResponse.json({ error: 'Anti-spam verification failed.' }, { status: 403 });
-      }
-    }
 
     // 1. Save directly to the Database
     let newLead;
