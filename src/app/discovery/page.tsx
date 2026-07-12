@@ -8,6 +8,75 @@ import Link from 'next/link';
 export default function DiscoveryQuestionnaire() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [siteKey, setSiteKey] = useState<string | null>(null);
+  const turnstileRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        setSiteKey(data.siteKey || '');
+      })
+      .catch(err => {
+        console.error('Failed to load Turnstile config:', err);
+        setSiteKey('');
+      });
+  }, []);
+
+  React.useEffect(() => {
+    if (!siteKey || !turnstileRef.current) return;
+
+    let active = true;
+    let widgetId: string | null = null;
+
+    const renderWidget = () => {
+      const turnstile = (window as any).turnstile;
+      if (turnstile && turnstileRef.current && active) {
+        try {
+          turnstileRef.current.innerHTML = '';
+          widgetId = turnstile.render(turnstileRef.current, {
+            sitekey: siteKey,
+            theme: 'dark',
+          });
+        } catch (e) {
+          console.error('Turnstile render error:', e);
+        }
+      }
+    };
+
+    if ((window as any).turnstile) {
+      renderWidget();
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).turnstile) {
+          renderWidget();
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => {
+        active = false;
+        clearInterval(interval);
+        if (widgetId && (window as any).turnstile) {
+          try {
+            (window as any).turnstile.remove(widgetId);
+          } catch (e) {
+            // Ignore
+          }
+        }
+      };
+    }
+
+    return () => {
+      active = false;
+      if (widgetId && (window as any).turnstile) {
+        try {
+          (window as any).turnstile.remove(widgetId);
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [siteKey]);
 
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -43,7 +112,7 @@ export default function DiscoveryQuestionnaire() {
     
     // Cloudflare Turnstile token
     const turnstileToken = formData.get('cf-turnstile-response');
-    if (!turnstileToken && process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY) {
+    if (!turnstileToken && siteKey) {
       setStatus('error');
       return;
     }
@@ -530,13 +599,11 @@ export default function DiscoveryQuestionnaire() {
 
             {/* Cloudflare Turnstile */}
             <div className="flex justify-center py-4">
-              {process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY && (
-                <div 
-                  className="cf-turnstile" 
-                  data-sitekey={process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY}
-                  data-theme="dark"
-                />
-              )}
+              {siteKey === null ? (
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest animate-pulse">Loading Security Shield...</p>
+              ) : siteKey ? (
+                <div ref={turnstileRef} />
+              ) : null}
             </div>
             <Script 
               src="https://challenges.cloudflare.com/turnstile/v0/api.js" 
