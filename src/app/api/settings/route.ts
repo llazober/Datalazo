@@ -18,7 +18,7 @@ export async function GET() {
           id: 'global',
           senderName: 'Luis Lazo',
           senderEmail: 'luis@datalazo.net',
-          agencyName: 'Datalazo Intelligence'
+          agencyName: 'Datalazo LLC'
         }
       });
     }

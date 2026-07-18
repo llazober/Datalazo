@@ -30,7 +30,8 @@ export async function POST(req: Request) {
       items, 
       amount, 
       terms, 
-      sendEmail 
+      sendEmail,
+      pdfBase64
     } = data;
 
     if (!invoiceNumber) {
@@ -137,12 +138,23 @@ export async function POST(req: Request) {
         </div>
       `;
 
+      const attachments = [];
+      if (pdfBase64) {
+        const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;filename=.*;base64,/, '').replace(/^data:application\/pdf;base64,/, '');
+        attachments.push({
+          content: Buffer.from(cleanBase64, 'base64'),
+          filename: `Invoice_${parsedInvoiceNumber}.pdf`,
+          contentType: 'application/pdf'
+        });
+      }
+
       const { error: resendError } = await resend.emails.send({
         from: fromAddress,
         to: clientEmail,
         subject: `Invoice #${parsedInvoiceNumber} from ${finalSenderName}`,
         html: invoiceEmailHtml,
-        replyTo: finalSenderEmail
+        replyTo: finalSenderEmail,
+        attachments: attachments.length > 0 ? attachments : undefined
       });
 
       if (resendError) {

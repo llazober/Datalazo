@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface Client {
   id: string;
@@ -137,6 +139,26 @@ export default function ClientsDashboard() {
     if (!invoiceForm || !selectedClient) return false;
     setIsSendingInvoice(true);
     try {
+      let pdfBase64 = '';
+      if (sendEmail) {
+        const element = document.getElementById('invoice-print-sheet');
+        if (element) {
+          const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+          });
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: [canvas.width / 2, canvas.height / 2]
+          });
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+          pdfBase64 = pdf.output('datauristring');
+        }
+      }
+
       const res = await fetch('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,7 +172,8 @@ export default function ClientsDashboard() {
           items: invoiceForm.items,
           amount: invoiceForm.items.reduce((sum, item) => sum + (item.amount || 0), 0),
           terms: invoiceForm.terms,
-          sendEmail
+          sendEmail,
+          pdfBase64
         })
       });
       const data = await res.json();

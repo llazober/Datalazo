@@ -3,7 +3,7 @@
   "resendApiKey": "re_YOUR_KEY_HERE",
   "senderName": "Luis Lazo",
   "senderEmail": "luis@datalazo.net",
-  "agencyName": "Datalazo Intelligence",
+  "agencyName": "Datalazo LLC",
   "stripeSecretKey": "sk_test_YOUR_KEY_HERE",
   "stripeWebhookSecret": "whsec_YOUR_KEY_HERE",
   "models": {

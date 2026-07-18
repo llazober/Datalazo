@@ -98,7 +98,7 @@ model Settings {
   id          String   @id @default("global")
   senderName  String   @default("Luis Lazo")
   senderEmail String   @default("luis@datalazo.net")
-  agencyName  String   @default("Datalazo Intelligence")
+  agencyName  String   @default("Datalazo LLC")
   updatedAt   DateTime @updatedAt
 }
 
