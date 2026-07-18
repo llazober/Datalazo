@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import GrowthReportPDF from './GrowthReportPDF';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 
 interface GrowthMetrics {
   keywordsGained: number;
