@@ -50,12 +50,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <Link href="/" className="inline-block mb-8">
-            <Image 
-              src="/logo.png" 
+            <img 
+              src="/logo.png?v=3" 
               alt="Datalazo Logo" 
-              width={80} 
-              height={80} 
-              className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(249,115,22,0.2)] bg-orange-500 p-2" 
+              className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(249,115,22,0.2)] bg-white p-1 object-contain" 
             />
           </Link>
           <h1 className="text-3xl font-black tracking-tighter uppercase italic text-white">

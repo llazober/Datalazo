@@ -15,7 +15,7 @@ export default function DashboardLayout({
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0a0c] border-b border-white/10 z-50 flex items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg bg-orange-500 p-0.5" />
+            <img src="/logo.png?v=3" alt="Logo" className="w-8 h-8 rounded-lg bg-white p-0.5" />
             <span className="font-black italic tracking-tighter uppercase text-xs">Datalazo</span>
         </Link>
         <button 
@@ -42,7 +42,7 @@ export default function DashboardLayout({
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
           <Link href="/" className="hidden md:flex justify-center mb-12">
-            <img src="/logo.png" alt="Datalazo Logo" className="w-32 h-32 rounded-3xl shadow-[0_0_30px_rgba(249,115,22,0.5)] bg-orange-500 p-2" />
+            <img src="/logo.png?v=3" alt="Datalazo Logo" className="w-32 h-32 rounded-3xl shadow-[0_0_30px_rgba(249,115,22,0.5)] bg-white p-2" />
           </Link>
         
         <nav className="flex-1 space-y-2 mt-20 md:mt-0">

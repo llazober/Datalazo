@@ -148,13 +148,13 @@ export default function ClientsDashboard() {
             useCORS: true,
             logging: false,
           });
-          const imgData = canvas.toDataURL('image/png');
+          const imgData = canvas.toDataURL('image/jpeg', 0.85);
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',
             format: [canvas.width / 2, canvas.height / 2]
           });
-          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+          pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 2, canvas.height / 2);
           pdfBase64 = pdf.output('datauristring');
         }
       }
@@ -1002,7 +1002,7 @@ export default function ClientsDashboard() {
                     
                     <div className="flex flex-col items-end w-[40%]">
                       <div className="text-2xl font-bold tracking-wider text-zinc-900 mb-2">INVOICE</div>
-                      <img src="/logo.png" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm bg-orange-500 p-1.5" />
+                      <img src="/logo.png?v=3" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm bg-white p-1" />
                     </div>
                   </div>
                   
