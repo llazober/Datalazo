@@ -507,7 +507,7 @@ export default function ClientsDashboard() {
                                   amount: client.recurringAmount || 450
                                 }
                               ],
-                              terms: `Make your check payable to:\n${agencySettings?.agencyName || agencySettings?.senderName || 'Datalazo LLC'} or deposit\nChase acct: 685503230\nVia Zelle at ${agencySettings?.senderEmail || '305.903.7963'}`
+                              terms: `Make check payable to ${agencySettings?.agencyName || agencySettings?.senderName || 'Datalazo LLC'}\nVia Zelle at ${agencySettings?.senderEmail || '305.903.7963'}`
                             });
                             setIsInvoiceModalOpen(true);
                           }}
@@ -972,7 +972,7 @@ export default function ClientsDashboard() {
                     
                     <div className="flex flex-col items-end w-[40%]">
                       <div className="text-2xl font-bold tracking-wider text-zinc-900 mb-2">INVOICE</div>
-                      <img src="/logo.png" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm" />
+                      <img src="/logo.png" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm bg-orange-500 p-1.5" />
                     </div>
                   </div>
                   
@@ -1162,7 +1162,48 @@ export default function ClientsDashboard() {
                     {invoiceHistory.map((invoice) => (
                       <tr key={invoice.id} className="hover:bg-white/[0.02] transition-colors text-sm text-slate-200">
                         <td className="py-3.5 px-4 font-mono font-bold text-fuchsia-400">
-                          #{invoice.invoiceNumber}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              let billToText = '';
+                              if (invoice.clientCompany) {
+                                billToText += `${invoice.clientCompany}\n`;
+                                billToText += `c/o ${invoice.clientName}\n`;
+                              } else {
+                                billToText += `${invoice.clientName}\n`;
+                              }
+                              if (invoice.clientEmail) {
+                                billToText += `${invoice.clientEmail}\n`;
+                              }
+                              if (invoice.clientPhone) {
+                                billToText += `${invoice.clientPhone}`;
+                              }
+                              billToText = billToText.trim();
+
+                              const mappedItems = Array.isArray(invoice.items) 
+                                ? (invoice.items as any[]).map((item: any) => ({
+                                    id: item.id || Math.random().toString(36).substr(2, 9),
+                                    description: item.description || '',
+                                    amount: item.amount || 0
+                                  }))
+                                : [];
+
+                              setInvoiceForm({
+                                senderName: agencySettings?.agencyName || 'Datalazo LLC',
+                                senderAddress: '7682 Tahitti Lane Apt 203\nLake Worth FL 33467',
+                                billTo: billToText,
+                                invoiceNumber: invoice.invoiceNumber.toString(),
+                                invoiceDate: new Date(invoice.createdAt).toLocaleDateString('en-US'),
+                                items: mappedItems,
+                                terms: invoice.terms || ''
+                              });
+                              setIsHistoryModalOpen(false);
+                              setIsInvoiceModalOpen(true);
+                            }}
+                            className="hover:underline text-left"
+                          >
+                            #{invoice.invoiceNumber}
+                          </button>
                         </td>
                         <td className="py-3.5 px-4">
                           <div>{invoice.clientName}</div>

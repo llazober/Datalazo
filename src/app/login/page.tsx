@@ -55,7 +55,7 @@ export default function LoginPage() {
               alt="Datalazo Logo" 
               width={80} 
               height={80} 
-              className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(6,182,212,0.2)]" 
+              className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(249,115,22,0.2)] bg-orange-500 p-2" 
             />
           </Link>
           <h1 className="text-3xl font-black tracking-tighter uppercase italic text-white">

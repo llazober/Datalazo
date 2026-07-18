@@ -195,7 +195,7 @@ export default function DiscoveryQuestionnaire() {
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/5 bg-background/80 backdrop-blur-md">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3 group">
-            <Image src="/logo.png" alt="Datalazo" width={40} height={40} className="w-10 h-10 rounded-xl group-hover:scale-110 transition-transform" />
+            <Image src="/logo.png" alt="Datalazo" width={40} height={40} className="w-10 h-10 rounded-xl group-hover:scale-110 transition-transform bg-orange-500 p-1" />
             <span className="font-black italic uppercase tracking-tighter text-lg hidden sm:block">Datalazo Intelligence</span>
           </Link>
           <div className="text-xs font-black uppercase tracking-widest text-accent-cyan border border-accent-cyan/20 bg-accent-cyan/10 px-4 py-2 rounded-full">

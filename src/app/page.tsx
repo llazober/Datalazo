@@ -85,7 +85,7 @@ export default function Home() {
               alt="Datalazo Logo" 
               width={80} 
               height={80}
-              className="w-16 h-16 md:w-20 md:h-20 rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-110 transition-transform z-50" 
+              className="w-16 h-16 md:w-20 md:h-20 rounded-xl shadow-[0_0_40px_rgba(249,115,22,0.2)] hover:scale-110 transition-transform z-50 bg-orange-500 p-2" 
             />
           </Link>
 
