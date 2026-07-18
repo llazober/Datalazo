@@ -140,7 +140,8 @@ export async function POST(req: Request) {
 
       const attachments = [];
       if (pdfBase64) {
-        const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;filename=.*;base64,/, '').replace(/^data:application\/pdf;base64,/, '');
+        const parts = pdfBase64.split(',');
+        const cleanBase64 = parts.length > 1 ? parts[1] : parts[0];
         attachments.push({
           content: Buffer.from(cleanBase64, 'base64'),
           filename: `Invoice_${parsedInvoiceNumber}.pdf`,
