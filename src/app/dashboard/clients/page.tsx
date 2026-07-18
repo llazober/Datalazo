@@ -20,6 +20,12 @@ interface Client {
   createdAt: string;
 }
 
+interface InvoiceItem {
+  id: string;
+  description: string;
+  amount: number;
+}
+
 export default function ClientsDashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +39,18 @@ export default function ClientsDashboard() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [agencySettings, setAgencySettings] = useState<{ senderEmail?: string; senderName?: string; agencyName?: string } | null>(null);
+  const [invoiceForm, setInvoiceForm] = useState<{
+    senderName: string;
+    senderAddress: string;
+    billTo: string;
+    invoiceNumber: string;
+    invoiceDate: string;
+    items: InvoiceItem[];
+    terms: string;
+  } | null>(null);
   
   // Forms state
   const [editForm, setEditForm] = useState({
@@ -87,8 +105,21 @@ export default function ClientsDashboard() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (!data.error) {
+        setAgencySettings(data);
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
+    fetchSettings();
   }, []);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -361,6 +392,55 @@ export default function ClientsDashboard() {
                           title="Generate Stripe Link"
                         >
                           💳 Stripe Billing
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedClient(client);
+                            const today = new Date();
+                            const month = String(today.getMonth() + 1).padStart(2, '0');
+                            const day = String(today.getDate()).padStart(2, '0');
+                            const year = today.getFullYear();
+                            const formattedDate = `${month}/${day}/${year}`;
+                            const randomNum = Math.floor(2000 + Math.random() * 1000).toString();
+                            
+                            let billToText = '';
+                            if (client.company) {
+                              billToText += `${client.company}\n`;
+                              billToText += `c/o ${client.name}\n`;
+                            } else {
+                              billToText += `${client.name}\n`;
+                            }
+                            if (client.email) {
+                              billToText += `${client.email}\n`;
+                            }
+                            if (client.phone) {
+                              billToText += `${client.phone}`;
+                            }
+                            billToText = billToText.trim();
+
+                            setInvoiceForm({
+                              senderName: agencySettings?.agencyName || 'Datalazo LLC',
+                              senderAddress: '7682 Tahitti Lane Apt 203\nLake Worth FL 33467',
+                              billTo: billToText,
+                              invoiceNumber: randomNum,
+                              invoiceDate: formattedDate,
+                              items: [
+                                {
+                                  id: Math.random().toString(36).substr(2, 9),
+                                  description: client.services || '2025 Business & personal Income Tax processing fee',
+                                  amount: client.recurringAmount || 450
+                                }
+                              ],
+                              terms: `Make your check payable to:\n${agencySettings?.agencyName || agencySettings?.senderName || 'Datalazo LLC'} or deposit\nChase acct: 685503230\nVia Zelle at ${agencySettings?.senderEmail || '305.903.7963'}`
+                            });
+                            setIsInvoiceModalOpen(true);
+                          }}
+                          className="p-2 hover:bg-emerald-500/20 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                          title="Create Invoice"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => {
@@ -689,6 +769,254 @@ export default function ClientsDashboard() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Invoice Modal */}
+      {isInvoiceModalOpen && invoiceForm && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+          <style>{`
+            @media print {
+              html, body, #__next, [data-nextjs-scroll-focus-boundary] {
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              body * {
+                visibility: hidden !important;
+              }
+              #invoice-print-sheet, #invoice-print-sheet * {
+                visibility: visible !important;
+              }
+              #invoice-print-sheet {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 1.5in !important;
+                box-sizing: border-box !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+              }
+              .no-print {
+                display: none !important;
+                visibility: hidden !important;
+              }
+            }
+          `}</style>
+          
+          <div className="w-full max-w-4xl bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[92vh]">
+            {/* Control panel / Modal Header */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight italic text-emerald-400">
+                  Invoice Creator
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">Customize line items, amounts, and click to print/save as a vector PDF.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase rounded-xl text-xs hover:scale-[1.02] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse"
+                >
+                  🖨️ Print / Save PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsInvoiceModalOpen(false)}
+                  className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Scrollable invoice container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-zinc-950/50 rounded-xl border border-white/5 flex justify-center">
+              <div 
+                id="invoice-print-sheet" 
+                className="w-[8.5in] min-h-[11in] bg-white text-zinc-900 p-12 shadow-xl flex flex-col justify-between font-sans border border-slate-200"
+              >
+                <div>
+                  {/* Top row: Sender info vs Invoice header & logo */}
+                  <div className="flex justify-between items-start mb-12">
+                    <div className="space-y-1 w-[60%]">
+                      {/* Sender Name */}
+                      <input 
+                        type="text"
+                        value={invoiceForm.senderName}
+                        onChange={(e) => setInvoiceForm({ ...invoiceForm, senderName: e.target.value })}
+                        className="w-full text-xl font-bold text-zinc-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none transition-all"
+                        placeholder="Sender Company Name"
+                      />
+                      {/* Sender Address */}
+                      <textarea 
+                        value={invoiceForm.senderAddress}
+                        onChange={(e) => setInvoiceForm({ ...invoiceForm, senderAddress: e.target.value })}
+                        rows={2}
+                        className="w-full text-sm text-zinc-600 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none resize-none leading-relaxed transition-all"
+                        placeholder="Sender Address"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col items-end w-[40%]">
+                      <div className="text-2xl font-bold tracking-wider text-zinc-900 mb-2">INVOICE</div>
+                      <img src="/logo.png" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm" />
+                    </div>
+                  </div>
+                  
+                  {/* Bill To & Invoice details row */}
+                  <div className="grid grid-cols-2 gap-8 mb-12">
+                    <div>
+                      <div className="text-xs font-black uppercase text-zinc-400 tracking-wider mb-2">Bill To</div>
+                      <textarea 
+                        value={invoiceForm.billTo}
+                        onChange={(e) => setInvoiceForm({ ...invoiceForm, billTo: e.target.value })}
+                        rows={4}
+                        className="w-full text-sm font-semibold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
+                        placeholder="Client Address / Billing Details"
+                      />
+                    </div>
+                    
+                    <div className="flex flex-col items-end justify-start space-y-2 mt-6">
+                      <div className="flex items-center w-full max-w-[240px] justify-between">
+                        <span className="text-xs font-black text-zinc-500 uppercase tracking-wider">Invoice #</span>
+                        <input 
+                          type="text"
+                          value={invoiceForm.invoiceNumber}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })}
+                          className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
+                        />
+                      </div>
+                      <div className="flex items-center w-full max-w-[240px] justify-between">
+                        <span className="text-xs font-black text-zinc-500 uppercase tracking-wider">Invoice Date</span>
+                        <input 
+                          type="text"
+                          value={invoiceForm.invoiceDate}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDate: e.target.value })}
+                          className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Line items table */}
+                  <div className="mb-12">
+                    <table className="w-full text-left border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="border-b-2 border-slate-300 text-xs font-bold text-slate-700 uppercase bg-slate-50">
+                          <th className="py-2.5 px-4 w-[75%] border-r border-slate-300">DESCRIPTION</th>
+                          <th className="py-2.5 px-4 text-right w-[25%]">AMOUNT</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-300">
+                        {invoiceForm.items.map((item, idx) => (
+                          <tr key={item.id} className="group/row">
+                            <td className="py-2 px-3 border-r border-slate-300 relative group/td">
+                              <input 
+                                type="text"
+                                value={item.description}
+                                onChange={(e) => {
+                                  const newItems = [...invoiceForm.items];
+                                  newItems[idx].description = e.target.value;
+                                  setInvoiceForm({ ...invoiceForm, items: newItems });
+                                }}
+                                className="w-full text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none transition-all"
+                                placeholder="Enter description..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (invoiceForm.items.length > 1) {
+                                    const newItems = invoiceForm.items.filter((_, i) => i !== idx);
+                                    setInvoiceForm({ ...invoiceForm, items: newItems });
+                                  } else {
+                                    showToast('Invoice must have at least one item', 'error');
+                                  }
+                                }}
+                                className="no-print absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/td:opacity-100 p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-all"
+                                title="Delete item"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <span className="text-sm text-zinc-800">$</span>
+                                <input 
+                                  type="number"
+                                  step="0.01"
+                                  value={item.amount || ''}
+                                  onChange={(e) => {
+                                    const newItems = [...invoiceForm.items];
+                                    newItems[idx].amount = parseFloat(e.target.value) || 0;
+                                    setInvoiceForm({ ...invoiceForm, items: newItems });
+                                  }}
+                                  className="w-24 text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none text-right transition-all"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {/* Add Row Button Row */}
+                        <tr className="no-print border-t border-slate-200 bg-slate-50/30">
+                          <td colSpan={2} className="py-2 px-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItem: InvoiceItem = {
+                                  id: Math.random().toString(36).substr(2, 9),
+                                  description: '',
+                                  amount: 0
+                                };
+                                setInvoiceForm({ ...invoiceForm, items: [...invoiceForm.items, newItem] });
+                              }}
+                              className="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-500 uppercase flex items-center gap-1 hover:underline"
+                            >
+                              ➕ Add Line Item
+                            </button>
+                          </td>
+                        </tr>
+                        
+                        {/* Total Row */}
+                        <tr className="border-t border-slate-300">
+                          <td className="py-3 px-4 text-right font-bold text-sm text-zinc-900 border-r border-slate-300 uppercase">
+                            TOTAL
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-base text-zinc-900 bg-slate-50 border-l border-slate-300">
+                            ${invoiceForm.items.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* Footer / Terms & Conditions */}
+                <div className="border-t border-slate-200 pt-6 mt-auto">
+                  <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Terms & Conditions</div>
+                  <textarea 
+                    value={invoiceForm.terms}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, terms: e.target.value })}
+                    rows={4}
+                    className="w-full text-xs text-zinc-500 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
