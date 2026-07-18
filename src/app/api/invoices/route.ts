@@ -53,9 +53,6 @@ export async function POST(req: Request) {
     const existing = await prisma.invoice.findUnique({
       where: { invoiceNumber: parsedInvoiceNumber }
     });
-    if (existing) {
-      return NextResponse.json({ error: `Invoice number ${parsedInvoiceNumber} already exists. Please fetch the next sequential number.` }, { status: 400 });
-    }
 
     let status = 'CREATED';
 
@@ -166,22 +163,40 @@ export async function POST(req: Request) {
       status = 'EMAILED';
     }
 
-    const newInvoice = await prisma.invoice.create({
-      data: {
-        invoiceNumber: parsedInvoiceNumber,
-        clientId: clientId || null,
-        clientName,
-        clientEmail,
-        clientCompany: clientCompany || null,
-        clientPhone: clientPhone || null,
-        items,
-        amount: parseFloat(amount),
-        terms: terms || null,
-        status
-      }
-    });
+    let savedInvoice;
+    if (existing) {
+      savedInvoice = await prisma.invoice.update({
+        where: { invoiceNumber: parsedInvoiceNumber },
+        data: {
+          clientId: clientId || null,
+          clientName,
+          clientEmail,
+          clientCompany: clientCompany || null,
+          clientPhone: clientPhone || null,
+          items,
+          amount: parseFloat(amount),
+          terms: terms || null,
+          status
+        }
+      });
+    } else {
+      savedInvoice = await prisma.invoice.create({
+        data: {
+          invoiceNumber: parsedInvoiceNumber,
+          clientId: clientId || null,
+          clientName,
+          clientEmail,
+          clientCompany: clientCompany || null,
+          clientPhone: clientPhone || null,
+          items,
+          amount: parseFloat(amount),
+          terms: terms || null,
+          status
+        }
+      });
+    }
 
-    return NextResponse.json({ success: true, invoice: newInvoice });
+    return NextResponse.json({ success: true, invoice: savedInvoice });
   } catch (error: any) {
     console.error('Error creating invoice:', error);
     return NextResponse.json({ error: error.message || 'Failed to create invoice' }, { status: 500 });

@@ -57,6 +57,7 @@ export default function ClientsDashboard() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [invoiceHistory, setInvoiceHistory] = useState<any[]>([]);
   const [isSendingInvoice, setIsSendingInvoice] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   
   // Forms state
   const [editForm, setEditForm] = useState({
@@ -135,19 +136,33 @@ export default function ClientsDashboard() {
     }
   };
 
-  const handleSaveInvoiceRecord = async (sendEmail: boolean) => {
-    if (!invoiceForm || !selectedClient) return false;
+  const handleSaveInvoiceRecord = async (
+    sendEmail: boolean,
+    formOverride?: typeof invoiceForm,
+    clientOverride?: any
+  ) => {
+    const activeForm = formOverride || invoiceForm;
+    const activeClient = clientOverride || selectedClient;
+    if (!activeForm || !activeClient) return false;
+
     setIsSendingInvoice(true);
     try {
       let pdfBase64 = '';
       if (sendEmail) {
         const element = document.getElementById('invoice-print-sheet');
         if (element) {
+          setIsPrinting(true);
+          // Wait for DOM to update and render plain divs instead of inputs
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
           const canvas = await html2canvas(element, {
             scale: 2,
             useCORS: true,
             logging: false,
           });
+
+          setIsPrinting(false);
+
           const imgData = canvas.toDataURL('image/jpeg', 0.85);
           const pdf = new jsPDF({
             orientation: 'portrait',
@@ -163,15 +178,15 @@ export default function ClientsDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          invoiceNumber: invoiceForm.invoiceNumber,
-          clientId: selectedClient.id,
-          clientName: selectedClient.name,
-          clientEmail: selectedClient.email,
-          clientCompany: selectedClient.company,
-          clientPhone: selectedClient.phone,
-          items: invoiceForm.items,
-          amount: invoiceForm.items.reduce((sum, item) => sum + (item.amount || 0), 0),
-          terms: invoiceForm.terms,
+          invoiceNumber: activeForm.invoiceNumber,
+          clientId: activeClient.id,
+          clientName: activeClient.name,
+          clientEmail: activeClient.email,
+          clientCompany: activeClient.company,
+          clientPhone: activeClient.phone,
+          items: activeForm.items,
+          amount: activeForm.items.reduce((sum, item) => sum + (item.amount || 0), 0),
+          terms: activeForm.terms,
           sendEmail,
           pdfBase64
         })
@@ -187,6 +202,7 @@ export default function ClientsDashboard() {
       if (data.success) {
         showToast(sendEmail ? 'Invoice sent to client successfully' : 'Invoice saved to history');
         setIsInvoiceModalOpen(false);
+        fetchInvoiceHistory(); // Refresh history list
         return true;
       } else {
         showToast(data.error || 'Failed to process invoice', 'error');
@@ -195,6 +211,8 @@ export default function ClientsDashboard() {
     } catch (err: any) {
       console.error('Invoice Process Error:', err);
       showToast(`Error: ${err.message || err}`, 'error');
+      // Ensure printing state is turned off on error
+      setIsPrinting(false);
       return false;
     } finally {
       setIsSendingInvoice(false);
@@ -983,21 +1001,33 @@ export default function ClientsDashboard() {
                   <div className="flex justify-between items-start mb-12">
                     <div className="space-y-1 w-[60%]">
                       {/* Sender Name */}
-                      <input 
-                        type="text"
-                        value={invoiceForm.senderName}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, senderName: e.target.value })}
-                        className="w-full text-xl font-bold text-zinc-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none transition-all"
-                        placeholder="Sender Company Name"
-                      />
+                      {isPrinting ? (
+                        <div className="w-full text-xl font-bold text-zinc-900 px-2 py-0.5 min-h-[1.75rem] text-left">
+                          {invoiceForm.senderName}
+                        </div>
+                      ) : (
+                        <input 
+                          type="text"
+                          value={invoiceForm.senderName}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, senderName: e.target.value })}
+                          className="w-full text-xl font-bold text-zinc-900 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none transition-all"
+                          placeholder="Sender Company Name"
+                        />
+                      )}
                       {/* Sender Address */}
-                      <textarea 
-                        value={invoiceForm.senderAddress}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, senderAddress: e.target.value })}
-                        rows={2}
-                        className="w-full text-sm text-zinc-600 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none resize-none leading-relaxed transition-all"
-                        placeholder="Sender Address"
-                      />
+                      {isPrinting ? (
+                        <div className="w-full text-sm text-zinc-600 px-2 py-0.5 whitespace-pre-wrap leading-relaxed min-h-[2.5rem] text-left">
+                          {invoiceForm.senderAddress}
+                        </div>
+                      ) : (
+                        <textarea 
+                          value={invoiceForm.senderAddress}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, senderAddress: e.target.value })}
+                          rows={2}
+                          className="w-full text-sm text-zinc-600 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none resize-none leading-relaxed transition-all"
+                          placeholder="Sender Address"
+                        />
+                      )}
                     </div>
                     
                     <div className="flex flex-col items-end w-[40%]">
@@ -1010,33 +1040,51 @@ export default function ClientsDashboard() {
                   <div className="grid grid-cols-2 gap-8 mb-12">
                     <div>
                       <div className="text-xs font-black uppercase text-zinc-400 tracking-wider mb-2">Bill To</div>
-                      <textarea 
-                        value={invoiceForm.billTo}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, billTo: e.target.value })}
-                        rows={4}
-                        className="w-full text-sm font-semibold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
-                        placeholder="Client Address / Billing Details"
-                      />
+                      {isPrinting ? (
+                        <div className="w-full text-sm font-semibold text-zinc-800 px-2 py-1 whitespace-pre-wrap leading-relaxed min-h-[5rem] text-left">
+                          {invoiceForm.billTo}
+                        </div>
+                      ) : (
+                        <textarea 
+                          value={invoiceForm.billTo}
+                          onChange={(e) => setInvoiceForm({ ...invoiceForm, billTo: e.target.value })}
+                          rows={4}
+                          className="w-full text-sm font-semibold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
+                          placeholder="Client Address / Billing Details"
+                        />
+                      )}
                     </div>
                     
                     <div className="flex flex-col items-end justify-start space-y-2 mt-6">
                       <div className="flex items-center w-full max-w-[240px] justify-between">
                         <span className="text-xs font-black text-zinc-500 uppercase tracking-wider">Invoice #</span>
-                        <input 
-                          type="text"
-                          value={invoiceForm.invoiceNumber}
-                          onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })}
-                          className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
-                        />
+                        {isPrinting ? (
+                          <span className="w-32 text-sm font-bold text-zinc-800 px-2 py-0.5 text-right block">
+                            {invoiceForm.invoiceNumber}
+                          </span>
+                        ) : (
+                          <input 
+                            type="text"
+                            value={invoiceForm.invoiceNumber}
+                            onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })}
+                            className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
+                          />
+                        )}
                       </div>
                       <div className="flex items-center w-full max-w-[240px] justify-between">
                         <span className="text-xs font-black text-zinc-500 uppercase tracking-wider">Invoice Date</span>
-                        <input 
-                          type="text"
-                          value={invoiceForm.invoiceDate}
-                          onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDate: e.target.value })}
-                          className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
-                        />
+                        {isPrinting ? (
+                          <span className="w-32 text-sm font-bold text-zinc-800 px-2 py-0.5 text-right block">
+                            {invoiceForm.invoiceDate}
+                          </span>
+                        ) : (
+                          <input 
+                            type="text"
+                            value={invoiceForm.invoiceDate}
+                            onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDate: e.target.value })}
+                            className="w-32 text-sm font-bold text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-0.5 focus:outline-none text-right transition-all"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1054,19 +1102,26 @@ export default function ClientsDashboard() {
                         {invoiceForm.items.map((item, idx) => (
                           <tr key={item.id} className="group/row">
                             <td className="py-2 px-3 border-r border-slate-300 relative group/td">
-                              <input 
-                                type="text"
-                                value={item.description}
-                                onChange={(e) => {
-                                  const newItems = [...invoiceForm.items];
-                                  newItems[idx].description = e.target.value;
-                                  setInvoiceForm({ ...invoiceForm, items: newItems });
-                                }}
-                                className="w-full text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none transition-all"
-                                placeholder="Enter description..."
-                              />
+                              {isPrinting ? (
+                                <div className="w-full text-sm text-zinc-800 px-2 py-1 min-h-[1.5rem] text-left">
+                                  {item.description}
+                                </div>
+                              ) : (
+                                <input 
+                                  type="text"
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    const newItems = [...invoiceForm.items];
+                                    newItems[idx].description = e.target.value;
+                                    setInvoiceForm({ ...invoiceForm, items: newItems });
+                                  }}
+                                  className="w-full text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none transition-all"
+                                  placeholder="Enter description..."
+                                />
+                              )}
                               <button
                                 type="button"
+                                data-html2canvas-ignore="true"
                                 onClick={() => {
                                   if (invoiceForm.items.length > 1) {
                                     const newItems = invoiceForm.items.filter((_, i) => i !== idx);
@@ -1086,24 +1141,30 @@ export default function ClientsDashboard() {
                             <td className="py-2 px-3 text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <span className="text-sm text-zinc-800">$</span>
-                                <input 
-                                  type="number"
-                                  step="0.01"
-                                  value={item.amount || ''}
-                                  onChange={(e) => {
-                                    const newItems = [...invoiceForm.items];
-                                    newItems[idx].amount = parseFloat(e.target.value) || 0;
-                                    setInvoiceForm({ ...invoiceForm, items: newItems });
-                                  }}
-                                  className="w-24 text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none text-right transition-all"
-                                  placeholder="0.00"
-                                />
+                                {isPrinting ? (
+                                  <span className="w-24 text-sm text-zinc-800 px-2 py-1 text-right block font-mono">
+                                    {(item.amount || 0).toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <input 
+                                    type="number"
+                                    step="0.01"
+                                    value={item.amount || ''}
+                                    onChange={(e) => {
+                                      const newItems = [...invoiceForm.items];
+                                      newItems[idx].amount = parseFloat(e.target.value) || 0;
+                                      setInvoiceForm({ ...invoiceForm, items: newItems });
+                                    }}
+                                    className="w-24 text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none text-right transition-all"
+                                    placeholder="0.00"
+                                  />
+                                )}
                               </div>
                             </td>
                           </tr>
                         ))}
                         {/* Add Row Button Row */}
-                        <tr className="no-print border-t border-slate-200 bg-slate-50/30">
+                        <tr data-html2canvas-ignore="true" className="no-print border-t border-slate-200 bg-slate-50/30">
                           <td colSpan={2} className="py-2 px-4">
                             <button
                               type="button"
@@ -1139,12 +1200,18 @@ export default function ClientsDashboard() {
                 {/* Footer / Terms & Conditions */}
                 <div className="border-t border-slate-200 pt-6 mt-auto">
                   <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Terms & Conditions</div>
-                  <textarea 
-                    value={invoiceForm.terms}
-                    onChange={(e) => setInvoiceForm({ ...invoiceForm, terms: e.target.value })}
-                    rows={4}
-                    className="w-full text-xs text-zinc-500 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
-                  />
+                  {isPrinting ? (
+                    <div className="w-full text-xs text-zinc-500 px-2 py-1 whitespace-pre-wrap leading-relaxed min-h-[4rem] text-left">
+                      {invoiceForm.terms}
+                    </div>
+                  ) : (
+                    <textarea 
+                      value={invoiceForm.terms}
+                      onChange={(e) => setInvoiceForm({ ...invoiceForm, terms: e.target.value })}
+                      rows={4}
+                      className="w-full text-xs text-zinc-500 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none resize-none leading-relaxed transition-all"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1186,6 +1253,7 @@ export default function ClientsDashboard() {
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Amount</th>
                       <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1217,6 +1285,15 @@ export default function ClientsDashboard() {
                                     amount: item.amount || 0
                                   }))
                                 : [];
+
+                              const clientObj = (clients.find(c => c.id === invoice.clientId) || {
+                                id: invoice.clientId || '',
+                                name: invoice.clientName,
+                                email: invoice.clientEmail,
+                                company: invoice.clientCompany || '',
+                                phone: invoice.clientPhone || ''
+                              }) as any;
+                              setSelectedClient(clientObj);
 
                               setInvoiceForm({
                                 senderName: agencySettings?.agencyName || 'Datalazo LLC',
@@ -1255,6 +1332,127 @@ export default function ClientsDashboard() {
                           }`}>
                             {invoice.status}
                           </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right space-x-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              let billToText = '';
+                              if (invoice.clientCompany) {
+                                billToText += `${invoice.clientCompany}\n`;
+                                billToText += `c/o ${invoice.clientName}\n`;
+                              } else {
+                                billToText += `${invoice.clientName}\n`;
+                              }
+                              if (invoice.clientEmail) {
+                                billToText += `${invoice.clientEmail}\n`;
+                              }
+                              if (invoice.clientPhone) {
+                                billToText += `${invoice.clientPhone}`;
+                              }
+                              billToText = billToText.trim();
+
+                              const mappedItems = Array.isArray(invoice.items) 
+                                ? (invoice.items as any[]).map((item: any) => ({
+                                    id: item.id || Math.random().toString(36).substr(2, 9),
+                                    description: item.description || '',
+                                    amount: item.amount || 0
+                                  }))
+                                : [];
+
+                              const tempForm = {
+                                senderName: agencySettings?.agencyName || 'Datalazo LLC',
+                                senderAddress: '7682 Tahitti Lane Apt 203\nLake Worth FL 33467',
+                                billTo: billToText,
+                                invoiceNumber: invoice.invoiceNumber.toString(),
+                                invoiceDate: new Date(invoice.createdAt).toLocaleDateString('en-US'),
+                                items: mappedItems,
+                                terms: invoice.terms || ''
+                              };
+
+                              const clientObj = (clients.find(c => c.id === invoice.clientId) || {
+                                id: invoice.clientId || '',
+                                name: invoice.clientName,
+                                email: invoice.clientEmail,
+                                company: invoice.clientCompany || '',
+                                phone: invoice.clientPhone || ''
+                              }) as any;
+
+                              setSelectedClient(clientObj);
+                              setInvoiceForm(tempForm);
+                              setIsHistoryModalOpen(false);
+                              setIsInvoiceModalOpen(true);
+
+                              // Wait for modal to render
+                              await new Promise((resolve) => setTimeout(resolve, 300));
+                              handleSaveInvoiceRecord(true, tempForm, clientObj);
+                            }}
+                            className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase rounded text-[10px] transition-all"
+                            title="Resend email to client"
+                          >
+                            Resend
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              let billToText = '';
+                              if (invoice.clientCompany) {
+                                billToText += `${invoice.clientCompany}\n`;
+                                billToText += `c/o ${invoice.clientName}\n`;
+                              } else {
+                                billToText += `${invoice.clientName}\n`;
+                              }
+                              if (invoice.clientEmail) {
+                                billToText += `${invoice.clientEmail}\n`;
+                              }
+                              if (invoice.clientPhone) {
+                                billToText += `${invoice.clientPhone}`;
+                              }
+                              billToText = billToText.trim();
+
+                              const mappedItems = Array.isArray(invoice.items) 
+                                ? (invoice.items as any[]).map((item: any) => ({
+                                    id: item.id || Math.random().toString(36).substr(2, 9),
+                                    description: item.description || '',
+                                    amount: item.amount || 0
+                                  }))
+                                : [];
+
+                              const tempForm = {
+                                senderName: agencySettings?.agencyName || 'Datalazo LLC',
+                                senderAddress: '7682 Tahitti Lane Apt 203\nLake Worth FL 33467',
+                                billTo: billToText,
+                                invoiceNumber: invoice.invoiceNumber.toString(),
+                                invoiceDate: new Date(invoice.createdAt).toLocaleDateString('en-US'),
+                                items: mappedItems,
+                                terms: invoice.terms || ''
+                              };
+
+                              const clientObj = (clients.find(c => c.id === invoice.clientId) || {
+                                id: invoice.clientId || '',
+                                name: invoice.clientName,
+                                email: invoice.clientEmail,
+                                company: invoice.clientCompany || '',
+                                phone: invoice.clientPhone || ''
+                              }) as any;
+
+                              setSelectedClient(clientObj);
+                              setInvoiceForm(tempForm);
+                              setIsHistoryModalOpen(false);
+                              setIsInvoiceModalOpen(true);
+
+                              // Wait for modal to render
+                              await new Promise((resolve) => setTimeout(resolve, 300));
+                              const saved = await handleSaveInvoiceRecord(false, tempForm, clientObj);
+                              if (saved) {
+                                window.print();
+                              }
+                            }}
+                            className="px-2 py-0.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold uppercase rounded text-[10px] transition-all"
+                            title="Print or Save PDF"
+                          >
+                            Print
+                          </button>
                         </td>
                       </tr>
                     ))}
