@@ -51,6 +51,10 @@ export default function ClientsDashboard() {
     items: InvoiceItem[];
     terms: string;
   } | null>(null);
+
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [invoiceHistory, setInvoiceHistory] = useState<any[]>([]);
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
   
   // Forms state
   const [editForm, setEditForm] = useState({
@@ -117,10 +121,66 @@ export default function ClientsDashboard() {
     }
   };
 
+  const fetchInvoiceHistory = async () => {
+    try {
+      const res = await fetch('/api/invoices');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setInvoiceHistory(data);
+      }
+    } catch (err) {
+      console.error('Error fetching invoice history:', err);
+    }
+  };
+
+  const handleSaveInvoiceRecord = async (sendEmail: boolean) => {
+    if (!invoiceForm || !selectedClient) return false;
+    setIsSendingInvoice(true);
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceNumber: invoiceForm.invoiceNumber,
+          clientId: selectedClient.id,
+          clientName: selectedClient.name,
+          clientEmail: selectedClient.email,
+          clientCompany: selectedClient.company,
+          clientPhone: selectedClient.phone,
+          items: invoiceForm.items,
+          amount: invoiceForm.items.reduce((sum, item) => sum + (item.amount || 0), 0),
+          terms: invoiceForm.terms,
+          sendEmail
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(sendEmail ? 'Invoice sent to client successfully' : 'Invoice saved to history');
+        setIsInvoiceModalOpen(false);
+        return true;
+      } else {
+        showToast(data.error || 'Failed to process invoice', 'error');
+        return false;
+      }
+    } catch (err: any) {
+      console.error(err);
+      showToast('Error processing invoice', 'error');
+      return false;
+    } finally {
+      setIsSendingInvoice(false);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (isHistoryModalOpen) {
+      fetchInvoiceHistory();
+    }
+  }, [isHistoryModalOpen]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,6 +363,12 @@ export default function ClientsDashboard() {
             className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-fuchsia-500 transition-colors w-full md:w-64"
           />
           <button 
+            onClick={() => setIsHistoryModalOpen(true)}
+            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5"
+          >
+            📄 Invoice History
+          </button>
+          <button 
             onClick={() => setIsManualModalOpen(true)}
             className="px-4 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] whitespace-nowrap"
           >
@@ -394,14 +460,24 @@ export default function ClientsDashboard() {
                           💳 Stripe Billing
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedClient(client);
                             const today = new Date();
                             const month = String(today.getMonth() + 1).padStart(2, '0');
                             const day = String(today.getDate()).padStart(2, '0');
                             const year = today.getFullYear();
                             const formattedDate = `${month}/${day}/${year}`;
-                            const randomNum = Math.floor(2000 + Math.random() * 1000).toString();
+                            
+                            let nextNumberStr = '2309';
+                            try {
+                              const res = await fetch('/api/invoices/next-number');
+                              const data = await res.json();
+                              if (data.nextNumber) {
+                                nextNumberStr = data.nextNumber.toString();
+                              }
+                            } catch (err) {
+                              console.error('Error fetching sequential invoice number:', err);
+                            }
                             
                             let billToText = '';
                             if (client.company) {
@@ -422,7 +498,7 @@ export default function ClientsDashboard() {
                               senderName: agencySettings?.agencyName || 'Datalazo LLC',
                               senderAddress: '7682 Tahitti Lane Apt 203\nLake Worth FL 33467',
                               billTo: billToText,
-                              invoiceNumber: randomNum,
+                              invoiceNumber: nextNumberStr,
                               invoiceDate: formattedDate,
                               items: [
                                 {
@@ -774,7 +850,7 @@ export default function ClientsDashboard() {
 
       {/* Invoice Modal */}
       {isInvoiceModalOpen && invoiceForm && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto invoice-modal-backdrop">
           <style>{`
             @media print {
               html, body, #__next, [data-nextjs-scroll-focus-boundary] {
@@ -804,6 +880,19 @@ export default function ClientsDashboard() {
                 border: none !important;
                 border-radius: 0 !important;
               }
+              .invoice-modal-backdrop, .invoice-modal-card, .invoice-modal-scroll {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+              }
               .no-print {
                 display: none !important;
                 visibility: hidden !important;
@@ -811,9 +900,9 @@ export default function ClientsDashboard() {
             }
           `}</style>
           
-          <div className="w-full max-w-4xl bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="w-full max-w-4xl bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[92vh] invoice-modal-card">
             {/* Control panel / Modal Header */}
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 no-print">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight italic text-emerald-400">
                   Invoice Creator
@@ -823,8 +912,21 @@ export default function ClientsDashboard() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase rounded-xl text-xs hover:scale-[1.02] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse"
+                  disabled={isSendingInvoice}
+                  onClick={() => handleSaveInvoiceRecord(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase rounded-xl text-xs hover:scale-[1.02] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50"
+                >
+                  {isSendingInvoice ? 'Sending...' : '📧 Email Invoice'}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const saved = await handleSaveInvoiceRecord(false);
+                    if (saved) {
+                      window.print();
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase rounded-xl text-xs hover:scale-[1.02] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                 >
                   🖨️ Print / Save PDF
                 </button>
@@ -841,7 +943,7 @@ export default function ClientsDashboard() {
             </div>
             
             {/* Scrollable invoice container */}
-            <div className="flex-1 overflow-y-auto p-4 bg-zinc-950/50 rounded-xl border border-white/5 flex justify-center">
+            <div className="flex-1 overflow-y-auto p-4 bg-zinc-950/50 rounded-xl border border-white/5 flex justify-center invoice-modal-scroll">
               <div 
                 id="invoice-print-sheet" 
                 className="w-[8.5in] min-h-[11in] bg-white text-zinc-900 p-12 shadow-xl flex flex-col justify-between font-sans border border-slate-200"
@@ -1015,6 +1117,79 @@ export default function ClientsDashboard() {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice History Modal */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl bg-zinc-900 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight italic text-fuchsia-400">
+                  Invoice Registry History
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">List of all created and emailed client invoices.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors text-sm font-bold"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {invoiceHistory.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-sm">
+                  No invoices found in history registry.
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.01]">
+                      <th className="py-3 px-4">Invoice #</th>
+                      <th className="py-3 px-4">Client / Company</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Amount</th>
+                      <th className="py-3 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {invoiceHistory.map((invoice) => (
+                      <tr key={invoice.id} className="hover:bg-white/[0.02] transition-colors text-sm text-slate-200">
+                        <td className="py-3.5 px-4 font-mono font-bold text-fuchsia-400">
+                          #{invoice.invoiceNumber}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div>{invoice.clientName}</div>
+                          {invoice.clientCompany && (
+                            <div className="text-xs text-slate-500">{invoice.clientCompany}</div>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-400">
+                          {new Date(invoice.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold">
+                          ${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            invoice.status === 'EMAILED' 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' 
+                              : 'bg-blue-500/10 text-blue-400 border border-blue-500/25'
+                          }`}>
+                            {invoice.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

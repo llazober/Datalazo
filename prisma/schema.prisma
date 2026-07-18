@@ -146,4 +146,20 @@ model Client {
   updatedAt        DateTime  @updatedAt
 }
 
+model Invoice {
+  id             String   @id @default(cuid())
+  invoiceNumber  Int      @unique
+  clientId       String?
+  clientName     String
+  clientEmail    String
+  clientCompany  String?
+  clientPhone    String?
+  items          Json     // List of items [{description: string, amount: number}]
+  amount         Float
+  terms          String?  @db.Text
+  status         String   @default("CREATED") // CREATED, EMAILED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 
