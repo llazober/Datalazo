@@ -176,7 +176,14 @@ export default function ClientsDashboard() {
           pdfBase64
         })
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse response JSON:', jsonErr);
+        throw new Error(`Server returned status ${res.status}. (Failed to parse JSON response)`);
+      }
+
       if (data.success) {
         showToast(sendEmail ? 'Invoice sent to client successfully' : 'Invoice saved to history');
         setIsInvoiceModalOpen(false);
@@ -186,8 +193,8 @@ export default function ClientsDashboard() {
         return false;
       }
     } catch (err: any) {
-      console.error(err);
-      showToast('Error processing invoice', 'error');
+      console.error('Invoice Process Error:', err);
+      showToast(`Error: ${err.message || err}`, 'error');
       return false;
     } finally {
       setIsSendingInvoice(false);
