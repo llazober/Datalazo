@@ -83,16 +83,18 @@ export async function POST(req: Request) {
 
       const invoiceEmailHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
-            <div>
-              <h2 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800;">${finalSenderName}</h2>
-              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">7682 Tahitti Lane Apt 203<br/>Lake Worth FL 33467</p>
-            </div>
-            <div style="text-align: right;">
-              <h1 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">INVOICE</h1>
-              <p style="margin: 4px 0 0 0; color: #0f172a; font-size: 14px; font-weight: 700;">#${parsedInvoiceNumber}</p>
-            </div>
-          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+            <tr>
+              <td style="vertical-align: top; text-align: left; padding: 0 0 16px 0;">
+                <h2 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800;">${finalSenderName}</h2>
+                <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px; line-height: 1.4;">7682 Tahitti Lane Apt 203<br/>Lake Worth FL 33467</p>
+              </td>
+              <td style="vertical-align: top; text-align: right; padding: 0 0 16px 0;">
+                <h1 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; line-height: 1;">INVOICE</h1>
+                <p style="margin: 4px 0 0 0; color: #0f172a; font-size: 14px; font-weight: 700;">#${parsedInvoiceNumber}</p>
+              </td>
+            </tr>
+          </table>
 
           <div style="margin-bottom: 24px;">
             <p style="margin: 0; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Bill To</p>

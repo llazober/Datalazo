@@ -1032,7 +1032,7 @@ export default function ClientsDashboard() {
                     
                     <div className="flex flex-col items-end w-[40%]">
                       <div className="text-2xl font-bold tracking-wider text-zinc-900 mb-2">INVOICE</div>
-                      <img src="/logo.png?v=3" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm bg-white p-1" />
+                      <img src="/logo.png?v=4" alt="Datalazo Logo" className="w-16 h-16 rounded-xl object-contain shadow-sm bg-white p-1" />
                     </div>
                   </div>
                   

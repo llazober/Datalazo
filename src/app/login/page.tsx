@@ -51,7 +51,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <Link href="/" className="inline-block mb-8">
             <img 
-              src="/logo.png?v=3" 
+              src="/logo.png?v=4" 
               alt="Datalazo Logo" 
               className="w-20 h-20 rounded-2xl mx-auto shadow-[0_0_30px_rgba(249,115,22,0.2)] bg-white p-1 object-contain" 
             />
