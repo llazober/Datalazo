@@ -213,7 +213,13 @@ export default function Home() {
 
       <footer className="py-12 px-6 border-t border-white/5 text-center">
          <Image src="/logo.png" alt="Datalazo" width={40} height={40} className="mx-auto grayscale opacity-50 mb-6" />
-         <p className="text-xs text-slate-500 uppercase font-black tracking-[0.3em]">
+         <div className="flex flex-wrap justify-center gap-8 text-xs text-slate-500 font-black uppercase tracking-widest mb-6">
+           <Link href="/terms" className="hover:text-accent-cyan transition-colors">Terms & Conditions</Link>
+           <Link href="/privacy" className="hover:text-accent-cyan transition-colors">Privacy Policy</Link>
+           <Link href="/refund" className="hover:text-accent-cyan transition-colors">Refund Policy</Link>
+           <Link href="/sla" className="hover:text-accent-cyan transition-colors">Service Level Agreement (SLA)</Link>
+         </div>
+         <p className="text-xs text-slate-600 uppercase font-black tracking-[0.3em]">
            {t.footer}
          </p>
       </footer>
