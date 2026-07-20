@@ -15,6 +15,7 @@ export async function GET() {
             termsAccepted: true,
             termsAcceptedAt: true,
             termsAcceptedIp: true,
+            termsAcceptedUserAgent: true,
             monthlyUsageActual: true,
             monthlyUsagePrevious: true,
           }

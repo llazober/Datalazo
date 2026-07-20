@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
+import Link from 'next/link';
 
 interface ClientUser {
   id: string;
@@ -512,6 +513,12 @@ export default function ClientsDashboard() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-fuchsia-500 transition-colors w-full md:w-64"
           />
+          <Link 
+            href="/dashboard/clients/users"
+            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5"
+          >
+            👥 Client Users
+          </Link>
           <button 
             onClick={() => setIsHistoryModalOpen(true)}
             className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5"

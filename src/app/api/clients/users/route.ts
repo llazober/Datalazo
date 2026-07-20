@@ -119,3 +119,27 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function GET() {
+  try {
+    const users = await prisma.clientUser.findMany({
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+            company: true,
+            email: true,
+          }
+        }
+      },
+      orderBy: {
+        username: 'asc'
+      }
+    });
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error('Client Users Fetch Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
