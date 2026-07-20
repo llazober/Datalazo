@@ -4,6 +4,16 @@ import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
 
+interface ClientUser {
+  id: string;
+  username: string;
+  termsAccepted: boolean;
+  termsAcceptedAt: string | null;
+  termsAcceptedIp: string | null;
+  monthlyUsageActual: number;
+  monthlyUsagePrevious: number;
+}
+
 interface Client {
   id: string;
   leadId: string | null;
@@ -21,6 +31,7 @@ interface Client {
   recurringAmount: number | null;
   createdAt: string;
   subdomain: string | null;
+  users: ClientUser[];
 }
 
 interface InvoiceItem {
@@ -40,6 +51,15 @@ export default function ClientsDashboard() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+  const [isUserFormOpen, setIsUserFormOpen] = useState(false);
+  const [userFormMode, setUserFormMode] = useState<'add' | 'edit'>('add');
+  const [userForm, setUserForm] = useState({
+    id: '',
+    username: '',
+    password: ''
+  });
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
@@ -106,12 +126,90 @@ export default function ClientsDashboard() {
       const data = await res.json();
       if (Array.isArray(data)) {
         setClients(data);
+        return data;
       }
     } catch (err) {
       console.error('Error fetching clients:', err);
       showToast('Failed to load clients', 'error');
     } finally {
       setLoading(false);
+    }
+    return [];
+  };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClient) return;
+
+    setIsSaving(true);
+    try {
+      let res;
+      if (userFormMode === 'add') {
+        res = await fetch('/api/clients/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: selectedClient.id,
+            username: userForm.username,
+            password: userForm.password
+          })
+        });
+      } else {
+        res = await fetch('/api/clients/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userForm.id,
+            username: userForm.username,
+            password: userForm.password || undefined
+          })
+        });
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        showToast(userFormMode === 'add' ? 'User created successfully' : 'User updated successfully');
+        setIsUserFormOpen(false);
+        setUserForm({ id: '', username: '', password: '' });
+        
+        const updatedClients = await fetchClients();
+        const freshClient = updatedClients.find((c: Client) => c.id === selectedClient.id);
+        if (freshClient) {
+          setSelectedClient(freshClient);
+        }
+      } else {
+        showToast(data.error || 'Failed to process user operation', 'error');
+      }
+    } catch (err) {
+      console.error('User submit error:', err);
+      showToast('Error processing user', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!selectedClient) return;
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const res = await fetch(`/api/clients/users?id=${userId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('User deleted successfully');
+        const updatedClients = await fetchClients();
+        const freshClient = updatedClients.find((c: Client) => c.id === selectedClient.id);
+        if (freshClient) {
+          setSelectedClient(freshClient);
+        }
+      } else {
+        showToast(data.error || 'Failed to delete user', 'error');
+      }
+    } catch (err) {
+      console.error('User delete error:', err);
+      showToast('Error deleting user', 'error');
     }
   };
 
@@ -573,6 +671,19 @@ export default function ClientsDashboard() {
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setIsUsersModalOpen(true);
+                            setIsUserFormOpen(false);
+                          }}
+                          className="p-2 hover:bg-indigo-500/20 rounded-lg text-slate-400 hover:text-indigo-400 transition-colors"
+                          title="Manage Users"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                           </svg>
                         </button>
                         <button
@@ -1492,6 +1603,143 @@ export default function ClientsDashboard() {
                 </table>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client User Management Modal */}
+      {isUsersModalOpen && selectedClient && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass w-full max-w-2xl p-6 md:p-8 border-indigo-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight italic text-indigo-400 font-sans">
+                  Manage Users
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Manage login accounts for <span className="text-white font-bold">{selectedClient.company || selectedClient.name}</span>
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsUsersModalOpen(false)} 
+                className="text-slate-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* User List */}
+            <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
+              {(!selectedClient.users || selectedClient.users.length === 0) ? (
+                <div className="text-center py-8 text-slate-500 text-sm">
+                  No login users registered for this client yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Registered Accounts</div>
+                  {selectedClient.users.map((u) => (
+                    <div key={u.id} className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+                      <div>
+                        <div className="font-bold text-slate-200">{u.username}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">
+                          {u.termsAccepted 
+                            ? `Terms accepted at ${u.termsAcceptedAt ? new Date(u.termsAcceptedAt).toLocaleDateString() : ''} (${u.termsAcceptedIp || 'IP'})`
+                            : 'Pending terms agreement'}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setUserForm({ id: u.id, username: u.username, password: '' });
+                            setUserFormMode('edit');
+                            setIsUserFormOpen(true);
+                          }}
+                          className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-black rounded-lg text-xs font-bold transition-all"
+                        >
+                          Modify
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="px-3 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg text-xs font-bold transition-all"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* User Form Toggle / Display */}
+            {isUserFormOpen ? (
+              <form onSubmit={handleUserSubmit} className="bg-white/[0.02] border border-white/5 p-4 rounded-xl space-y-4">
+                <h4 className="text-sm font-black uppercase tracking-wider text-slate-300">
+                  {userFormMode === 'add' ? 'Create Client User' : `Edit User: ${userForm.username}`}
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Username</label>
+                    <input 
+                      type="text"
+                      required
+                      value={userForm.username}
+                      onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm font-medium"
+                      placeholder="e.g. acme_admin"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">
+                      {userFormMode === 'add' ? 'Password' : 'New Password (leave blank to keep)'}
+                    </label>
+                    <input 
+                      type="password"
+                      required={userFormMode === 'add'}
+                      value={userForm.password}
+                      onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsUserFormOpen(false)} 
+                    className="px-4 py-1.5 text-xs font-bold text-slate-400"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSaving}
+                    className="px-6 py-1.5 bg-indigo-500 text-white font-black uppercase tracking-wider rounded-lg text-xs shadow-[0_0_10px_rgba(99,102,241,0.2)] disabled:opacity-50"
+                  >
+                    {isSaving ? 'Saving...' : (userFormMode === 'add' ? 'Create' : 'Save')}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setUserForm({ id: '', username: '', password: '' });
+                  setUserFormMode('add');
+                  setIsUserFormOpen(true);
+                }}
+                className="w-full py-3 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+              >
+                ➕ Add Client User Account
+              </button>
+            )}
           </div>
         </div>
       )}

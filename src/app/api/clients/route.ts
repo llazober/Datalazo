@@ -7,7 +7,18 @@ export async function GET() {
   try {
     const clients = await prisma.client.findMany({
       include: {
-        lead: true
+        lead: true,
+        users: {
+          select: {
+            id: true,
+            username: true,
+            termsAccepted: true,
+            termsAcceptedAt: true,
+            termsAcceptedIp: true,
+            monthlyUsageActual: true,
+            monthlyUsagePrevious: true,
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
