@@ -4,15 +4,24 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Dashboard routes require authentication
-  const isDashboardRoute = pathname.includes('/dashboard');
+  // 1. Admin Dashboard routes require admin authentication
+  const isAdminDashboardRoute = pathname.startsWith('/dashboard');
 
-  // 2. Private Admin API routes require authentication
+  // 2. Client Dashboard routes require client user authentication
+  const isClientDashboardRoute = pathname.startsWith('/client/dashboard');
+
+  // 3. Private Admin API routes require admin authentication
   let isApiRouteAdminOnly = false;
+  
+  // 4. Private Client API routes require client user authentication
+  let isApiRouteClientOnly = false;
+
   if (pathname.startsWith('/api/')) {
     const publicApiPrefixes = [
       '/api/auth/login',
       '/api/auth/logout',
+      '/api/client-auth/login',
+      '/api/client-auth/logout',
       '/api/webhooks/stripe',
       '/api/chat',
       '/api/voice',
@@ -22,12 +31,13 @@ export function middleware(request: NextRequest) {
     const isPublicPrefix = publicApiPrefixes.some(prefix => pathname.startsWith(prefix));
 
     if (!isPublicPrefix) {
-      if (pathname === '/api/lead' && request.method === 'POST') {
+      if (pathname.startsWith('/api/client/')) {
+        isApiRouteClientOnly = true;
+      } else if (pathname === '/api/lead' && request.method === 'POST') {
         // Public lead capture
         isApiRouteAdminOnly = false;
       } else if (pathname.startsWith('/api/lead/') && request.method === 'GET') {
         // Public lead fetch (e.g., GET /api/lead/[id]) to pre-fill discovery form
-        // Make sure it doesn't match nested action endpoints like /api/lead/[id]/proposal
         const subpath = pathname.substring('/api/lead/'.length);
         const pathParts = subpath.split('/');
         if (pathParts.length === 1) {
@@ -42,13 +52,13 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  if (isDashboardRoute || isApiRouteAdminOnly) {
+  // Admin route authentication
+  if (isAdminDashboardRoute || isApiRouteAdminOnly) {
     const session = request.cookies.get('admin_session');
 
     if (!session || session.value !== 'authenticated') {
-      console.log('UNAUTHORIZED ACCESS ATTEMPT:', pathname);
+      console.log('UNAUTHORIZED ADMIN ACCESS ATTEMPT:', pathname);
 
-      // Return a 401 JSON response for API routes instead of redirecting
       if (pathname.startsWith('/api/')) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
@@ -58,6 +68,26 @@ export function middleware(request: NextRequest) {
 
       const url = request.nextUrl.clone();
       url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Client route authentication
+  if (isClientDashboardRoute || isApiRouteClientOnly) {
+    const session = request.cookies.get('client_session');
+
+    if (!session) {
+      console.log('UNAUTHORIZED CLIENT ACCESS ATTEMPT:', pathname);
+
+      if (pathname.startsWith('/api/')) {
+        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const url = request.nextUrl.clone();
+      url.pathname = '/client-login';
       return NextResponse.redirect(url);
     }
   }

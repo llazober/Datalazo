@@ -125,25 +125,49 @@ model MarketingLead {
 }
 
 model Client {
-  id               String    @id @default(cuid())
-  leadId           String?   @unique
-  lead             Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  id               String       @id @default(cuid())
+  leadId           String?      @unique
+  lead             Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   name             String
-  email            String    @unique
+  email            String       @unique
   phone            String?
   company          String?
   services         String
   paymentDate      DateTime?
-  totalPayment     Float     @default(0.0)
-  notes            String?   @db.Text
+  totalPayment     Float        @default(0.0)
+  notes            String?      @db.Text
   
-  stripeCustomerId String?   @unique
-  stripeSubId      String?   @unique
-  stripeStatus     String?   
+  stripeCustomerId String?      @unique
+  stripeSubId      String?      @unique
+  stripeStatus     String?      
   recurringAmount  Float?    
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  // Subdomain / Tenant Slug identifier (e.g. "clientA" for clientA.datalazo.net)
+  subdomain        String?      @unique
+
+  // Relations
+  users            ClientUser[]
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model ClientUser {
+  id                     String    @id @default(cuid())
+  clientId               String
+  client                 Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  username               String    @unique
+  password               String    // Hashed password
+  termsAccepted          Boolean   @default(false)
+  termsAcceptedAt        DateTime?
+  termsAcceptedIp        String?
+  termsAcceptedUserAgent String?
+  monthlyUsageActual     Int       @default(0)   // Actual monthly tokens/usage
+  monthlyUsagePrevious    Int       @default(0)   // Previous month's usage
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([clientId])
 }
 
 model Invoice {
