@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { leadId, name, email, phone, company, services, notes, totalPayment, paymentDate } = body;
+    const { leadId, name, email, phone, company, services, notes, totalPayment, paymentDate, subdomain } = body;
 
     if (!name || !email || !services) {
       return NextResponse.json({ error: 'Name, email, and services are required' }, { status: 400 });
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
         notes: notes || null,
         totalPayment: totalPayment ? parseFloat(totalPayment) : 0,
         paymentDate: paymentDate ? new Date(paymentDate) : null,
+        subdomain: subdomain ? subdomain.trim() : null,
       }
     });
 
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, email, phone, company, services, notes, totalPayment, paymentDate, stripeStatus, recurringAmount } = body;
+    const { id, name, email, phone, company, services, notes, totalPayment, paymentDate, stripeStatus, recurringAmount, subdomain } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -87,7 +88,8 @@ export async function PATCH(req: Request) {
         totalPayment: totalPayment !== undefined ? parseFloat(totalPayment) : undefined,
         paymentDate: paymentDate ? new Date(paymentDate) : undefined,
         stripeStatus,
-        recurringAmount: recurringAmount !== undefined ? parseFloat(recurringAmount) : undefined
+        recurringAmount: recurringAmount !== undefined ? parseFloat(recurringAmount) : undefined,
+        subdomain: subdomain !== undefined ? (subdomain.trim() === '' ? null : subdomain.trim()) : undefined
       }
     });
 

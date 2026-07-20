@@ -20,6 +20,7 @@ interface Client {
   stripeStatus: string | null;
   recurringAmount: number | null;
   createdAt: string;
+  subdomain: string | null;
 }
 
 interface InvoiceItem {
@@ -71,7 +72,8 @@ export default function ClientsDashboard() {
     totalPayment: 0,
     paymentDate: '',
     stripeStatus: '',
-    recurringAmount: 0
+    recurringAmount: 0,
+    subdomain: ''
   });
 
   const [checkoutForm, setCheckoutForm] = useState({
@@ -89,7 +91,8 @@ export default function ClientsDashboard() {
     services: '',
     notes: '',
     totalPayment: '0',
-    paymentDate: ''
+    paymentDate: '',
+    subdomain: ''
   });
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -276,7 +279,8 @@ export default function ClientsDashboard() {
           services: '',
           notes: '',
           totalPayment: '0',
-          paymentDate: ''
+          paymentDate: '',
+          subdomain: ''
         });
         fetchClients();
       } else {
@@ -457,6 +461,11 @@ export default function ClientsDashboard() {
                           🏢 {client.company}
                         </div>
                       )}
+                      {client.subdomain && (
+                        <div className="inline-block bg-indigo-500/10 border border-indigo-500/20 text-[9px] px-2 py-0.5 rounded-md mt-1 ml-1.5 font-bold uppercase tracking-wider text-indigo-400">
+                          🌐 {client.subdomain}
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-6 max-w-xs">
                       <div className="font-medium text-slate-200 truncate">{client.services}</div>
@@ -580,7 +589,8 @@ export default function ClientsDashboard() {
                               totalPayment: client.totalPayment || 0,
                               paymentDate: client.paymentDate ? new Date(client.paymentDate).toISOString().split('T')[0] : '',
                               stripeStatus: client.stripeStatus || '',
-                              recurringAmount: client.recurringAmount || 0
+                              recurringAmount: client.recurringAmount || 0,
+                              subdomain: client.subdomain || ''
                             });
                             setIsEditModalOpen(true);
                           }}
@@ -691,6 +701,17 @@ export default function ClientsDashboard() {
                   value={manualForm.totalPayment}
                   onChange={(e) => setManualForm({ ...manualForm, totalPayment: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-fuchsia-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Subdomain (e.g. clienta)</label>
+                <input 
+                  type="text"
+                  value={manualForm.subdomain}
+                  onChange={(e) => setManualForm({ ...manualForm, subdomain: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-fuchsia-500 text-sm"
+                  placeholder="e.g. clienta"
                 />
               </div>
             </div>
@@ -810,6 +831,17 @@ export default function ClientsDashboard() {
                   type="date"
                   value={editForm.paymentDate}
                   onChange={(e) => setEditForm({ ...editForm, paymentDate: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Subdomain (e.g. clienta)</label>
+                <input 
+                  type="text"
+                  value={editForm.subdomain}
+                  onChange={(e) => setEditForm({ ...editForm, subdomain: e.target.value })}
+                  placeholder="e.g. clienta"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 text-sm"
                 />
               </div>
