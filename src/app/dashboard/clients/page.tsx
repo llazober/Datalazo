@@ -483,18 +483,16 @@ export default function ClientsDashboard() {
   );
 
   const filteredLogins = logins.filter(login => {
-    const username = login.user?.username || '';
-    const ip = login.ip || '';
+    const username = login.username || '';
+    const ip = login.ipAddress || '';
     const userAgent = login.userAgent || '';
-    const clientName = login.user?.client?.name || '';
-    const company = login.user?.client?.company || '';
+    const site = login.site || '';
     const query = loginSearchQuery.toLowerCase();
     
     return username.toLowerCase().includes(query) ||
            ip.toLowerCase().includes(query) ||
            userAgent.toLowerCase().includes(query) ||
-           clientName.toLowerCase().includes(query) ||
-           company.toLowerCase().includes(query);
+           site.toLowerCase().includes(query);
   });
 
   if (loading) {
@@ -1836,7 +1834,7 @@ export default function ClientsDashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
-                    <th className="py-3 px-6">Client / Company</th>
+                    <th className="py-3 px-6">Site / Domain</th>
                     <th className="py-3 px-6">Username</th>
                     <th className="py-3 px-6">IP Address</th>
                     <th className="py-3 px-6">Device / User Agent</th>
@@ -1854,18 +1852,15 @@ export default function ClientsDashboard() {
                     </tr>
                   ) : (
                     filteredLogins.map((login) => {
-                      const clientName = login.user?.client?.name || 'N/A';
-                      const companyName = login.user?.client?.company || '';
                       return (
                         <tr key={login.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-6">
-                            <span className="font-bold text-slate-200">{clientName}</span>
-                            {companyName && <span className="text-[10px] text-slate-500 block">🏢 {companyName}</span>}
+                            <span className="font-bold text-slate-200">{login.site || 'N/A'}</span>
                           </td>
-                          <td className="py-4 px-6 font-bold text-slate-200">{login.user?.username || 'Unknown'}</td>
-                          <td className="py-4 px-6 font-mono text-fuchsia-400">{login.ip}</td>
-                          <td className="py-4 px-6 max-w-xs truncate" title={login.userAgent}>
-                            {login.userAgent}
+                          <td className="py-4 px-6 font-bold text-slate-200">{login.username || 'Unknown'}</td>
+                          <td className="py-4 px-6 font-mono text-fuchsia-400">{login.ipAddress || 'Unknown'}</td>
+                          <td className="py-4 px-6 max-w-xs truncate text-slate-400" title={login.userAgent}>
+                            {login.userAgent || 'Unknown'}
                           </td>
                           <td className="py-4 px-6 text-right text-slate-400">
                             {new Date(login.createdAt).toLocaleString()}

@@ -3,22 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const logins = await prisma.clientUserLogin.findMany({
-      include: {
-        user: {
-          select: {
-            username: true,
-            client: {
-              select: {
-                id: true,
-                name: true,
-                company: true,
-                email: true
-              }
-            }
-          }
-        }
-      },
+    const logins = await prisma.loginLog.findMany({
       orderBy: {
         createdAt: 'desc'
       },
