@@ -199,4 +199,13 @@ model Invoice {
   updatedAt      DateTime @updatedAt
 }
 
+model LoginLog {
+  id        Int      @id @default(autoincrement())
+  username  String
+  site      String
+  ipAddress String
+  userAgent String
+  createdAt DateTime @default(now())
+}
+
 
