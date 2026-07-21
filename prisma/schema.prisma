@@ -166,9 +166,22 @@ model ClientUser {
   monthlyUsagePrevious    Int       @default(0)   // Previous month's usage
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+  logins                 ClientUserLogin[]
 
   @@index([clientId])
 }
+
+model ClientUserLogin {
+  id        String     @id @default(cuid())
+  userId    String
+  user      ClientUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+}
+
 
 model Invoice {
   id             String   @id @default(cuid())

@@ -44,14 +44,31 @@ interface InvoiceData {
   items: InvoiceItem[];
 }
 
+interface ClientUserLoginSummary {
+  id: string;
+  username: string;
+  ip: string;
+  userAgent: string;
+  createdAt: string;
+}
+
 interface ClientDashboardViewProps {
   initialUser: UserSession;
   invoices: InvoiceData[];
+  logins: ClientUserLoginSummary[];
 }
 
-export default function ClientDashboardView({ initialUser, invoices }: ClientDashboardViewProps) {
+export default function ClientDashboardView({ initialUser, invoices, logins }: ClientDashboardViewProps) {
   const [termsAccepted, setTermsAccepted] = useState(initialUser.termsAccepted);
   const [user, setUser] = useState(initialUser);
+  const [isLoginMonitorOpen, setIsLoginMonitorOpen] = useState(false);
+  const [loginSearchQuery, setLoginSearchQuery] = useState('');
+
+  const filteredLogins = logins.filter(login => 
+    login.username.toLowerCase().includes(loginSearchQuery.toLowerCase()) ||
+    login.ip.toLowerCase().includes(loginSearchQuery.toLowerCase()) ||
+    login.userAgent.toLowerCase().includes(loginSearchQuery.toLowerCase())
+  );
 
   const handleTermsAccepted = () => {
     setTermsAccepted(true);
@@ -232,7 +249,15 @@ export default function ClientDashboardView({ initialUser, invoices }: ClientDas
 
           {/* Registered Team Users */}
           <div className="glass p-6 md:p-8 border-white/5 bg-white/[0.01] space-y-6">
-            <h3 className="text-lg font-black uppercase italic text-white">Authorized Users</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase italic text-white">Authorized Users</h3>
+              <button 
+                onClick={() => setIsLoginMonitorOpen(true)}
+                className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold uppercase rounded-xl transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                🔐 Login Monitor
+              </button>
+            </div>
             <div className="space-y-4">
               {user.client.users.map((teamUser, index) => (
                 <div key={index} className="flex justify-between items-center bg-white/[0.02] p-4 rounded-xl border border-white/5">
@@ -255,6 +280,85 @@ export default function ClientDashboardView({ initialUser, invoices }: ClientDas
           </div>
         </div>
       </main>
+
+      {/* Login Monitor Modal */}
+      {isLoginMonitorOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass w-full max-w-4xl p-8 border-indigo-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight italic text-white">
+                  Login <span className="text-indigo-400">Monitor Log</span>
+                </h2>
+                <p className="text-slate-400 text-xs mt-1">Audit security history and verify device authentication trails for workspace accounts.</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsLoginMonitorOpen(false)} 
+                className="text-slate-400 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Controls */}
+            <div className="mb-4">
+              <input 
+                type="text" 
+                placeholder="Search by username, IP address, device..."
+                value={loginSearchQuery}
+                onChange={(e) => setLoginSearchQuery(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 transition-colors w-full"
+              />
+            </div>
+
+            {/* Table */}
+            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Username</th>
+                    <th className="py-3 px-6">IP Address</th>
+                    <th className="py-3 px-6">Device / User Agent</th>
+                    <th className="py-3 px-6 text-right">Login Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                  {filteredLogins.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500">No login events found matching the filter criteria.</td>
+                    </tr>
+                  ) : (
+                    filteredLogins.map((login) => (
+                      <tr key={login.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-4 px-6 font-bold text-slate-200">{login.username}</td>
+                        <td className="py-4 px-6 font-mono text-indigo-400">{login.ip}</td>
+                        <td className="py-4 px-6 max-w-xs truncate" title={login.userAgent}>
+                          {login.userAgent}
+                        </td>
+                        <td className="py-4 px-6 text-right text-slate-400">
+                          {new Date(login.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button 
+                onClick={() => setIsLoginMonitorOpen(false)}
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer"
+              >
+                Close Monitor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

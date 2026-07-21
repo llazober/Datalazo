@@ -25,6 +25,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
 
+    // Log the successful login attempt
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+    const userAgent = req.headers.get('user-agent') || 'Unknown User Agent';
+    try {
+      await prisma.clientUserLogin.create({
+        data: {
+          userId: user.id,
+          ip,
+          userAgent
+        }
+      });
+    } catch (dbErr) {
+      console.error('Error logging client login:', dbErr);
+    }
+
     const sessionData = JSON.stringify({
       userId: user.id,
       clientId: user.clientId,

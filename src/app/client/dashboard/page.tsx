@@ -35,6 +35,7 @@ export default async function ClientDashboardPage() {
         include: {
           users: {
             select: {
+              id: true,
               username: true,
               termsAccepted: true,
               termsAcceptedAt: true,
@@ -49,6 +50,18 @@ export default async function ClientDashboardPage() {
   if (!user || !user.client) {
     redirect('/client-login');
   }
+
+  // Fetch logins for this client's users
+  const clientUserIds = user.client.users.map(u => u.id);
+  const logins = await prisma.clientUserLogin.findMany({
+    where: {
+      userId: { in: clientUserIds }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take: 100
+  });
 
   // Fetch invoices for this specific client
   const invoices = await prisma.invoice.findMany({
@@ -89,10 +102,22 @@ export default async function ClientDashboardPage() {
     items: typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items
   }));
 
+  const serializedLogins = logins.map(login => {
+    const loginUser = user.client.users.find(u => u.id === login.userId);
+    return {
+      id: login.id,
+      username: loginUser ? loginUser.username : 'Unknown',
+      ip: login.ip || 'Unknown',
+      userAgent: login.userAgent || 'Unknown',
+      createdAt: login.createdAt.toISOString()
+    };
+  });
+
   return (
     <ClientDashboardView 
       initialUser={serializedUser} 
       invoices={serializedInvoices} 
+      logins={serializedLogins}
     />
   );
 }
