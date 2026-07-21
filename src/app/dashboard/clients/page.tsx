@@ -80,6 +80,11 @@ export default function ClientsDashboard() {
   const [invoiceHistory, setInvoiceHistory] = useState<any[]>([]);
   const [isSendingInvoice, setIsSendingInvoice] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+
+  const [isLoginMonitorOpen, setIsLoginMonitorOpen] = useState(false);
+  const [logins, setLogins] = useState<any[]>([]);
+  const [loginSearchQuery, setLoginSearchQuery] = useState('');
+  const [loadingLogins, setLoadingLogins] = useState(false);
   
   // Forms state
   const [editForm, setEditForm] = useState({
@@ -332,6 +337,28 @@ export default function ClientsDashboard() {
     }
   }, [isHistoryModalOpen]);
 
+  const fetchLogins = async () => {
+    setLoadingLogins(true);
+    try {
+      const res = await fetch('/api/clients/logins');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setLogins(data);
+      }
+    } catch (err) {
+      console.error('Error fetching logins:', err);
+      showToast('Failed to load logins', 'error');
+    } finally {
+      setLoadingLogins(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoginMonitorOpen) {
+      fetchLogins();
+    }
+  }, [isLoginMonitorOpen]);
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -455,6 +482,21 @@ export default function ClientsDashboard() {
     c.services.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredLogins = logins.filter(login => {
+    const username = login.user?.username || '';
+    const ip = login.ip || '';
+    const userAgent = login.userAgent || '';
+    const clientName = login.user?.client?.name || '';
+    const company = login.user?.client?.company || '';
+    const query = loginSearchQuery.toLowerCase();
+    
+    return username.toLowerCase().includes(query) ||
+           ip.toLowerCase().includes(query) ||
+           userAgent.toLowerCase().includes(query) ||
+           clientName.toLowerCase().includes(query) ||
+           company.toLowerCase().includes(query);
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -519,6 +561,12 @@ export default function ClientsDashboard() {
           >
             👥 Client Users
           </Link>
+          <button 
+            onClick={() => setIsLoginMonitorOpen(true)}
+            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
+          >
+            🔐 Login Monitor
+          </button>
           <button 
             onClick={() => setIsHistoryModalOpen(true)}
             className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5"
@@ -1747,6 +1795,97 @@ export default function ClientsDashboard() {
                 ➕ Add Client User Account
               </button>
             )}
+          </div>
+        </div>
+      )}
+      {/* Login Monitor Modal */}
+      {isLoginMonitorOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass w-full max-w-5xl p-8 border-fuchsia-500/20 animate-in fade-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tight italic text-white">
+                  Login <span className="text-fuchsia-400">Monitor Log</span>
+                </h2>
+                <p className="text-slate-400 text-xs mt-1">Audit security history and verify device authentication trails for all client workspace accounts.</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsLoginMonitorOpen(false)} 
+                className="text-slate-400 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Controls */}
+            <div className="mb-4">
+              <input 
+                type="text" 
+                placeholder="Search by username, IP address, company..."
+                value={loginSearchQuery}
+                onChange={(e) => setLoginSearchQuery(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-fuchsia-500 transition-colors w-full"
+              />
+            </div>
+
+            {/* Table */}
+            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Client / Company</th>
+                    <th className="py-3 px-6">Username</th>
+                    <th className="py-3 px-6">IP Address</th>
+                    <th className="py-3 px-6">Device / User Agent</th>
+                    <th className="py-3 px-6 text-right">Login Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                  {loadingLogins ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">Loading logs...</td>
+                    </tr>
+                  ) : filteredLogins.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-500">No login events found matching the filter criteria.</td>
+                    </tr>
+                  ) : (
+                    filteredLogins.map((login) => {
+                      const clientName = login.user?.client?.name || 'N/A';
+                      const companyName = login.user?.client?.company || '';
+                      return (
+                        <tr key={login.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-4 px-6">
+                            <span className="font-bold text-slate-200">{clientName}</span>
+                            {companyName && <span className="text-[10px] text-slate-500 block">🏢 {companyName}</span>}
+                          </td>
+                          <td className="py-4 px-6 font-bold text-slate-200">{login.user?.username || 'Unknown'}</td>
+                          <td className="py-4 px-6 font-mono text-fuchsia-400">{login.ip}</td>
+                          <td className="py-4 px-6 max-w-xs truncate" title={login.userAgent}>
+                            {login.userAgent}
+                          </td>
+                          <td className="py-4 px-6 text-right text-slate-400">
+                            {new Date(login.createdAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button 
+                onClick={() => setIsLoginMonitorOpen(false)}
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer"
+              >
+                Close Monitor
+              </button>
+            </div>
           </div>
         </div>
       )}
