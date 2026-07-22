@@ -133,6 +133,7 @@ model Client {
   phone            String?
   company          String?
   services         String
+  software         String?
   paymentDate      DateTime?
   totalPayment     Float        @default(0.0)
   notes            String?      @db.Text

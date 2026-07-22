@@ -23,6 +23,7 @@ interface Client {
   phone: string | null;
   company: string | null;
   services: string;
+  software: string | null;
   paymentDate: string | null;
   totalPayment: number;
   notes: string | null;
@@ -94,6 +95,7 @@ export default function ClientsDashboard() {
     phone: '',
     company: '',
     services: '',
+    software: '',
     notes: '',
     totalPayment: 0,
     paymentDate: '',
@@ -115,6 +117,7 @@ export default function ClientsDashboard() {
     phone: '',
     company: '',
     services: '',
+    software: '',
     notes: '',
     totalPayment: '0',
     paymentDate: '',
@@ -403,6 +406,7 @@ export default function ClientsDashboard() {
           phone: '',
           company: '',
           services: '',
+          software: '',
           notes: '',
           totalPayment: '0',
           paymentDate: '',
@@ -479,7 +483,8 @@ export default function ClientsDashboard() {
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.company && c.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    c.services.toLowerCase().includes(searchQuery.toLowerCase())
+    c.services.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.software && c.software.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const filteredLogins = logins.filter(login => {
@@ -588,6 +593,7 @@ export default function ClientsDashboard() {
               <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.01]">
                 <th className="py-4 px-6">Client / Company</th>
                 <th className="py-4 px-6">Type of Services</th>
+                <th className="py-4 px-6">Software</th>
                 <th className="py-4 px-6">Stripe Status</th>
                 <th className="py-4 px-6">Recurring Fee</th>
                 <th className="py-4 px-6">Total Payments</th>
@@ -598,7 +604,7 @@ export default function ClientsDashboard() {
             <tbody className="divide-y divide-white/5 text-sm">
               {filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">No active clients found matching filter criteria.</td>
+                  <td colSpan={8} className="py-8 text-center text-slate-500">No active clients found matching filter criteria.</td>
                 </tr>
               ) : (
                 filteredClients.map((client) => (
@@ -624,6 +630,15 @@ export default function ClientsDashboard() {
                         <div className="text-[10px] text-cyan-400 italic truncate mt-0.5">
                           📝 {client.notes}
                         </div>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 max-w-xs">
+                      {client.software ? (
+                        <span className="inline-block bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs px-2.5 py-1 rounded-lg font-medium">
+                          💻 {client.software}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">None</span>
                       )}
                     </td>
                     <td className="py-4 px-6">
@@ -749,6 +764,7 @@ export default function ClientsDashboard() {
                               phone: client.phone || '',
                               company: client.company || '',
                               services: client.services,
+                              software: client.software || '',
                               notes: client.notes || '',
                               totalPayment: client.totalPayment || 0,
                               paymentDate: client.paymentDate ? new Date(client.paymentDate).toISOString().split('T')[0] : '',
@@ -859,6 +875,17 @@ export default function ClientsDashboard() {
               </div>
 
               <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Software</label>
+                <input 
+                  type="text"
+                  value={manualForm.software}
+                  onChange={(e) => setManualForm({ ...manualForm, software: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-fuchsia-500 text-sm"
+                  placeholder="e.g. QuickBooks, HubSpot, CRM"
+                />
+              </div>
+
+              <div>
                 <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Payments Collected ($)</label>
                 <input 
                   type="number"
@@ -965,6 +992,17 @@ export default function ClientsDashboard() {
                   required
                   value={editForm.services}
                   onChange={(e) => setEditForm({ ...editForm, services: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Software</label>
+                <input 
+                  type="text"
+                  value={editForm.software}
+                  onChange={(e) => setEditForm({ ...editForm, software: e.target.value })}
+                  placeholder="e.g. QuickBooks, HubSpot, CRM"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-cyan-500 text-sm"
                 />
               </div>

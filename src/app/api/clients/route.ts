@@ -35,7 +35,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { leadId, name, email, phone, company, services, notes, totalPayment, paymentDate, subdomain } = body;
+    const { leadId, name, email, phone, company, services, software, notes, totalPayment, paymentDate, subdomain } = body;
 
     if (!name || !email || !services) {
       return NextResponse.json({ error: 'Name, email, and services are required' }, { status: 400 });
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         phone: phone || null,
         company: company || null,
         services,
+        software: software || null,
         notes: notes || null,
         totalPayment: totalPayment ? parseFloat(totalPayment) : 0,
         paymentDate: paymentDate ? new Date(paymentDate) : null,
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, email, phone, company, services, notes, totalPayment, paymentDate, stripeStatus, recurringAmount, subdomain } = body;
+    const { id, name, email, phone, company, services, software, notes, totalPayment, paymentDate, stripeStatus, recurringAmount, subdomain } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
@@ -96,6 +97,7 @@ export async function PATCH(req: Request) {
         phone,
         company,
         services,
+        software: software !== undefined ? (software.trim() === '' ? null : software.trim()) : undefined,
         notes,
         totalPayment: totalPayment !== undefined ? parseFloat(totalPayment) : undefined,
         paymentDate: paymentDate ? new Date(paymentDate) : undefined,
