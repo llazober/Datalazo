@@ -1337,19 +1337,30 @@ export default function ClientsDashboard() {
                           <tr key={item.id} className="group/row">
                             <td className="py-2 px-3 border-r border-slate-300 relative group/td">
                               {isPrinting ? (
-                                <div className="w-full text-sm text-zinc-800 px-2 py-1 min-h-[1.5rem] text-left">
+                                <div className="w-full text-sm text-zinc-800 px-2 py-1 min-h-[1.5rem] text-left whitespace-pre-wrap break-words">
                                   {item.description}
                                 </div>
                               ) : (
-                                <input 
-                                  type="text"
+                                <textarea 
                                   value={item.description}
                                   onChange={(e) => {
                                     const newItems = [...invoiceForm.items];
                                     newItems[idx].description = e.target.value;
                                     setInvoiceForm({ ...invoiceForm, items: newItems });
                                   }}
-                                  className="w-full text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none transition-all"
+                                  onInput={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.height = 'auto';
+                                    target.style.height = `${target.scrollHeight}px`;
+                                  }}
+                                  ref={(el) => {
+                                    if (el) {
+                                      el.style.height = 'auto';
+                                      el.style.height = `${el.scrollHeight}px`;
+                                    }
+                                  }}
+                                  rows={1}
+                                  className="w-full text-sm text-zinc-800 bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-slate-50/50 rounded px-2 py-1 focus:outline-none transition-all resize-none overflow-hidden block whitespace-pre-wrap break-words"
                                   placeholder="Enter description..."
                                 />
                               )}

@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       // Build HTML for line items
       const itemsHtml = items.map(item => `
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155;">${item.description || 'Service'}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; white-space: pre-wrap; word-break: break-word;">${item.description || 'Service'}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; text-align: right;">$${(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `).join('');
