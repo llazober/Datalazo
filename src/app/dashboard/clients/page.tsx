@@ -87,20 +87,78 @@ export default function ClientsDashboard() {
   const [loginSearchQuery, setLoginSearchQuery] = useState('');
   const [loadingLogins, setLoadingLogins] = useState(false);
   
-  // COA and History CSV upload state
+  // COA and History CSV upload and CRUD state
   const [isCoaModalOpen, setIsCoaModalOpen] = useState(false);
   const [isHistoryUploadModalOpen, setIsHistoryUploadModalOpen] = useState(false);
+  const [selectedClientName, setSelectedClientName] = useState<string>("Toirak's Group Homes Inc");
+
+  const [coaList, setCoaList] = useState<any[]>([]);
+  const [loadingCoa, setLoadingCoa] = useState(false);
+  const [coaSearch, setCoaSearch] = useState('');
   const [uploadingCoa, setUploadingCoa] = useState(false);
+
+  const [coaForm, setCoaForm] = useState({ id: '', accountNumber: '', accountName: '', type: 'Expense', subType: '', level: 0 });
+  const [isCoaFormOpen, setIsCoaFormOpen] = useState(false);
+
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
   const [uploadingHistory, setUploadingHistory] = useState(false);
-  const [targetClientForUpload, setTargetClientForUpload] = useState<Client | null>(null);
+
+  const [historyForm, setHistoryForm] = useState({ id: '', pattern: '', accountNumber: '', accountName: '', transactionType: 'ALL' });
+  const [isHistoryFormOpen, setIsHistoryFormOpen] = useState(false);
+
+  // Fetch COA records from API
+  const fetchCoaRecords = async (clientName: string) => {
+    setLoadingCoa(true);
+    try {
+      const res = await fetch(`/api/clients/coa?clientName=${encodeURIComponent(clientName)}`);
+      const data = await res.json();
+      if (data.success) {
+        setCoaList(data.accounts || []);
+      }
+    } catch (err) {
+      console.error('Error fetching COA:', err);
+    } finally {
+      setLoadingCoa(false);
+    }
+  };
+
+  // Fetch History records from API
+  const fetchHistoryRecords = async (clientName: string) => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/clients/history?clientName=${encodeURIComponent(clientName)}`);
+      const data = await res.json();
+      if (data.success) {
+        setHistoryList(data.historyRules || []);
+      }
+    } catch (err) {
+      console.error('Error fetching History rules:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCoaModalOpen) {
+      fetchCoaRecords(selectedClientName);
+    }
+  }, [isCoaModalOpen, selectedClientName]);
+
+  useEffect(() => {
+    if (isHistoryUploadModalOpen) {
+      fetchHistoryRecords(selectedClientName);
+    }
+  }, [isHistoryUploadModalOpen, selectedClientName]);
 
   const handleCoaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !targetClientForUpload) return;
+    if (!file) return;
     setUploadingCoa(true);
     try {
       const formData = new FormData();
-      formData.append('clientName', targetClientForUpload.company || targetClientForUpload.name);
+      formData.append('clientName', selectedClientName);
       formData.append('file', file);
 
       const res = await fetch('/api/clients/upload-coa', {
@@ -110,7 +168,7 @@ export default function ClientsDashboard() {
       const data = await res.json();
       if (res.ok) {
         setToast({ message: data.message || 'Chart of Accounts uploaded successfully!', type: 'success' });
-        setIsCoaModalOpen(false);
+        fetchCoaRecords(selectedClientName);
       } else {
         setToast({ message: data.error || 'Failed to upload Chart of Accounts.', type: 'error' });
       }
@@ -123,11 +181,11 @@ export default function ClientsDashboard() {
 
   const handleHistoryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !targetClientForUpload) return;
+    if (!file) return;
     setUploadingHistory(true);
     try {
       const formData = new FormData();
-      formData.append('clientName', targetClientForUpload.company || targetClientForUpload.name);
+      formData.append('clientName', selectedClientName);
       formData.append('file', file);
 
       const res = await fetch('/api/clients/upload-history', {
@@ -137,7 +195,7 @@ export default function ClientsDashboard() {
       const data = await res.json();
       if (res.ok) {
         setToast({ message: data.message || 'Transaction History uploaded successfully!', type: 'success' });
-        setIsHistoryUploadModalOpen(false);
+        fetchHistoryRecords(selectedClientName);
       } else {
         setToast({ message: data.error || 'Failed to upload Transaction History.', type: 'error' });
       }
@@ -145,6 +203,82 @@ export default function ClientsDashboard() {
       setToast({ message: err.message || 'Error uploading file', type: 'error' });
     } finally {
       setUploadingHistory(false);
+    }
+  };
+
+  const handleSaveCoaRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const method = coaForm.id ? 'PUT' : 'POST';
+      const res = await fetch('/api/clients/coa', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...coaForm, clientName: selectedClientName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: coaForm.id ? 'Account updated!' : 'Account added!', type: 'success' });
+        setIsCoaFormOpen(false);
+        setCoaForm({ id: '', accountNumber: '', accountName: '', type: 'Expense', subType: '', level: 0 });
+        fetchCoaRecords(selectedClientName);
+      } else {
+        setToast({ message: data.error || 'Error saving account', type: 'error' });
+      }
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error saving account', type: 'error' });
+    }
+  };
+
+  const handleDeleteCoaRecord = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this account entry?')) return;
+    try {
+      const res = await fetch(`/api/clients/coa?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setToast({ message: 'Account entry deleted!', type: 'success' });
+        fetchCoaRecords(selectedClientName);
+      } else {
+        setToast({ message: 'Failed to delete entry', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: 'Error deleting entry', type: 'error' });
+    }
+  };
+
+  const handleSaveHistoryRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const method = historyForm.id ? 'PUT' : 'POST';
+      const res = await fetch('/api/clients/history', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...historyForm, clientName: selectedClientName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: historyForm.id ? 'Rule updated!' : 'Rule added!', type: 'success' });
+        setIsHistoryFormOpen(false);
+        setHistoryForm({ id: '', pattern: '', accountNumber: '', accountName: '', transactionType: 'ALL' });
+        fetchHistoryRecords(selectedClientName);
+      } else {
+        setToast({ message: data.error || 'Error saving rule', type: 'error' });
+      }
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error saving rule', type: 'error' });
+    }
+  };
+
+  const handleDeleteHistoryRecord = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this history rule?')) return;
+    try {
+      const res = await fetch(`/api/clients/history?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setToast({ message: 'History rule deleted!', type: 'success' });
+        fetchHistoryRecords(selectedClientName);
+      } else {
+        setToast({ message: 'Failed to delete rule', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: 'Error deleting rule', type: 'error' });
     }
   };
   
@@ -638,6 +772,18 @@ export default function ClientsDashboard() {
             📄 Invoice History
           </button>
           <button 
+            onClick={() => setIsCoaModalOpen(true)}
+            className="px-4 py-2 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/30 text-cyan-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+          >
+            📊 Chart of Accounts
+          </button>
+          <button 
+            onClick={() => setIsHistoryUploadModalOpen(true)}
+            className="px-4 py-2 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/30 text-emerald-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+          >
+            📜 History Rules
+          </button>
+          <button 
             onClick={() => setIsManualModalOpen(true)}
             className="px-4 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] whitespace-nowrap"
           >
@@ -742,26 +888,6 @@ export default function ClientsDashboard() {
                           title="Generate Stripe Link"
                         >
                           💳 Stripe Billing
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTargetClientForUpload(client);
-                            setIsCoaModalOpen(true);
-                          }}
-                          className="px-2.5 py-1.5 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500 text-cyan-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                          title="Upload Chart of Accounts CSV for client"
-                        >
-                          📊 COA CSV
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTargetClientForUpload(client);
-                            setIsHistoryUploadModalOpen(true);
-                          }}
-                          className="px-2.5 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                          title="Upload Transaction History CSV for client"
-                        >
-                          📜 History CSV
                         </button>
                         <button
                           onClick={async () => {
@@ -2014,116 +2140,405 @@ export default function ClientsDashboard() {
           </div>
         </div>
       )}
-      {/* COA CSV Upload Modal */}
-      {isCoaModalOpen && targetClientForUpload && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-[#0e1626] border border-cyan-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+      {/* Chart of Accounts Manager Modal */}
+      {isCoaModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b1324] border border-cyan-500/30 rounded-2xl w-full max-w-5xl p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+            
+            {/* Modal Header */}
             <div className="flex justify-between items-center border-b border-white/10 pb-4">
               <div>
-                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  📊 Upload Chart of Accounts (CSV)
+                <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                  📊 Chart of Accounts <span className="text-cyan-400">Manager</span>
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Client: <span className="text-cyan-400 font-bold">{targetClientForUpload.company || targetClientForUpload.name}</span>
-                </p>
+                <p className="text-xs text-slate-400">View, add, edit, delete, or upload Chart of Accounts CSV files for any client.</p>
               </div>
               <button
                 onClick={() => setIsCoaModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 text-xs text-slate-300 space-y-2">
-              <p className="font-bold text-cyan-300">Expected CSV Columns:</p>
-              <ul className="list-disc list-inside text-slate-400 space-y-1">
-                <li><code className="text-white">Account Number</code> (Required)</li>
-                <li><code className="text-white">Account Name</code> (Required)</li>
-                <li><code className="text-slate-400">Type</code>, <code className="text-slate-400">SubType</code>, <code className="text-slate-400">Level</code> (Optional)</li>
-              </ul>
+            {/* Controls Bar */}
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Client:</label>
+                <select
+                  value={selectedClientName}
+                  onChange={(e) => setSelectedClientName(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="Toirak's Group Homes Inc" className="bg-[#0b1324] text-white">Toirak's Group Homes Inc</option>
+                  <option value="D'Payano Barber Shop" className="bg-[#0b1324] text-white">D'Payano Barber Shop</option>
+                  <option value="DEFAULT" className="bg-[#0b1324] text-white">DEFAULT Master</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
+                      {c.company || c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search account code or name..."
+                  value={coaSearch}
+                  onChange={(e) => setCoaSearch(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 w-full md:w-64"
+                />
+
+                <label className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                  📁 Upload CSV
+                  <input type="file" accept=".csv" disabled={uploadingCoa} onChange={handleCoaFileUpload} className="hidden" />
+                </label>
+
+                <button
+                  onClick={() => {
+                    setCoaForm({ id: '', accountNumber: '', accountName: '', type: 'Expense', subType: '', level: 0 });
+                    setIsCoaFormOpen(!isCoaFormOpen);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-black uppercase rounded-xl transition-all whitespace-nowrap"
+                >
+                  {isCoaFormOpen ? 'Cancel' : '➕ Add Account'}
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-xs font-black uppercase text-slate-400">
-                Select CSV File
-              </label>
-              <input
-                type="file"
-                accept=".csv"
-                disabled={uploadingCoa}
-                onChange={handleCoaFileUpload}
-                className="w-full text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer bg-white/5 border border-white/10 rounded-xl p-2"
-              />
-              {uploadingCoa && (
-                <p className="text-xs text-cyan-400 font-bold animate-pulse">Processing and seeding Chart of Accounts...</p>
-              )}
+            {/* Inline Add / Edit Form */}
+            {isCoaFormOpen && (
+              <form onSubmit={handleSaveCoaRecord} className="bg-white/5 border border-cyan-500/20 rounded-xl p-4 space-y-4 animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Account Number *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 6100"
+                      value={coaForm.accountNumber}
+                      onChange={(e) => setCoaForm({ ...coaForm, accountNumber: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Account Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Automobile Expenses"
+                      value={coaForm.accountName}
+                      onChange={(e) => setCoaForm({ ...coaForm, accountName: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Type</label>
+                    <select
+                      value={coaForm.type}
+                      onChange={(e) => setCoaForm({ ...coaForm, type: e.target.value })}
+                      className="w-full bg-[#0b1324] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="Expense">Expense</option>
+                      <option value="Income">Income</option>
+                      <option value="Current Asset">Current Asset</option>
+                      <option value="Fixed Asset">Fixed Asset</option>
+                      <option value="Cost of Goods">Cost of Goods</option>
+                      <option value="Current Liability">Current Liability</option>
+                      <option value="Capital">Capital</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="submit"
+                      className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase rounded-lg transition-all"
+                    >
+                      {coaForm.id ? 'Update' : 'Save Account'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Table View */}
+            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Account #</th>
+                    <th className="py-3 px-6">Account Name</th>
+                    <th className="py-3 px-6">Type</th>
+                    <th className="py-3 px-6">SubType</th>
+                    <th className="py-3 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                  {loadingCoa ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">Loading accounts...</td>
+                    </tr>
+                  ) : coaList.filter(a =>
+                      a.accountNumber.toLowerCase().includes(coaSearch.toLowerCase()) ||
+                      a.accountName.toLowerCase().includes(coaSearch.toLowerCase()) ||
+                      (a.type && a.type.toLowerCase().includes(coaSearch.toLowerCase()))
+                    ).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-500">No accounts found for {selectedClientName}. Upload a CSV or click Add Account.</td>
+                    </tr>
+                  ) : (
+                    coaList.filter(a =>
+                      a.accountNumber.toLowerCase().includes(coaSearch.toLowerCase()) ||
+                      a.accountName.toLowerCase().includes(coaSearch.toLowerCase()) ||
+                      (a.type && a.type.toLowerCase().includes(coaSearch.toLowerCase()))
+                    ).map((acct) => (
+                      <tr key={acct.id || acct.accountNumber} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-6 font-mono font-bold text-cyan-400">{acct.accountNumber}</td>
+                        <td className="py-3 px-6 font-bold text-white">{acct.accountName}</td>
+                        <td className="py-3 px-6">
+                          <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[10px] uppercase font-bold text-slate-300">
+                            {acct.type || 'Expense'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-slate-400">{acct.subType || '—'}</td>
+                        <td className="py-3 px-6 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setCoaForm({
+                                id: acct.id,
+                                accountNumber: acct.accountNumber,
+                                accountName: acct.accountName,
+                                type: acct.type || 'Expense',
+                                subType: acct.subType || '',
+                                level: acct.level || 0
+                              });
+                              setIsCoaFormOpen(true);
+                            }}
+                            className="px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCoaRecord(acct.id)}
+                            className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-xs text-slate-400">Total Accounts: <strong className="text-white">{coaList.length}</strong></span>
               <button
                 onClick={() => setIsCoaModalOpen(false)}
-                className="px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
               >
-                Cancel
+                Close Manager
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* History CSV Upload Modal */}
-      {isHistoryUploadModalOpen && targetClientForUpload && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-[#0e1626] border border-emerald-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+      {/* Transaction History Rules Manager Modal */}
+      {isHistoryUploadModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b1324] border border-emerald-500/30 rounded-2xl w-full max-w-5xl p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+            
+            {/* Modal Header */}
             <div className="flex justify-between items-center border-b border-white/10 pb-4">
               <div>
-                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  📜 Upload Transaction History (CSV)
+                <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                  📜 Transaction History <span className="text-emerald-400">Rules Manager</span>
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Client: <span className="text-emerald-400 font-bold">{targetClientForUpload.company || targetClientForUpload.name}</span>
-                </p>
+                <p className="text-xs text-slate-400">View, add, edit, delete, or upload vendor transaction matching rules for any client.</p>
               </div>
               <button
                 onClick={() => setIsHistoryUploadModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-xs text-slate-300 space-y-2">
-              <p className="font-bold text-emerald-300">Expected CSV Columns:</p>
-              <ul className="list-disc list-inside text-slate-400 space-y-1">
-                <li><code className="text-white">Pattern</code> or <code className="text-white">Description</code> (Required)</li>
-                <li><code className="text-white">Account Number</code> (Required)</li>
-                <li><code className="text-slate-400">Account Name</code>, <code className="text-slate-400">Transaction Type</code> (Optional)</li>
-              </ul>
+            {/* Controls Bar */}
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Client:</label>
+                <select
+                  value={selectedClientName}
+                  onChange={(e) => setSelectedClientName(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="Toirak's Group Homes Inc" className="bg-[#0b1324] text-white">Toirak's Group Homes Inc</option>
+                  <option value="D'Payano Barber Shop" className="bg-[#0b1324] text-white">D'Payano Barber Shop</option>
+                  <option value="DEFAULT" className="bg-[#0b1324] text-white">DEFAULT Master</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
+                      {c.company || c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search vendor pattern or account..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 w-full md:w-64"
+                />
+
+                <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  📁 Upload CSV
+                  <input type="file" accept=".csv" disabled={uploadingHistory} onChange={handleHistoryFileUpload} className="hidden" />
+                </label>
+
+                <button
+                  onClick={() => {
+                    setHistoryForm({ id: '', pattern: '', accountNumber: '', accountName: '', transactionType: 'ALL' });
+                    setIsHistoryFormOpen(!isHistoryFormOpen);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black uppercase rounded-xl transition-all whitespace-nowrap"
+                >
+                  {isHistoryFormOpen ? 'Cancel' : '➕ Add Rule'}
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-xs font-black uppercase text-slate-400">
-                Select CSV File
-              </label>
-              <input
-                type="file"
-                accept=".csv"
-                disabled={uploadingHistory}
-                onChange={handleHistoryFileUpload}
-                className="w-full text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer bg-white/5 border border-white/10 rounded-xl p-2"
-              />
-              {uploadingHistory && (
-                <p className="text-xs text-emerald-400 font-bold animate-pulse">Processing and seeding Transaction History rules...</p>
-              )}
+            {/* Inline Add / Edit Form */}
+            {isHistoryFormOpen && (
+              <form onSubmit={handleSaveHistoryRecord} className="bg-white/5 border border-emerald-500/20 rounded-xl p-4 space-y-4 animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Vendor Pattern / Keyword *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. CHEVRON or FPL"
+                      value={historyForm.pattern}
+                      onChange={(e) => setHistoryForm({ ...historyForm, pattern: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Mapped Account # *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 6100"
+                      value={historyForm.accountNumber}
+                      onChange={(e) => setHistoryForm({ ...historyForm, accountNumber: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Transaction Type</label>
+                    <select
+                      value={historyForm.transactionType}
+                      onChange={(e) => setHistoryForm({ ...historyForm, transactionType: e.target.value })}
+                      className="w-full bg-[#0b1324] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="ALL">ALL</option>
+                      <option value="DEPOSIT">DEPOSIT</option>
+                      <option value="WITHDRAWAL">WITHDRAWAL</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="submit"
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase rounded-lg transition-all"
+                    >
+                      {historyForm.id ? 'Update Rule' : 'Save Rule'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Table View */}
+            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Vendor Pattern</th>
+                    <th className="py-3 px-6">Mapped Account #</th>
+                    <th className="py-3 px-6">Account Name</th>
+                    <th className="py-3 px-6">Tx Type</th>
+                    <th className="py-3 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                  {loadingHistory ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">Loading history rules...</td>
+                    </tr>
+                  ) : historyList.filter(r =>
+                      r.pattern.toLowerCase().includes(historySearch.toLowerCase()) ||
+                      r.accountNumber.toLowerCase().includes(historySearch.toLowerCase()) ||
+                      (r.accountName && r.accountName.toLowerCase().includes(historySearch.toLowerCase()))
+                    ).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-500">No transaction rules found for {selectedClientName}. Upload a CSV or click Add Rule.</td>
+                    </tr>
+                  ) : (
+                    historyList.filter(r =>
+                      r.pattern.toLowerCase().includes(historySearch.toLowerCase()) ||
+                      r.accountNumber.toLowerCase().includes(historySearch.toLowerCase()) ||
+                      (r.accountName && r.accountName.toLowerCase().includes(historySearch.toLowerCase()))
+                    ).map((rule) => (
+                      <tr key={rule.id || rule.pattern} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-6 font-mono font-bold text-emerald-400 uppercase">{rule.pattern}</td>
+                        <td className="py-3 px-6 font-mono font-bold text-cyan-400">{rule.accountNumber}</td>
+                        <td className="py-3 px-6 font-bold text-white">{rule.accountName || '—'}</td>
+                        <td className="py-3 px-6">
+                          <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[10px] uppercase font-bold text-slate-300">
+                            {rule.transactionType || 'ALL'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setHistoryForm({
+                                id: rule.id,
+                                pattern: rule.pattern,
+                                accountNumber: rule.accountNumber,
+                                accountName: rule.accountName || '',
+                                transactionType: rule.transactionType || 'ALL'
+                              });
+                              setIsHistoryFormOpen(true);
+                            }}
+                            className="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHistoryRecord(rule.id)}
+                            className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-xs text-slate-400">Total Rules: <strong className="text-white">{historyList.length}</strong></span>
               <button
                 onClick={() => setIsHistoryUploadModalOpen(false)}
-                className="px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
               >
-                Cancel
+                Close Manager
               </button>
             </div>
           </div>
