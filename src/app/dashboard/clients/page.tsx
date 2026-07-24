@@ -87,6 +87,67 @@ export default function ClientsDashboard() {
   const [loginSearchQuery, setLoginSearchQuery] = useState('');
   const [loadingLogins, setLoadingLogins] = useState(false);
   
+  // COA and History CSV upload state
+  const [isCoaModalOpen, setIsCoaModalOpen] = useState(false);
+  const [isHistoryUploadModalOpen, setIsHistoryUploadModalOpen] = useState(false);
+  const [uploadingCoa, setUploadingCoa] = useState(false);
+  const [uploadingHistory, setUploadingHistory] = useState(false);
+  const [targetClientForUpload, setTargetClientForUpload] = useState<Client | null>(null);
+
+  const handleCoaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetClientForUpload) return;
+    setUploadingCoa(true);
+    try {
+      const formData = new FormData();
+      formData.append('clientName', targetClientForUpload.company || targetClientForUpload.name);
+      formData.append('file', file);
+
+      const res = await fetch('/api/clients/upload-coa', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: data.message || 'Chart of Accounts uploaded successfully!', type: 'success' });
+        setIsCoaModalOpen(false);
+      } else {
+        setToast({ message: data.error || 'Failed to upload Chart of Accounts.', type: 'error' });
+      }
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error uploading file', type: 'error' });
+    } finally {
+      setUploadingCoa(false);
+    }
+  };
+
+  const handleHistoryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetClientForUpload) return;
+    setUploadingHistory(true);
+    try {
+      const formData = new FormData();
+      formData.append('clientName', targetClientForUpload.company || targetClientForUpload.name);
+      formData.append('file', file);
+
+      const res = await fetch('/api/clients/upload-history', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: data.message || 'Transaction History uploaded successfully!', type: 'success' });
+        setIsHistoryUploadModalOpen(false);
+      } else {
+        setToast({ message: data.error || 'Failed to upload Transaction History.', type: 'error' });
+      }
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error uploading file', type: 'error' });
+    } finally {
+      setUploadingHistory(false);
+    }
+  };
+  
   // Forms state
   const [editForm, setEditForm] = useState({
     id: '',
@@ -681,6 +742,26 @@ export default function ClientsDashboard() {
                           title="Generate Stripe Link"
                         >
                           💳 Stripe Billing
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTargetClientForUpload(client);
+                            setIsCoaModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500 text-cyan-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                          title="Upload Chart of Accounts CSV for client"
+                        >
+                          📊 COA CSV
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTargetClientForUpload(client);
+                            setIsHistoryUploadModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                          title="Upload Transaction History CSV for client"
+                        >
+                          📜 History CSV
                         </button>
                         <button
                           onClick={async () => {
@@ -1928,6 +2009,121 @@ export default function ClientsDashboard() {
                 className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer"
               >
                 Close Monitor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* COA CSV Upload Modal */}
+      {isCoaModalOpen && targetClientForUpload && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#0e1626] border border-cyan-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  📊 Upload Chart of Accounts (CSV)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Client: <span className="text-cyan-400 font-bold">{targetClientForUpload.company || targetClientForUpload.name}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCoaModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 text-xs text-slate-300 space-y-2">
+              <p className="font-bold text-cyan-300">Expected CSV Columns:</p>
+              <ul className="list-disc list-inside text-slate-400 space-y-1">
+                <li><code className="text-white">Account Number</code> (Required)</li>
+                <li><code className="text-white">Account Name</code> (Required)</li>
+                <li><code className="text-slate-400">Type</code>, <code className="text-slate-400">SubType</code>, <code className="text-slate-400">Level</code> (Optional)</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase text-slate-400">
+                Select CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                disabled={uploadingCoa}
+                onChange={handleCoaFileUpload}
+                className="w-full text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer bg-white/5 border border-white/10 rounded-xl p-2"
+              />
+              {uploadingCoa && (
+                <p className="text-xs text-cyan-400 font-bold animate-pulse">Processing and seeding Chart of Accounts...</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsCoaModalOpen(false)}
+                className="px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History CSV Upload Modal */}
+      {isHistoryUploadModalOpen && targetClientForUpload && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-[#0e1626] border border-emerald-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  📜 Upload Transaction History (CSV)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Client: <span className="text-emerald-400 font-bold">{targetClientForUpload.company || targetClientForUpload.name}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setIsHistoryUploadModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-xs text-slate-300 space-y-2">
+              <p className="font-bold text-emerald-300">Expected CSV Columns:</p>
+              <ul className="list-disc list-inside text-slate-400 space-y-1">
+                <li><code className="text-white">Pattern</code> or <code className="text-white">Description</code> (Required)</li>
+                <li><code className="text-white">Account Number</code> (Required)</li>
+                <li><code className="text-slate-400">Account Name</code>, <code className="text-slate-400">Transaction Type</code> (Optional)</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase text-slate-400">
+                Select CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                disabled={uploadingHistory}
+                onChange={handleHistoryFileUpload}
+                className="w-full text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer bg-white/5 border border-white/10 rounded-xl p-2"
+              />
+              {uploadingHistory && (
+                <p className="text-xs text-emerald-400 font-bold animate-pulse">Processing and seeding Transaction History rules...</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsHistoryUploadModalOpen(false)}
+                className="px-5 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
+              >
+                Cancel
               </button>
             </div>
           </div>

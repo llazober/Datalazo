@@ -209,4 +209,36 @@ model LoginLog {
   createdAt DateTime @default(now())
 }
 
+model ClientChartOfAccounts {
+  id            String   @id @default(cuid())
+  clientName    String
+  accountNumber String
+  accountName   String
+  type          String?
+  subType       String?
+  level         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([clientName, accountNumber])
+  @@index([clientName])
+}
+
+model ClientTransactionHistory {
+  id              String   @id @default(cuid())
+  clientName      String
+  pattern         String
+  accountNumber   String
+  accountName     String?
+  transactionType String   @default("ALL")
+  source          String   @default("EXCEL_IMPORT")
+  confidenceScore Float    @default(1.0)
+  useCount        Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clientName, pattern, transactionType])
+  @@index([clientName, pattern])
+}
+
 
