@@ -1,6 +1,55 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+function cleanRawDescriptionToPattern(rawDesc: string): string {
+  if (!rawDesc) return '';
+  let text = rawDesc.toUpperCase().trim();
+
+  // Strip dates (e.g., 01/05, 01/06/2026, 01-15-2026)
+  text = text.replace(/\b\d{1,2}[/\-]\d{1,2}(?:[/\-]\d{2,4})?\b/g, ' ');
+
+  // Strip card mask / card numbers (e.g., S466005578491206, Card 5646, Card 0758, XXXXXXXXXXXX9107)
+  text = text.replace(/\bCard\s*\d+\b/gi, ' ');
+  text = text.replace(/\b[A-Z0-9]{12,}\b/g, ' ');
+  text = text.replace(/X{3,}\d*/g, ' ');
+
+  // Strip phone numbers and store IDs (# 02, # 1590, 305-2648428, 610-627-1500, 866-5797172)
+  text = text.replace(/#\s*\d+/g, ' ');
+  text = text.replace(/\b\d{3}[-\s]\d{3}[-\s]\d{4}\b/g, ' ');
+  text = text.replace(/\b(?:STORE|ST|NO|UNIT)\s*#?\d+\b/gi, ' ');
+
+  // Strip transaction filler phrases
+  const fillers = [
+    /\bPURCHASE AUTHORIZED ON\b/gi,
+    /\bPURCHASE RETURN AUTHORIZED ON\b/gi,
+    /\bRECURRING PAYMENT AUTHORIZED ON\b/gi,
+    /\bBUSINESS TO BUSINESS ACH DEBIT\b/gi,
+    /\bPURCHASE AUTHORIZED\b/gi,
+    /\bPURCHASE\b/gi,
+    /\bCHECKCARD\b/gi,
+    /\bDEPOSIT\b/gi,
+    /\bWITHDRAWAL\b/gi,
+    /\bPAYMENT\b/gi,
+    /\bEPAYR\b/gi,
+    /\bDEBITPMT\b/gi,
+    /\bDES:\b/gi,
+    /\bID:\b/gi
+  ];
+  fillers.forEach((f) => {
+    text = text.replace(f, ' ');
+  });
+
+  // Strip city/state suffixes (MIAMI FL, HIALEAH FL, OPA - LOCKA FL, NORTH MIAMI B FL, PA, CA)
+  text = text.replace(/\s+(?:MIAMI|HIALEAH|OPA\s*-\s*LOCKA|NORTH\s*MIAMI(?:\s*B)?)\s+(?:FL|NY|CA|TX|GA|NC|DE|PA)\b/gi, '');
+  text = text.replace(/\s+(?:FL|NY|CA|TX|GA|NC|DE|PA)\b/gi, '');
+
+  // Clean non-alphanumeric except & or - or .
+  text = text.replace(/[^A-Z0-9\s&\.\-]/g, ' ');
+  text = text.replace(/\s+/g, ' ').trim();
+
+  return text || rawDesc.toUpperCase().trim();
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -40,11 +89,11 @@ export async function POST(req: Request) {
       /type|transaction\s*type/i.test(h)
     );
 
-    if (patternIdx === -1 || acctNumIdx === -1) {
+    if (patternIdx === -1) {
       return NextResponse.json(
         {
           error:
-            'CSV must contain "Pattern/Description" and "Account Number" columns.',
+            'CSV must contain a "Description" or "Pattern" column.',
         },
         { status: 400 }
       );
@@ -58,12 +107,17 @@ export async function POST(req: Request) {
       const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
       const cleanCols = cols.map((c) => c.replace(/^"|"$/g, '').trim());
 
-      const pattern = cleanCols[patternIdx]?.toUpperCase();
-      const accountNumber = cleanCols[acctNumIdx];
+      const rawPattern = cleanCols[patternIdx];
+      if (!rawPattern) continue;
+
+      // Automatically clean raw bank descriptions to isolated vendor patterns
+      const pattern = cleanRawDescriptionToPattern(rawPattern);
+      const accountNumber = acctNumIdx !== -1 && cleanCols[acctNumIdx] ? cleanCols[acctNumIdx] : '500';
       const accountName = acctNameIdx !== -1 ? cleanCols[acctNameIdx] : null;
       const transactionType = txTypeIdx !== -1 ? cleanCols[txTypeIdx]?.toUpperCase() || 'ALL' : 'ALL';
 
-      if (!pattern || !accountNumber) continue;
+      // Ignore generic check lines
+      if (pattern === 'CHECK' || pattern === 'DEPOSITED OR CASHED CHECK') continue;
 
       await prisma.clientTransactionHistory.upsert({
         where: {

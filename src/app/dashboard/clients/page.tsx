@@ -104,6 +104,17 @@ export default function ClientsDashboard() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const [uploadingHistory, setUploadingHistory] = useState(false);
+  const [historySortKey, setHistorySortKey] = useState<'accountNumber' | 'pattern' | 'accountName' | 'transactionType' | null>('accountNumber');
+  const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleHistorySort = (key: 'accountNumber' | 'pattern' | 'accountName' | 'transactionType') => {
+    if (historySortKey === key) {
+      setHistorySortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setHistorySortKey(key);
+      setHistorySortOrder('asc');
+    }
+  };
 
   const [historyForm, setHistoryForm] = useState({ id: '', pattern: '', accountNumber: '', accountName: '', transactionType: 'ALL' });
   const [isHistoryFormOpen, setIsHistoryFormOpen] = useState(false);
@@ -2395,6 +2406,24 @@ export default function ClientsDashboard() {
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 w-full md:w-64"
                 />
 
+                <select
+                  value={`${historySortKey}-${historySortOrder}`}
+                  onChange={(e) => {
+                    const [key, order] = e.target.value.split('-');
+                    setHistorySortKey(key as any);
+                    setHistorySortOrder(order as any);
+                  }}
+                  className="bg-[#0b1324] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="accountNumber-asc">Sort: Mapped Account # (Low to High)</option>
+                  <option value="accountNumber-desc">Sort: Mapped Account # (High to Low)</option>
+                  <option value="pattern-asc">Sort: Vendor Pattern (A-Z)</option>
+                  <option value="pattern-desc">Sort: Vendor Pattern (Z-A)</option>
+                  <option value="accountName-asc">Sort: Account Name (A-Z)</option>
+                  <option value="accountName-desc">Sort: Account Name (Z-A)</option>
+                  <option value="transactionType-asc">Sort: Tx Type</option>
+                </select>
+
                 <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                   📁 Upload CSV
                   <input type="file" accept=".csv" disabled={uploadingHistory} onChange={handleHistoryFileUpload} className="hidden" />
@@ -2466,11 +2495,59 @@ export default function ClientsDashboard() {
             <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
-                    <th className="py-3 px-6">Vendor Pattern</th>
-                    <th className="py-3 px-6">Mapped Account #</th>
-                    <th className="py-3 px-6">Account Name</th>
-                    <th className="py-3 px-6">Tx Type</th>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02] select-none">
+                    <th 
+                      onClick={() => handleHistorySort('pattern')} 
+                      className="py-3 px-6 cursor-pointer hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Vendor Pattern</span>
+                        {historySortKey === 'pattern' ? (
+                          <span className="text-emerald-400">{historySortOrder === 'asc' ? '▲' : '▼'}</span>
+                        ) : (
+                          <span className="text-slate-600 text-[9px]">↕</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleHistorySort('accountNumber')} 
+                      className="py-3 px-6 cursor-pointer hover:text-emerald-400 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={historySortKey === 'accountNumber' ? 'text-emerald-400 font-bold' : ''}>Mapped Account #</span>
+                        {historySortKey === 'accountNumber' ? (
+                          <span className="text-emerald-400 font-bold">{historySortOrder === 'asc' ? '▲' : '▼'}</span>
+                        ) : (
+                          <span className="text-slate-600 text-[9px]">↕</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleHistorySort('accountName')} 
+                      className="py-3 px-6 cursor-pointer hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Account Name</span>
+                        {historySortKey === 'accountName' ? (
+                          <span className="text-emerald-400">{historySortOrder === 'asc' ? '▲' : '▼'}</span>
+                        ) : (
+                          <span className="text-slate-600 text-[9px]">↕</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleHistorySort('transactionType')} 
+                      className="py-3 px-6 cursor-pointer hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Tx Type</span>
+                        {historySortKey === 'transactionType' ? (
+                          <span className="text-emerald-400">{historySortOrder === 'asc' ? '▲' : '▼'}</span>
+                        ) : (
+                          <span className="text-slate-600 text-[9px]">↕</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="py-3 px-6 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -2479,20 +2556,35 @@ export default function ClientsDashboard() {
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-slate-400">Loading history rules...</td>
                     </tr>
-                  ) : historyList.filter(r =>
-                      r.pattern.toLowerCase().includes(historySearch.toLowerCase()) ||
-                      r.accountNumber.toLowerCase().includes(historySearch.toLowerCase()) ||
-                      (r.accountName && r.accountName.toLowerCase().includes(historySearch.toLowerCase()))
-                    ).length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-500">No transaction rules found for {selectedClientName}. Upload a CSV or click Add Rule.</td>
-                    </tr>
-                  ) : (
-                    historyList.filter(r =>
-                      r.pattern.toLowerCase().includes(historySearch.toLowerCase()) ||
-                      r.accountNumber.toLowerCase().includes(historySearch.toLowerCase()) ||
-                      (r.accountName && r.accountName.toLowerCase().includes(historySearch.toLowerCase()))
-                    ).map((rule) => (
+                  ) : (() => {
+                    const filteredAndSorted = historyList
+                      .filter(r =>
+                        (r.pattern || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+                        (r.accountNumber || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+                        (r.accountName && r.accountName.toLowerCase().includes(historySearch.toLowerCase()))
+                      )
+                      .sort((a, b) => {
+                        if (!historySortKey) return 0;
+                        const valA = (a[historySortKey] || '').toString();
+                        const valB = (b[historySortKey] || '').toString();
+                        let cmp = 0;
+                        if (historySortKey === 'accountNumber') {
+                          cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                        } else {
+                          cmp = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
+                        }
+                        return historySortOrder === 'asc' ? cmp : -cmp;
+                      });
+
+                    if (filteredAndSorted.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-slate-500">No transaction rules found for {selectedClientName}. Upload a CSV or click Add Rule.</td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredAndSorted.map((rule) => (
                       <tr key={rule.id || rule.pattern} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 px-6 font-mono font-bold text-emerald-400 uppercase">{rule.pattern}</td>
                         <td className="py-3 px-6 font-mono font-bold text-cyan-400">{rule.accountNumber}</td>
@@ -2526,8 +2618,8 @@ export default function ClientsDashboard() {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
