@@ -1,6 +1,58 @@
 import { scryptSync, randomBytes, timingSafeEqual, createHmac } from 'crypto';
+import { NextRequest } from 'next/server';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'datalazo-client-secret-key-change-in-prod-2026';
+
+/**
+ * Extract the accurate client IP address from a request, handling proxies and headers
+ */
+export function getClientIp(req: NextRequest | Request): string {
+  // 1. Cloudflare header
+  const cfIp = req.headers.get('cf-connecting-ip');
+  if (cfIp && cfIp.trim()) {
+    return cfIp.trim();
+  }
+
+  // 2. Standard x-forwarded-for header (first IP in chain)
+  const xForwardedFor = req.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    const firstIp = xForwardedFor.split(',')[0].trim();
+    if (firstIp) return firstIp;
+  }
+
+  // 3. Nginx / Vercel real IP header
+  const xRealIp = req.headers.get('x-real-ip');
+  if (xRealIp && xRealIp.trim()) {
+    return xRealIp.trim();
+  }
+
+  // 4. Request ip property if attached by edge or middleware
+  const requestWithIp = req as { ip?: string };
+  if (requestWithIp.ip && typeof requestWithIp.ip === 'string') {
+    return requestWithIp.ip.trim();
+  }
+
+  return '127.0.0.1';
+}
+
+/**
+ * Extract the host (subdomain / domain) from request headers
+ */
+export function getClientHost(req: NextRequest | Request): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+  return host.split(':')[0].toLowerCase();
+}
+
+/**
+ * Determine the root cookie domain for *.datalazo.net wildcard support
+ */
+export function getCookieDomain(req: NextRequest | Request): string | undefined {
+  const host = getClientHost(req);
+  if (host.endsWith('datalazo.net')) {
+    return '.datalazo.net';
+  }
+  return undefined;
+}
 
 /**
  * Hash a password using scrypt and a random salt

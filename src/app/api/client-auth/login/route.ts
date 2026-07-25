@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyPassword, signPayload } from '@/lib/auth-utils';
+import { verifyPassword, signPayload, getClientIp, getClientHost, getCookieDomain } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,13 +26,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the successful login attempt
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+    const ip = getClientIp(req);
+    const host = getClientHost(req);
     const userAgent = req.headers.get('user-agent') || 'Unknown User Agent';
+    const site = (host && host !== 'localhost' && host !== '127.0.0.1')
+      ? host
+      : (user.client?.subdomain ? `${user.client.subdomain}.datalazo.net` : user.client?.company || user.client?.name || 'Client Portal');
+
     try {
       await prisma.clientUserLogin.create({
         data: {
           userId: user.id,
           ip,
+          userAgent
+        }
+      });
+
+      await prisma.loginLog.create({
+        data: {
+          username: user.username,
+          site,
+          ipAddress: ip,
           userAgent
         }
       });
@@ -60,13 +74,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Set client_session cookie
+    // Set client_session cookie with optional wildcard domain support for *.datalazo.net
+    const cookieDomain = getCookieDomain(req);
     response.cookies.set('client_session', signedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/'
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     });
 
     return response;

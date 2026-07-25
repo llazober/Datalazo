@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifySignedPayload, signPayload } from '@/lib/auth-utils';
+import { verifySignedPayload, signPayload, getClientIp, getCookieDomain } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Capture metadata
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+    const ip = getClientIp(req);
     const userAgent = req.headers.get('user-agent') || 'Unknown';
 
     // Update DB
@@ -55,12 +55,14 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    const cookieDomain = getCookieDomain(req);
     response.cookies.set('client_session', signedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/'
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     });
 
     return response;

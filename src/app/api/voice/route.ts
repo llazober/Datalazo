@@ -3,7 +3,7 @@ import { openai } from '@/lib/openai';
 import { searchKnowledge } from '@/lib/knowledge';
 import { prisma } from '@/lib/prisma';
 import { getDatalazoConfig } from '@/lib/config';
-
+import { getClientIp } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ const rateLimitMap = new Map<string, { count: number, lastReset: number }>();
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+    const ip = getClientIp(req);
 
     const now = Date.now();
     const limit = 10;
