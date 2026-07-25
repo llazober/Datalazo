@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
       ? host
       : (user.client?.subdomain ? `${user.client.subdomain}.datalazo.net` : user.client?.company || user.client?.name || 'Client Portal');
 
+    console.log(`[LOGIN IP DEBUG] user=${user.username} ip=${ip} cf=${req.headers.get('cf-connecting-ip')} x-real=${req.headers.get('x-real-ip')} x-forwarded=${req.headers.get('x-forwarded-for')}`);
+
     try {
       await prisma.clientUserLogin.create({
         data: {
