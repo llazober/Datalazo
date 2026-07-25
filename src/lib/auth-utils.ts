@@ -4,32 +4,76 @@ import { NextRequest } from 'next/server';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'datalazo-client-secret-key-change-in-prod-2026';
 
 /**
- * Extract the accurate client IP address from a request, handling proxies and headers
+ * Helper to check if an IP address is a private/internal network IP (e.g. 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 127.0.0.1)
+ */
+function isPrivateIp(ip: string): boolean {
+  if (!ip) return true;
+  const cleanIp = ip.trim().replace(/^::ffff:/, '');
+  if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp.toLowerCase() === 'localhost') return true;
+
+  // IPv4 Private Ranges:
+  // 10.0.0.0 - 10.255.255.255 (10.0.0.0/8)
+  // 172.16.0.0 - 172.31.255.255 (172.16.0.0/12)
+  // 192.168.0.0 - 192.168.255.255 (192.168.0.0/16)
+  // 169.254.0.0 - 169.254.255.255 (Link-local)
+  const parts = cleanIp.split('.').map(Number);
+  if (parts.length === 4 && parts.every(p => !isNaN(p))) {
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    if (parts[0] === 127) return true;
+  }
+  return false;
+}
+
+/**
+ * Extract the accurate public client IP address from a request, filtering out private proxy IPs
  */
 export function getClientIp(req: NextRequest | Request): string {
-  // 1. Cloudflare header
-  const cfIp = req.headers.get('cf-connecting-ip');
-  if (cfIp && cfIp.trim()) {
-    return cfIp.trim();
-  }
+  const candidateIps: string[] = [];
 
-  // 2. Standard x-forwarded-for header (first IP in chain)
+  // 1. Cloudflare & Akamai headers
+  const cfIp = req.headers.get('cf-connecting-ip');
+  if (cfIp) candidateIps.push(cfIp);
+
+  const trueClientIp = req.headers.get('true-client-ip');
+  if (trueClientIp) candidateIps.push(trueClientIp);
+
+  const xRealIp = req.headers.get('x-real-ip');
+  if (xRealIp) candidateIps.push(xRealIp);
+
+  const xClientIp = req.headers.get('x-client-ip');
+  if (xClientIp) candidateIps.push(xClientIp);
+
+  const xClusterClientIp = req.headers.get('x-cluster-client-ip');
+  if (xClusterClientIp) candidateIps.push(xClusterClientIp);
+
+  // 2. Standard X-Forwarded-For header chain
   const xForwardedFor = req.headers.get('x-forwarded-for');
   if (xForwardedFor) {
-    const firstIp = xForwardedFor.split(',')[0].trim();
-    if (firstIp) return firstIp;
+    const list = xForwardedFor.split(',').map(s => s.trim());
+    candidateIps.push(...list);
   }
 
-  // 3. Nginx / Vercel real IP header
-  const xRealIp = req.headers.get('x-real-ip');
-  if (xRealIp && xRealIp.trim()) {
-    return xRealIp.trim();
-  }
-
-  // 4. Request ip property if attached by edge or middleware
+  // 3. Request object ip property if attached by edge or middleware
   const requestWithIp = req as { ip?: string };
   if (requestWithIp.ip && typeof requestWithIp.ip === 'string') {
-    return requestWithIp.ip.trim();
+    candidateIps.push(requestWithIp.ip);
+  }
+
+  // Find the first non-private public IP address
+  for (const rawIp of candidateIps) {
+    const cleaned = rawIp.trim().replace(/^::ffff:/, '');
+    if (cleaned && !isPrivateIp(cleaned)) {
+      return cleaned;
+    }
+  }
+
+  // Fallback: If all candidates are private IPs (e.g. local dev / internal VPC testing), return the first non-empty candidate
+  for (const rawIp of candidateIps) {
+    const cleaned = rawIp.trim().replace(/^::ffff:/, '');
+    if (cleaned) return cleaned;
   }
 
   return '127.0.0.1';
