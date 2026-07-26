@@ -992,7 +992,7 @@ export default function ClientsDashboard() {
                           onClick={() => {
                             const parent = client.company || client.name || 'VRT Services';
                             setSelectedParentName(parent);
-                            setSelectedClientName(client.company || client.name);
+                            setSelectedClientName(client.name);
                             setIsCoaModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500 text-cyan-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
@@ -1004,7 +1004,7 @@ export default function ClientsDashboard() {
                           onClick={() => {
                             const parent = client.company || client.name || 'VRT Services';
                             setSelectedParentName(parent);
-                            setSelectedClientName(client.company || client.name);
+                            setSelectedClientName(client.name);
                             setIsHistoryUploadModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
@@ -2311,8 +2311,8 @@ export default function ClientsDashboard() {
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
                 >
                   {getClientsForParent(selectedParentName).map(c => (
-                    <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
-                      {c.company || c.name}
+                    <option key={c.id} value={c.name} className="bg-[#0b1324] text-white">
+                      {c.name}
                     </option>
                   ))}
                 </select>
@@ -2517,8 +2517,8 @@ export default function ClientsDashboard() {
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                 >
                   {getClientsForParent(selectedParentName).map(c => (
-                    <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
-                      {c.company || c.name}
+                    <option key={c.id} value={c.name} className="bg-[#0b1324] text-white">
+                      {c.name}
                     </option>
                   ))}
                 </select>
@@ -2821,8 +2821,8 @@ export default function ClientsDashboard() {
                   >
                     <option value="">-- Choose Client --</option>
                     {clients.map((c) => (
-                      <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
-                        {c.company || c.name} ({c.name})
+                      <option key={c.id} value={c.name} className="bg-[#0b1324] text-white">
+                        {c.name} {c.company ? `(${c.company})` : ''}
                       </option>
                     ))}
                   </select>
