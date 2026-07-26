@@ -118,8 +118,9 @@ export default function ClientsDashboard() {
   // Helper to dynamically get clients belonging to a parentName
   const getClientsForParent = (parent: string) => {
     if (!parent) return clients.map((c) => ({ id: c.id, name: c.name }));
+    const cleanParent = parent.trim().toLowerCase();
     const mapped = parentMappings.filter(
-      (m) => m.parentName.toLowerCase() === parent.toLowerCase()
+      (m) => m.parentName.trim().toLowerCase() === cleanParent
     );
     if (mapped.length > 0) {
       return mapped.map((m) => ({ id: m.id, name: m.clientName }));
@@ -127,8 +128,8 @@ export default function ClientsDashboard() {
     // Fallback: match by company or name from main clients array
     const fallback = clients.filter(
       (c) =>
-        (c.company && c.company.toLowerCase() === parent.toLowerCase()) ||
-        c.name.toLowerCase() === parent.toLowerCase()
+        (c.company && c.company.trim().toLowerCase() === cleanParent) ||
+        c.name.trim().toLowerCase() === cleanParent
     );
     if (fallback.length > 0) {
       return fallback.map((c) => ({ id: c.id, name: c.name }));
@@ -874,18 +875,6 @@ export default function ClientsDashboard() {
             📄 Invoice History
           </button>
           <button 
-            onClick={() => setIsCoaModalOpen(true)}
-            className="px-4 py-2 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/30 text-cyan-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-          >
-            📊 Chart of Accounts
-          </button>
-          <button 
-            onClick={() => setIsHistoryUploadModalOpen(true)}
-            className="px-4 py-2 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/30 text-emerald-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-          >
-            📜 History Rules
-          </button>
-          <button 
             onClick={() => {
               setParentMappingForm({ parentName: selectedParentName || 'VRT Services', clientName: '' });
               setIsParentMappingsModalOpen(true);
@@ -987,9 +976,14 @@ export default function ClientsDashboard() {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => {
-                            const parent = client.company || client.name || 'VRT Services';
+                            const parent = (client.company || client.name || 'VRT Services').trim();
                             setSelectedParentName(parent);
-                            setSelectedClientName(client.name);
+                            const mapped = parentMappings.filter(m => m.parentName.trim().toLowerCase() === parent.toLowerCase());
+                            if (mapped.length > 0) {
+                              setSelectedClientName(mapped[0].clientName);
+                            } else {
+                              setSelectedClientName(client.name);
+                            }
                             setIsCoaModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500 text-cyan-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
@@ -999,9 +993,14 @@ export default function ClientsDashboard() {
                         </button>
                         <button
                           onClick={() => {
-                            const parent = client.company || client.name || 'VRT Services';
+                            const parent = (client.company || client.name || 'VRT Services').trim();
                             setSelectedParentName(parent);
-                            setSelectedClientName(client.name);
+                            const mapped = parentMappings.filter(m => m.parentName.trim().toLowerCase() === parent.toLowerCase());
+                            if (mapped.length > 0) {
+                              setSelectedClientName(mapped[0].clientName);
+                            } else {
+                              setSelectedClientName(client.name);
+                            }
                             setIsHistoryUploadModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
