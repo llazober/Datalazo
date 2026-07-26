@@ -875,15 +875,6 @@ export default function ClientsDashboard() {
             📄 Invoice History
           </button>
           <button 
-            onClick={() => {
-              setParentMappingForm({ parentName: selectedParentName || 'VRT Services', clientName: '' });
-              setIsParentMappingsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/30 text-purple-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.2)]"
-          >
-            🔗 Parent Mappings
-          </button>
-          <button 
             onClick={() => setIsManualModalOpen(true)}
             className="px-4 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] whitespace-nowrap"
           >
@@ -990,6 +981,18 @@ export default function ClientsDashboard() {
                           title="Chart of Accounts for this Client"
                         >
                           📊 COA
+                        </button>
+                        <button
+                          onClick={() => {
+                            const parent = (client.company || client.name || 'VRT Services').trim();
+                            setSelectedParentName(parent);
+                            setParentMappingForm({ parentName: parent, clientName: '' });
+                            setIsParentMappingsModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500 text-purple-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          title="Manage Parent Mappings for this Client"
+                        >
+                          🔗 Mappings
                         </button>
                         <button
                           onClick={() => {
@@ -2783,7 +2786,9 @@ export default function ClientsDashboard() {
                 <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
                   🔗 Parent-Client <span className="text-purple-400">Mappings Manager</span>
                 </h3>
-                <p className="text-xs text-slate-400">Associate Parent / Company Names with specific Clients to dynamically filter dropdowns.</p>
+                <p className="text-xs text-slate-400">
+                  Parent: <span className="text-purple-400 font-bold">{selectedParentName}</span> — View and add client names for this company.
+                </p>
               </div>
               <button
                 onClick={() => setIsParentMappingsModalOpen(false)}
@@ -2801,10 +2806,10 @@ export default function ClientsDashboard() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. VRT Services"
+                    readOnly
                     value={parentMappingForm.parentName}
                     onChange={(e) => setParentMappingForm({ ...parentMappingForm, parentName: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none opacity-80"
                   />
                 </div>
                 <div>
@@ -2841,25 +2846,29 @@ export default function ClientsDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-xs text-slate-300">
-                  {parentMappings.length === 0 ? (
+                  {parentMappings.filter((m) => m.parentName.trim().toLowerCase() === selectedParentName.trim().toLowerCase()).length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="py-8 text-center text-slate-500">No parent-client mappings found. Add a mapping above.</td>
+                      <td colSpan={3} className="py-8 text-center text-slate-500">
+                        No client mappings found for {selectedParentName}. Enter a client name above to add one.
+                      </td>
                     </tr>
                   ) : (
-                    parentMappings.map((m) => (
-                      <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 px-6 font-bold text-purple-400">{m.parentName}</td>
-                        <td className="py-3 px-6 font-bold text-white">{m.clientName}</td>
-                        <td className="py-3 px-6 text-right">
-                          <button
-                            onClick={() => handleDeleteParentMapping(m.id)}
-                            className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    parentMappings
+                      .filter((m) => m.parentName.trim().toLowerCase() === selectedParentName.trim().toLowerCase())
+                      .map((m) => (
+                        <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-6 font-bold text-purple-400">{m.parentName}</td>
+                          <td className="py-3 px-6 font-bold text-white">{m.clientName}</td>
+                          <td className="py-3 px-6 text-right">
+                            <button
+                              onClick={() => handleDeleteParentMapping(m.id)}
+                              className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>
