@@ -2444,7 +2444,7 @@ export default function ClientsDashboard() {
             {/* Inline Add / Edit Form */}
             {isHistoryFormOpen && (
               <form onSubmit={handleSaveHistoryRecord} className="bg-white/5 border border-emerald-500/20 rounded-xl p-4 space-y-4 animate-fadeIn">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">Vendor Pattern / Keyword *</label>
                     <input
@@ -2464,6 +2464,16 @@ export default function ClientsDashboard() {
                       placeholder="e.g. 6100"
                       value={historyForm.accountNumber}
                       onChange={(e) => setHistoryForm({ ...historyForm, accountNumber: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Account Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Office Supplies"
+                      value={historyForm.accountName}
+                      onChange={(e) => setHistoryForm({ ...historyForm, accountName: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>

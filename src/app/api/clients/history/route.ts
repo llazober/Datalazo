@@ -91,7 +91,7 @@ export async function PUT(req: Request) {
       data: {
         pattern: pattern ? pattern.toUpperCase().trim() : undefined,
         accountNumber,
-        accountName,
+        accountName: accountName !== undefined ? (accountName || null) : undefined,
         transactionType: transactionType ? transactionType.toUpperCase() : 'ALL',
         updatedAt: new Date(),
       },
