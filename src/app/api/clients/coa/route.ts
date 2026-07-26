@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET: Fetch Chart of Accounts entries for a client
+// GET: Fetch Chart of Accounts entries for a client or parentName
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const clientName = searchParams.get('clientName') || '';
+    const parentName = searchParams.get('parentName') || '';
 
-    const whereCondition = clientName
-      ? { clientName: { equals: clientName, mode: 'insensitive' as const } }
-      : {};
+    const whereCondition: any = {};
+    if (clientName) {
+      whereCondition.clientName = { equals: clientName, mode: 'insensitive' as const };
+    }
+    if (parentName) {
+      whereCondition.parentName = { equals: parentName, mode: 'insensitive' as const };
+    }
 
     const accounts = await prisma.clientChartOfAccounts.findMany({
       where: whereCondition,
@@ -30,7 +35,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientName, accountNumber, accountName, type, subType, level } = body;
+    const { clientName, parentName, accountNumber, accountName, type, subType, level } = body;
 
     if (!clientName || !accountNumber || !accountName) {
       return NextResponse.json(
@@ -47,6 +52,7 @@ export async function POST(req: Request) {
         },
       },
       update: {
+        parentName: parentName || 'VRT Services',
         accountName,
         type: type || null,
         subType: subType || null,
@@ -55,6 +61,7 @@ export async function POST(req: Request) {
       },
       create: {
         clientName,
+        parentName: parentName || 'VRT Services',
         accountNumber,
         accountName,
         type: type || null,
@@ -77,7 +84,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, accountNumber, accountName, type, subType, level } = body;
+    const { id, parentName, accountNumber, accountName, type, subType, level } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
@@ -86,6 +93,7 @@ export async function PUT(req: Request) {
     const updatedAccount = await prisma.clientChartOfAccounts.update({
       where: { id },
       data: {
+        parentName: parentName || undefined,
         accountNumber,
         accountName,
         type,

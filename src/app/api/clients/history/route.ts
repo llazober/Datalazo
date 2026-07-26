@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET: Fetch Transaction History rules for a client
+// GET: Fetch Transaction History rules for a client or parentName
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const clientName = searchParams.get('clientName') || '';
+    const parentName = searchParams.get('parentName') || '';
 
-    const whereCondition = clientName
-      ? { clientName: { equals: clientName, mode: 'insensitive' as const } }
-      : {};
+    const whereCondition: any = {};
+    if (clientName) {
+      whereCondition.clientName = { equals: clientName, mode: 'insensitive' as const };
+    }
+    if (parentName) {
+      whereCondition.parentName = { equals: parentName, mode: 'insensitive' as const };
+    }
 
     const historyRules = await prisma.clientTransactionHistory.findMany({
       where: whereCondition,
@@ -30,7 +35,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { clientName, pattern, accountNumber, accountName, transactionType } = body;
+    const { clientName, parentName, pattern, accountNumber, accountName, transactionType } = body;
 
     if (!clientName || !pattern || !accountNumber) {
       return NextResponse.json(
@@ -51,6 +56,7 @@ export async function POST(req: Request) {
         },
       },
       update: {
+        parentName: parentName || 'VRT Services',
         accountNumber,
         accountName: accountName || null,
         source: 'MANUAL_EDIT',
@@ -58,6 +64,7 @@ export async function POST(req: Request) {
       },
       create: {
         clientName,
+        parentName: parentName || 'VRT Services',
         pattern: cleanPattern,
         accountNumber,
         accountName: accountName || null,
@@ -80,7 +87,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, pattern, accountNumber, accountName, transactionType } = body;
+    const { id, parentName, pattern, accountNumber, accountName, transactionType } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
@@ -89,6 +96,7 @@ export async function PUT(req: Request) {
     const updatedRule = await prisma.clientTransactionHistory.update({
       where: { id },
       data: {
+        parentName: parentName || undefined,
         pattern: pattern ? pattern.toUpperCase().trim() : undefined,
         accountNumber,
         accountName: accountName !== undefined ? (accountName || null) : undefined,

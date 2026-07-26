@@ -92,6 +92,96 @@ export default function ClientsDashboard() {
   const [isHistoryUploadModalOpen, setIsHistoryUploadModalOpen] = useState(false);
   const [selectedClientName, setSelectedClientName] = useState<string>("Toirak's Group Homes Inc");
 
+  // Parent-Client Mappings state
+  const [parentMappings, setParentMappings] = useState<any[]>([]);
+  const [isParentMappingsModalOpen, setIsParentMappingsModalOpen] = useState(false);
+  const [parentMappingForm, setParentMappingForm] = useState({ parentName: '', clientName: '' });
+  const [savingParentMapping, setSavingParentMapping] = useState(false);
+  const [selectedParentName, setSelectedParentName] = useState<string>("VRT Services");
+
+  const fetchParentMappings = async () => {
+    try {
+      const res = await fetch('/api/clients/parent-mappings');
+      const data = await res.json();
+      if (data.success) {
+        setParentMappings(data.mappings || []);
+      }
+    } catch (err) {
+      console.error('Error fetching parent mappings:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchParentMappings();
+  }, []);
+
+  // Helper to dynamically get clients belonging to a parentName
+  const getClientsForParent = (parent: string) => {
+    if (!parent) return clients;
+    const mapped = parentMappings.filter(
+      (m) => m.parentName.toLowerCase() === parent.toLowerCase()
+    );
+    if (mapped.length > 0) {
+      const mappedNames = new Set(mapped.map((m) => m.clientName.toLowerCase()));
+      const filtered = clients.filter(
+        (c) =>
+          mappedNames.has(c.name.toLowerCase()) ||
+          (c.company && mappedNames.has(c.company.toLowerCase()))
+      );
+      if (filtered.length > 0) return filtered;
+    }
+    // Fallback: match by company or name
+    const fallback = clients.filter(
+      (c) =>
+        (c.company && c.company.toLowerCase() === parent.toLowerCase()) ||
+        c.name.toLowerCase() === parent.toLowerCase()
+    );
+    return fallback.length > 0 ? fallback : clients;
+  };
+
+  const handleSaveParentMapping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parentMappingForm.parentName || !parentMappingForm.clientName) {
+      setToast({ message: 'Both Parent Name and Client Name are required.', type: 'error' });
+      return;
+    }
+    setSavingParentMapping(true);
+    try {
+      const res = await fetch('/api/clients/parent-mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parentMappingForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast({ message: 'Parent-Client mapping created!', type: 'success' });
+        setParentMappingForm({ parentName: selectedParentName || '', clientName: '' });
+        fetchParentMappings();
+      } else {
+        setToast({ message: data.error || 'Failed to create mapping', type: 'error' });
+      }
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error saving mapping', type: 'error' });
+    } finally {
+      setSavingParentMapping(false);
+    }
+  };
+
+  const handleDeleteParentMapping = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this mapping?')) return;
+    try {
+      const res = await fetch(`/api/clients/parent-mappings?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setToast({ message: 'Mapping deleted!', type: 'success' });
+        fetchParentMappings();
+      } else {
+        setToast({ message: 'Failed to delete mapping', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: 'Error deleting mapping', type: 'error' });
+    }
+  };
+
   const [coaList, setCoaList] = useState<any[]>([]);
   const [loadingCoa, setLoadingCoa] = useState(false);
   const [coaSearch, setCoaSearch] = useState('');
@@ -120,10 +210,11 @@ export default function ClientsDashboard() {
   const [isHistoryFormOpen, setIsHistoryFormOpen] = useState(false);
 
   // Fetch COA records from API
-  const fetchCoaRecords = async (clientName: string) => {
+  const fetchCoaRecords = async (clientName: string, parentName: string = selectedParentName) => {
     setLoadingCoa(true);
     try {
-      const res = await fetch(`/api/clients/coa?clientName=${encodeURIComponent(clientName)}`);
+      const url = `/api/clients/coa?clientName=${encodeURIComponent(clientName)}&parentName=${encodeURIComponent(parentName)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setCoaList(data.accounts || []);
@@ -136,10 +227,11 @@ export default function ClientsDashboard() {
   };
 
   // Fetch History records from API
-  const fetchHistoryRecords = async (clientName: string) => {
+  const fetchHistoryRecords = async (clientName: string, parentName: string = selectedParentName) => {
     setLoadingHistory(true);
     try {
-      const res = await fetch(`/api/clients/history?clientName=${encodeURIComponent(clientName)}`);
+      const url = `/api/clients/history?clientName=${encodeURIComponent(clientName)}&parentName=${encodeURIComponent(parentName)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setHistoryList(data.historyRules || []);
@@ -153,15 +245,15 @@ export default function ClientsDashboard() {
 
   useEffect(() => {
     if (isCoaModalOpen) {
-      fetchCoaRecords(selectedClientName);
+      fetchCoaRecords(selectedClientName, selectedParentName);
     }
-  }, [isCoaModalOpen, selectedClientName]);
+  }, [isCoaModalOpen, selectedClientName, selectedParentName]);
 
   useEffect(() => {
     if (isHistoryUploadModalOpen) {
-      fetchHistoryRecords(selectedClientName);
+      fetchHistoryRecords(selectedClientName, selectedParentName);
     }
-  }, [isHistoryUploadModalOpen, selectedClientName]);
+  }, [isHistoryUploadModalOpen, selectedClientName, selectedParentName]);
 
   const handleCoaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,6 +262,7 @@ export default function ClientsDashboard() {
     try {
       const formData = new FormData();
       formData.append('clientName', selectedClientName);
+      formData.append('parentName', selectedParentName);
       formData.append('file', file);
 
       const res = await fetch('/api/clients/upload-coa', {
@@ -179,7 +272,7 @@ export default function ClientsDashboard() {
       const data = await res.json();
       if (res.ok) {
         setToast({ message: data.message || 'Chart of Accounts uploaded successfully!', type: 'success' });
-        fetchCoaRecords(selectedClientName);
+        fetchCoaRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: data.error || 'Failed to upload Chart of Accounts.', type: 'error' });
       }
@@ -197,6 +290,7 @@ export default function ClientsDashboard() {
     try {
       const formData = new FormData();
       formData.append('clientName', selectedClientName);
+      formData.append('parentName', selectedParentName);
       formData.append('file', file);
 
       const res = await fetch('/api/clients/upload-history', {
@@ -206,7 +300,7 @@ export default function ClientsDashboard() {
       const data = await res.json();
       if (res.ok) {
         setToast({ message: data.message || 'Transaction History uploaded successfully!', type: 'success' });
-        fetchHistoryRecords(selectedClientName);
+        fetchHistoryRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: data.error || 'Failed to upload Transaction History.', type: 'error' });
       }
@@ -224,14 +318,14 @@ export default function ClientsDashboard() {
       const res = await fetch('/api/clients/coa', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...coaForm, clientName: selectedClientName }),
+        body: JSON.stringify({ ...coaForm, clientName: selectedClientName, parentName: selectedParentName }),
       });
       const data = await res.json();
       if (res.ok) {
         setToast({ message: coaForm.id ? 'Account updated!' : 'Account added!', type: 'success' });
         setIsCoaFormOpen(false);
         setCoaForm({ id: '', accountNumber: '', accountName: '', type: 'Expense', subType: '', level: 0 });
-        fetchCoaRecords(selectedClientName);
+        fetchCoaRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: data.error || 'Error saving account', type: 'error' });
       }
@@ -246,7 +340,7 @@ export default function ClientsDashboard() {
       const res = await fetch(`/api/clients/coa?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setToast({ message: 'Account entry deleted!', type: 'success' });
-        fetchCoaRecords(selectedClientName);
+        fetchCoaRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: 'Failed to delete entry', type: 'error' });
       }
@@ -262,14 +356,14 @@ export default function ClientsDashboard() {
       const res = await fetch('/api/clients/history', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...historyForm, clientName: selectedClientName }),
+        body: JSON.stringify({ ...historyForm, clientName: selectedClientName, parentName: selectedParentName }),
       });
       const data = await res.json();
       if (res.ok) {
         setToast({ message: historyForm.id ? 'Rule updated!' : 'Rule added!', type: 'success' });
         setIsHistoryFormOpen(false);
         setHistoryForm({ id: '', pattern: '', accountNumber: '', accountName: '', transactionType: 'ALL' });
-        fetchHistoryRecords(selectedClientName);
+        fetchHistoryRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: data.error || 'Error saving rule', type: 'error' });
       }
@@ -284,7 +378,7 @@ export default function ClientsDashboard() {
       const res = await fetch(`/api/clients/history?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setToast({ message: 'History rule deleted!', type: 'success' });
-        fetchHistoryRecords(selectedClientName);
+        fetchHistoryRecords(selectedClientName, selectedParentName);
       } else {
         setToast({ message: 'Failed to delete rule', type: 'error' });
       }
@@ -795,6 +889,15 @@ export default function ClientsDashboard() {
             📜 History Rules
           </button>
           <button 
+            onClick={() => {
+              setParentMappingForm({ parentName: selectedParentName || 'VRT Services', clientName: '' });
+              setIsParentMappingsModalOpen(true);
+            }}
+            className="px-4 py-2 bg-purple-600/20 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/30 text-purple-300 text-xs font-black uppercase rounded-xl hover:scale-105 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+          >
+            🔗 Parent Mappings
+          </button>
+          <button 
             onClick={() => setIsManualModalOpen(true)}
             className="px-4 py-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-xs font-black uppercase rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(217,70,239,0.4)] whitespace-nowrap"
           >
@@ -885,6 +988,30 @@ export default function ClientsDashboard() {
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            const parent = client.company || client.name || 'VRT Services';
+                            setSelectedParentName(parent);
+                            setSelectedClientName(client.company || client.name);
+                            setIsCoaModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-cyan-600/20 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500 text-cyan-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          title="Chart of Accounts for this Client"
+                        >
+                          📊 COA
+                        </button>
+                        <button
+                          onClick={() => {
+                            const parent = client.company || client.name || 'VRT Services';
+                            setSelectedParentName(parent);
+                            setSelectedClientName(client.company || client.name);
+                            setIsHistoryUploadModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                          title="History Rules for this Client"
+                        >
+                          📜 History
+                        </button>
                         <button
                           onClick={() => {
                             setCheckoutForm({
@@ -2162,7 +2289,9 @@ export default function ClientsDashboard() {
                 <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
                   📊 Chart of Accounts <span className="text-cyan-400">Manager</span>
                 </h3>
-                <p className="text-xs text-slate-400">View, add, edit, delete, or upload Chart of Accounts CSV files for any client.</p>
+                <p className="text-xs text-slate-400">
+                  Parent: <span className="text-cyan-400 font-bold">{selectedParentName}</span> — View, add, edit, delete, or upload Chart of Accounts CSV files.
+                </p>
               </div>
               <button
                 onClick={() => setIsCoaModalOpen(false)}
@@ -2175,16 +2304,13 @@ export default function ClientsDashboard() {
             {/* Controls Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
               <div className="flex items-center gap-3 w-full md:w-auto">
-                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Client:</label>
+                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Select Client:</label>
                 <select
                   value={selectedClientName}
                   onChange={(e) => setSelectedClientName(e.target.value)}
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
                 >
-                  <option value="Toirak's Group Homes Inc" className="bg-[#0b1324] text-white">Toirak's Group Homes Inc</option>
-                  <option value="D'Payano Barber Shop" className="bg-[#0b1324] text-white">D'Payano Barber Shop</option>
-                  <option value="DEFAULT" className="bg-[#0b1324] text-white">DEFAULT Master</option>
-                  {clients.map(c => (
+                  {getClientsForParent(selectedParentName).map(c => (
                     <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
                       {c.company || c.name}
                     </option>
@@ -2277,6 +2403,7 @@ export default function ClientsDashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Parent Name</th>
                     <th className="py-3 px-6">Account #</th>
                     <th className="py-3 px-6">Account Name</th>
                     <th className="py-3 px-6">Type</th>
@@ -2287,7 +2414,7 @@ export default function ClientsDashboard() {
                 <tbody className="divide-y divide-white/5 text-xs text-slate-300">
                   {loadingCoa ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">Loading accounts...</td>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">Loading accounts...</td>
                     </tr>
                   ) : coaList.filter(a =>
                       a.accountNumber.toLowerCase().includes(coaSearch.toLowerCase()) ||
@@ -2295,7 +2422,7 @@ export default function ClientsDashboard() {
                       (a.type && a.type.toLowerCase().includes(coaSearch.toLowerCase()))
                     ).length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-500">No accounts found for {selectedClientName}. Upload a CSV or click Add Account.</td>
+                      <td colSpan={6} className="py-8 text-center text-slate-500">No accounts found for {selectedClientName}. Upload a CSV or click Add Account.</td>
                     </tr>
                   ) : (
                     coaList.filter(a =>
@@ -2304,6 +2431,7 @@ export default function ClientsDashboard() {
                       (a.type && a.type.toLowerCase().includes(coaSearch.toLowerCase()))
                     ).map((acct) => (
                       <tr key={acct.id || acct.accountNumber} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-6 font-bold text-cyan-300">{acct.parentName || selectedParentName}</td>
                         <td className="py-3 px-6 font-mono font-bold text-cyan-400">{acct.accountNumber}</td>
                         <td className="py-3 px-6 font-bold text-white">{acct.accountName}</td>
                         <td className="py-3 px-6">
@@ -2367,7 +2495,9 @@ export default function ClientsDashboard() {
                 <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
                   📜 Transaction History <span className="text-emerald-400">Rules Manager</span>
                 </h3>
-                <p className="text-xs text-slate-400">View, add, edit, delete, or upload vendor transaction matching rules for any client.</p>
+                <p className="text-xs text-slate-400">
+                  Parent: <span className="text-emerald-400 font-bold">{selectedParentName}</span> — View, add, edit, delete, or upload vendor transaction matching rules.
+                </p>
               </div>
               <button
                 onClick={() => setIsHistoryUploadModalOpen(false)}
@@ -2380,16 +2510,13 @@ export default function ClientsDashboard() {
             {/* Controls Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
               <div className="flex items-center gap-3 w-full md:w-auto">
-                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Client:</label>
+                <label className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Select Client:</label>
                 <select
                   value={selectedClientName}
                   onChange={(e) => setSelectedClientName(e.target.value)}
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="Toirak's Group Homes Inc" className="bg-[#0b1324] text-white">Toirak's Group Homes Inc</option>
-                  <option value="D'Payano Barber Shop" className="bg-[#0b1324] text-white">D'Payano Barber Shop</option>
-                  <option value="DEFAULT" className="bg-[#0b1324] text-white">DEFAULT Master</option>
-                  {clients.map(c => (
+                  {getClientsForParent(selectedParentName).map(c => (
                     <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
                       {c.company || c.name}
                     </option>
@@ -2506,6 +2633,7 @@ export default function ClientsDashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02] select-none">
+                    <th className="py-3 px-6">Parent Name</th>
                     <th 
                       onClick={() => handleHistorySort('pattern')} 
                       className="py-3 px-6 cursor-pointer hover:text-white transition-colors"
@@ -2564,7 +2692,7 @@ export default function ClientsDashboard() {
                 <tbody className="divide-y divide-white/5 text-xs text-slate-300">
                   {loadingHistory ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">Loading history rules...</td>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">Loading history rules...</td>
                     </tr>
                   ) : (() => {
                     const filteredAndSorted = historyList
@@ -2589,13 +2717,14 @@ export default function ClientsDashboard() {
                     if (filteredAndSorted.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-slate-500">No transaction rules found for {selectedClientName}. Upload a CSV or click Add Rule.</td>
+                          <td colSpan={6} className="py-8 text-center text-slate-500">No transaction rules found for {selectedClientName}. Upload a CSV or click Add Rule.</td>
                         </tr>
                       );
                     }
 
                     return filteredAndSorted.map((rule) => (
                       <tr key={rule.id || rule.pattern} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-6 font-bold text-emerald-300">{rule.parentName || selectedParentName}</td>
                         <td className="py-3 px-6 font-mono font-bold text-emerald-400 uppercase">{rule.pattern}</td>
                         <td className="py-3 px-6 font-mono font-bold text-cyan-400">{rule.accountNumber}</td>
                         <td className="py-3 px-6 font-bold text-white">{rule.accountName || '—'}</td>
@@ -2641,6 +2770,116 @@ export default function ClientsDashboard() {
                 className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all"
               >
                 Close Manager
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Parent-Client Mapping Manager Modal */}
+      {isParentMappingsModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b1324] border border-purple-500/30 rounded-2xl w-full max-w-4xl p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                  🔗 Parent-Client <span className="text-purple-400">Mappings Manager</span>
+                </h3>
+                <p className="text-xs text-slate-400">Associate Parent / Company Names with specific Clients to dynamically filter dropdowns.</p>
+              </div>
+              <button
+                onClick={() => setIsParentMappingsModalOpen(false)}
+                className="text-slate-400 hover:text-white p-2 hover:bg-white/5 rounded-xl transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Add Mapping Form */}
+            <form onSubmit={handleSaveParentMapping} className="bg-white/5 border border-purple-500/20 rounded-xl p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Parent / Company Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. VRT Services"
+                    value={parentMappingForm.parentName}
+                    onChange={(e) => setParentMappingForm({ ...parentMappingForm, parentName: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Select Client *</label>
+                  <select
+                    required
+                    value={parentMappingForm.clientName}
+                    onChange={(e) => setParentMappingForm({ ...parentMappingForm, clientName: e.target.value })}
+                    className="w-full bg-[#0b1324] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">-- Choose Client --</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.company || c.name} className="bg-[#0b1324] text-white">
+                        {c.company || c.name} ({c.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={savingParentMapping}
+                    className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase rounded-lg transition-all"
+                  >
+                    {savingParentMapping ? 'Saving...' : '➕ Add Mapping'}
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* Mappings Table */}
+            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-6">Parent Name</th>
+                    <th className="py-3 px-6">Associated Client</th>
+                    <th className="py-3 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                  {parentMappings.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-slate-500">No parent-client mappings found. Add a mapping above.</td>
+                    </tr>
+                  ) : (
+                    parentMappings.map((m) => (
+                      <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-6 font-bold text-purple-400">{m.parentName}</td>
+                        <td className="py-3 px-6 font-bold text-white">{m.clientName}</td>
+                        <td className="py-3 px-6 text-right">
+                          <button
+                            onClick={() => handleDeleteParentMapping(m.id)}
+                            className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded text-[10px] font-bold uppercase transition-all"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsParentMappingsModalOpen(false)}
+                className="px-6 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer"
+              >
+                Close Mappings
               </button>
             </div>
           </div>

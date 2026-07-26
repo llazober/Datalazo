@@ -72,6 +72,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const parentNameFromForm = (formData.get('parentName') as string) || 'VRT Services';
+
     // Header parsing
     const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
     
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
     const patternIdx = headers.findIndex((h) =>
       /pattern|description|vendor|keyword/i.test(h)
     );
+    const parentNameIdx = headers.findIndex((h) => /parent\s*name|parent/i.test(h));
     const acctNumIdx = headers.findIndex((h) =>
       /account\s*number|acct|gl|code/i.test(h)
     );
@@ -112,6 +115,7 @@ export async function POST(req: Request) {
 
       // Automatically clean raw bank descriptions to isolated vendor patterns
       const pattern = cleanRawDescriptionToPattern(rawPattern);
+      const parentName = parentNameIdx !== -1 && cleanCols[parentNameIdx] ? cleanCols[parentNameIdx] : parentNameFromForm;
       const accountNumber = acctNumIdx !== -1 && cleanCols[acctNumIdx] ? cleanCols[acctNumIdx] : '500';
       const accountName = acctNameIdx !== -1 ? cleanCols[acctNameIdx] : null;
       const transactionType = txTypeIdx !== -1 ? cleanCols[txTypeIdx]?.toUpperCase() || 'ALL' : 'ALL';
@@ -128,6 +132,7 @@ export async function POST(req: Request) {
           },
         },
         update: {
+          parentName,
           accountNumber,
           accountName,
           source: 'EXCEL_IMPORT',
@@ -135,6 +140,7 @@ export async function POST(req: Request) {
         },
         create: {
           clientName,
+          parentName,
           pattern,
           accountNumber,
           accountName,

@@ -23,6 +23,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const parentNameFromForm = (formData.get('parentName') as string) || 'VRT Services';
+
     // Header parsing
     const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
     
@@ -33,6 +35,7 @@ export async function POST(req: Request) {
     const acctNameIdx = headers.findIndex((h) =>
       /account\s*name|name|description/i.test(h)
     );
+    const parentNameIdx = headers.findIndex((h) => /parent\s*name|parent/i.test(h));
     const typeIdx = headers.findIndex((h) => /type/i.test(h));
     const subTypeIdx = headers.findIndex((h) => /subtype/i.test(h));
     const levelIdx = headers.findIndex((h) => /level/i.test(h));
@@ -58,6 +61,7 @@ export async function POST(req: Request) {
 
       const accountNumber = cleanCols[acctNumIdx];
       const accountName = cleanCols[acctNameIdx];
+      const parentName = parentNameIdx !== -1 && cleanCols[parentNameIdx] ? cleanCols[parentNameIdx] : parentNameFromForm;
       const type = typeIdx !== -1 ? cleanCols[typeIdx] : null;
       const subType = subTypeIdx !== -1 ? cleanCols[subTypeIdx] : null;
       const level = levelIdx !== -1 ? parseInt(cleanCols[levelIdx]) || 0 : 0;
@@ -72,6 +76,7 @@ export async function POST(req: Request) {
           },
         },
         update: {
+          parentName,
           accountName,
           type,
           subType,
@@ -80,6 +85,7 @@ export async function POST(req: Request) {
         },
         create: {
           clientName,
+          parentName,
           accountNumber,
           accountName,
           type,
