@@ -117,26 +117,23 @@ export default function ClientsDashboard() {
 
   // Helper to dynamically get clients belonging to a parentName
   const getClientsForParent = (parent: string) => {
-    if (!parent) return clients;
+    if (!parent) return clients.map((c) => ({ id: c.id, name: c.name }));
     const mapped = parentMappings.filter(
       (m) => m.parentName.toLowerCase() === parent.toLowerCase()
     );
     if (mapped.length > 0) {
-      const mappedNames = new Set(mapped.map((m) => m.clientName.toLowerCase()));
-      const filtered = clients.filter(
-        (c) =>
-          mappedNames.has(c.name.toLowerCase()) ||
-          (c.company && mappedNames.has(c.company.toLowerCase()))
-      );
-      if (filtered.length > 0) return filtered;
+      return mapped.map((m) => ({ id: m.id, name: m.clientName }));
     }
-    // Fallback: match by company or name
+    // Fallback: match by company or name from main clients array
     const fallback = clients.filter(
       (c) =>
         (c.company && c.company.toLowerCase() === parent.toLowerCase()) ||
         c.name.toLowerCase() === parent.toLowerCase()
     );
-    return fallback.length > 0 ? fallback : clients;
+    if (fallback.length > 0) {
+      return fallback.map((c) => ({ id: c.id, name: c.name }));
+    }
+    return clients.map((c) => ({ id: c.id, name: c.name }));
   };
 
   const handleSaveParentMapping = async (e: React.FormEvent) => {
@@ -2812,20 +2809,15 @@ export default function ClientsDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Select Client *</label>
-                  <select
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Enter Client Name *</label>
+                  <input
+                    type="text"
                     required
+                    placeholder="e.g. New Client Name"
                     value={parentMappingForm.clientName}
                     onChange={(e) => setParentMappingForm({ ...parentMappingForm, clientName: e.target.value })}
-                    className="w-full bg-[#0b1324] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="">-- Choose Client --</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.name} className="bg-[#0b1324] text-white">
-                        {c.name} {c.company ? `(${c.company})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                  />
                 </div>
                 <div className="flex items-end">
                   <button
@@ -2833,7 +2825,7 @@ export default function ClientsDashboard() {
                     disabled={savingParentMapping}
                     className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase rounded-lg transition-all"
                   >
-                    {savingParentMapping ? 'Saving...' : '➕ Add Mapping'}
+                    {savingParentMapping ? 'Saving...' : '➕ Add Client'}
                   </button>
                 </div>
               </div>
