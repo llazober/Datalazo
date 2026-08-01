@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getNormalizedUsageValues } from '@/lib/usage-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export async function GET() {
             termsAcceptedUserAgent: true,
             monthlyUsageActual: true,
             monthlyUsagePrevious: true,
+            updatedAt: true,
           }
         }
       },
@@ -25,7 +27,24 @@ export async function GET() {
         createdAt: 'desc'
       }
     });
-    return NextResponse.json(clients);
+
+    const normalizedClients = clients.map(client => ({
+      ...client,
+      users: client.users.map(user => {
+        const normalized = getNormalizedUsageValues(
+          user.monthlyUsageActual,
+          user.monthlyUsagePrevious,
+          user.updatedAt
+        );
+        return {
+          ...user,
+          monthlyUsageActual: normalized.monthlyUsageActual,
+          monthlyUsagePrevious: normalized.monthlyUsagePrevious,
+        };
+      })
+    }));
+
+    return NextResponse.json(normalizedClients);
   } catch (error) {
     console.error('Clients Fetch Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

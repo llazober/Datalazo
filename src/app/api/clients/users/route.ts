@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth-utils';
+import { getNormalizedUsageValues } from '@/lib/usage-utils';
 
 export async function POST(req: Request) {
   try {
@@ -137,7 +138,21 @@ export async function GET() {
         username: 'asc'
       }
     });
-    return NextResponse.json(users);
+
+    const normalizedUsers = users.map(user => {
+      const normalized = getNormalizedUsageValues(
+        user.monthlyUsageActual,
+        user.monthlyUsagePrevious,
+        user.updatedAt
+      );
+      return {
+        ...user,
+        monthlyUsageActual: normalized.monthlyUsageActual,
+        monthlyUsagePrevious: normalized.monthlyUsagePrevious,
+      };
+    });
+
+    return NextResponse.json(normalizedUsers);
   } catch (error) {
     console.error('Client Users Fetch Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
