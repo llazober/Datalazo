@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signPayload, getClientIp, getClientHost, getCookieDomain } from '@/lib/auth-utils';
+import { normalizeUserMonthlyUsage } from '@/lib/usage-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +25,9 @@ export async function POST(req: NextRequest) {
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
+
+    // Ensure monthly usage is normalized/reset if a new month has started
+    await normalizeUserMonthlyUsage(user);
 
     // Log the successful login attempt
     const ip = getClientIp(req);

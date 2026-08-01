@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { verifySignedPayload } from '@/lib/auth-utils';
+import { normalizeUserMonthlyUsage } from '@/lib/usage-utils';
 import ClientDashboardView from '@/components/ClientDashboardView';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +52,8 @@ export default async function ClientDashboardPage() {
     redirect('/client-login');
   }
 
+  const normalizedUser = await normalizeUserMonthlyUsage(user);
+
   // Fetch logins for this client's users
   const clientUserIds = user.client.users.map(u => u.id);
   const logins = await prisma.clientUserLogin.findMany({
@@ -71,14 +74,14 @@ export default async function ClientDashboardPage() {
 
   // Serialize dates for the Client Component
   const serializedUser = {
-    id: user.id,
-    username: user.username,
-    termsAccepted: user.termsAccepted,
-    termsAcceptedAt: user.termsAcceptedAt ? user.termsAcceptedAt.toISOString() : null,
-    termsAcceptedIp: user.termsAcceptedIp,
-    monthlyUsageActual: user.monthlyUsageActual,
-    monthlyUsagePrevious: user.monthlyUsagePrevious,
-    clientId: user.clientId,
+    id: normalizedUser.id,
+    username: normalizedUser.username,
+    termsAccepted: normalizedUser.termsAccepted,
+    termsAcceptedAt: normalizedUser.termsAcceptedAt ? normalizedUser.termsAcceptedAt.toISOString() : null,
+    termsAcceptedIp: normalizedUser.termsAcceptedIp,
+    monthlyUsageActual: normalizedUser.monthlyUsageActual,
+    monthlyUsagePrevious: normalizedUser.monthlyUsagePrevious,
+    clientId: normalizedUser.clientId,
     client: {
       id: user.client.id,
       name: user.client.name,
