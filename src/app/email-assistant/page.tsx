@@ -55,6 +55,14 @@ function playChime() {
   } catch {}
 }
 
+function isSpanishText(text: string): boolean {
+  if (!text) return false;
+  if (/[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text)) return true;
+  const spanishWordsRegex = /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes)\b/i;
+  const matches = text.match(new RegExp(spanishWordsRegex, 'gi'));
+  return (matches?.length || 0) >= 2 || (matches?.length === 1 && text.split(/\s+/).length <= 6);
+}
+
 function speakText(text: string) {
   try {
     if (!('speechSynthesis' in window)) return;
@@ -63,7 +71,20 @@ function speakText(text: string) {
     const utt = new SpeechSynthesisUtterance(text);
     utt.rate = 1.0;
     utt.pitch = 1.0;
-    utt.lang = 'en-US';
+
+    const isEs = isSpanishText(text);
+    utt.lang = isEs ? 'es-ES' : 'en-US';
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const targetPrefix = isEs ? 'es' : 'en';
+      const preferred =
+        voices.find((v) => v.lang.toLowerCase().startsWith(targetPrefix) && v.name.includes('Google')) ||
+        voices.find((v) => v.lang.toLowerCase().startsWith(targetPrefix) && v.name.includes('Microsoft')) ||
+        voices.find((v) => v.lang.toLowerCase().startsWith(targetPrefix));
+      if (preferred) utt.voice = preferred;
+    }
+
     window.speechSynthesis.speak(utt);
   } catch {}
 }
