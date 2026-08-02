@@ -582,6 +582,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
       });
 
       let aiReply = '';
+      let actionObj: { type: string; query?: string } | null = null;
       const responseMessage = chatCompletion.choices[0].message;
 
       if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
@@ -627,6 +628,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
               const ok = await trashGmailMessage(accessToken, targetMsg.id);
               if (ok) {
                 aiReply = `Moved email from ${targetMsg.from} to Trash.`;
+                actionObj = { type: 'refresh' };
               } else {
                 aiReply = 'Failed to move email to Trash.';
               }
@@ -646,6 +648,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
               const ok = await archiveGmailMessage(accessToken, targetMsg.id);
               if (ok) {
                 aiReply = `Archived email from ${targetMsg.from}.`;
+                actionObj = { type: 'refresh' };
               } else {
                 aiReply = 'Failed to archive email.';
               }
@@ -659,7 +662,12 @@ ${emailContextPrompt}${knowledgePrompt}`;
           try {
             const args = JSON.parse(toolCall.function.arguments || '{}');
             const q = (args.query || '').trim();
-            aiReply = q ? `Searching emails for "${q}".` : 'Please specify a search query.';
+            if (q) {
+              aiReply = `Searching emails for "${q}".`;
+              actionObj = { type: 'search', query: q };
+            } else {
+              aiReply = 'Please specify a search query.';
+            }
           } catch (e) {
             aiReply = 'There was an error searching emails.';
           }
@@ -689,6 +697,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
                 aiReply = folderName.toUpperCase() === 'INBOX'
                   ? `Moved ${messageIds.length} emails back to Inbox.`
                   : `Moved ${messageIds.length} emails to folder "${folderName}".`;
+                actionObj = { type: 'refresh' };
               } else {
                 aiReply = `Failed to batch move emails to "${folderName}".`;
               }
@@ -711,6 +720,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
                 const senderMatch = targetMsg.from.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
                 const senderName = (senderMatch?.[1] || '').trim() || senderMatch?.[2] || targetMsg.from;
                 aiReply = `Moved email from ${senderName} to folder "${res.labelName}".`;
+                actionObj = { type: 'refresh' };
               } else {
                 aiReply = `Failed to move email to folder "${folderName}".`;
               }

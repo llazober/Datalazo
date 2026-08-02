@@ -220,16 +220,21 @@ export async function GET(req: NextRequest) {
 
   let newTokensCookieVal: string | null = null;
 
-  // Construct Gmail API query string
+  // Construct Gmail API query string with conversational query sanitizer
   let gmailQuery = 'label:INBOX';
   if (searchQueryParam.trim()) {
-    const qTrim = searchQueryParam.trim();
+    let qTrim = searchQueryParam.trim();
+
+    // Strip conversational phrases (e.g. "Search email from inbox for Victor Rivera" -> "Victor Rivera")
+    qTrim = qTrim.replace(/^(search\s+for|find\s+emails?\s+from|find\s+emails?\s+about|show\s+me\s+emails?\s+from|show\s+me\s+emails?\s+about|search\s+emails?\s+from\s+inbox\s+for|search\s+emails?\s+for|search\s+emails?\s+from|emails?\s+from|get\s+emails?\s+from|look\s+for)\s+/i, '').trim();
+
     if (qTrim.toLowerCase().startsWith('all:') || qTrim.toLowerCase().startsWith('global:')) {
       gmailQuery = qTrim.replace(/^(all|global):/i, '').trim();
-    } else if (qTrim.includes('label:') || qTrim.includes('in:')) {
+    } else if (qTrim.includes('label:') || qTrim.includes('in:') || qTrim.includes('from:') || qTrim.includes('to:') || qTrim.includes('subject:')) {
       gmailQuery = qTrim;
     } else {
-      gmailQuery = `label:INBOX ${qTrim}`;
+      // Flexible search matching sender name OR content in inbox
+      gmailQuery = `label:INBOX (${qTrim} OR from:"${qTrim}")`;
     }
   }
 

@@ -181,7 +181,12 @@ export default function PublicEmailAssistantPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const knownIdsRef = useRef<Set<string>>(new Set());
+  const activeSearchRef = useRef('');
   const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    activeSearchRef.current = activeSearch;
+  }, [activeSearch]);
 
   // ── Session detection ────────────────────────────────────────────
   useEffect(() => {
@@ -219,7 +224,7 @@ export default function PublicEmailAssistantPage() {
     setLoadingEmails(true);
     setEmailError(null);
     try {
-      const q = overrideQuery !== undefined ? overrideQuery : activeSearch;
+      const q = overrideQuery !== undefined ? overrideQuery : activeSearchRef.current;
       const url = q ? `/api/emails?q=${encodeURIComponent(q)}` : '/api/emails';
       const res = await fetch(url);
       const data = await res.json();
@@ -248,7 +253,9 @@ export default function PublicEmailAssistantPage() {
           speakText(msg);
         }
       }
-      knownIdsRef.current = new Set(list.map((m) => m.id));
+      if (!q) {
+        knownIdsRef.current = new Set(list.map((m) => m.id));
+      }
       setEmails(list);
     } catch (e: any) {
       setEmailError(`Network error: ${e.message}`);
@@ -302,8 +309,10 @@ export default function PublicEmailAssistantPage() {
 
   useEffect(() => {
     if (user) {
-      fetchEmails();
-      const interval = setInterval(fetchEmails, 8000);
+      fetchEmails(activeSearchRef.current);
+      const interval = setInterval(() => {
+        fetchEmails(activeSearchRef.current);
+      }, 8000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -398,9 +407,23 @@ export default function PublicEmailAssistantPage() {
 
       const transcriptText = decodeURIComponent(res.headers.get('X-AI-Transcript') || '');
       const replyText = decodeURIComponent(res.headers.get('X-AI-Reply') || '');
+      const actionText = decodeURIComponent(res.headers.get('X-AI-Action') || '');
 
       if (transcriptText) setTranscript(`🗣️ "${transcriptText}"`);
       if (replyText) setAiResponse(replyText);
+
+      if (actionText) {
+        try {
+          const action = JSON.parse(actionText);
+          if (action.type === 'search' && action.query) {
+            setSearchInput(action.query);
+            setActiveSearch(action.query);
+            fetchEmails(action.query);
+          } else if (action.type === 'refresh') {
+            fetchEmails();
+          }
+        } catch (e) {}
+      }
 
       const audioData = await res.blob();
       if (audioData.size > 0) {
@@ -421,6 +444,15 @@ export default function PublicEmailAssistantPage() {
     const c = cmd.toLowerCase().trim();
     if (!c) return;
     setTranscript(`⌨️ "${cmd}"`);
+
+    if (c.startsWith('search') || c.startsWith('find') || c.startsWith('show')) {
+      const q = cmd.replace(/^(search\s+for|find\s+emails?\s+from|find\s+emails?\s+about|show\s+me\s+emails?\s+from|show\s+me\s+emails?\s+about|search\s+emails?\s+from\s+inbox\s+for|search\s+emails?\s+for|search\s+emails?\s+from|emails?\s+from|get\s+emails?\s+from|look\s+for)\s+/i, '').trim();
+      setSearchInput(q);
+      setActiveSearch(q);
+      fetchEmails(q);
+      setAiResponse(`Searching emails for "${q}".`);
+      return;
+    }
 
     const targetEmail = selectedEmail || (emails.length > 0 ? emails[0] : null);
 
