@@ -2,6 +2,20 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 
+export type EmailCategory =
+  | 'Customer'
+  | 'Vendor'
+  | 'Accounting'
+  | 'Banking'
+  | 'Personal'
+  | 'Internal'
+  | 'Marketing'
+  | 'Newsletter'
+  | 'Spam'
+  | 'Unknown';
+
+export type EmailPriority = 'Critical' | 'High' | 'Medium' | 'Low';
+
 interface EmailItem {
   id: string;
   fromName: string;
@@ -10,6 +24,9 @@ interface EmailItem {
   snippet: string;
   date: string;
   isRead: boolean;
+  aiCategory?: EmailCategory;
+  aiPriority?: EmailPriority;
+  aiSummary?: string;
 }
 
 interface UserSession {
@@ -39,7 +56,7 @@ function playChime() {
   } catch {}
 }
 
-// Speak text via browser TTS (no server needed)
+// Speak text via browser TTS
 function speakText(text: string) {
   try {
     if (!('speechSynthesis' in window)) return;
@@ -63,11 +80,54 @@ function playAudioBlob(blob: Blob) {
   } catch {}
 }
 
+function getCategoryBadge(cat?: EmailCategory) {
+  switch (cat) {
+    case 'Customer':
+      return { label: '🏢 Customer', style: 'bg-blue-500/20 text-blue-300 border-blue-500/40' };
+    case 'Vendor':
+      return { label: '📦 Vendor', style: 'bg-purple-500/20 text-purple-300 border-purple-500/40' };
+    case 'Accounting':
+      return { label: '🧾 Accounting', style: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
+    case 'Banking':
+      return { label: '🏦 Banking', style: 'bg-teal-500/20 text-teal-300 border-teal-500/40' };
+    case 'Internal':
+      return { label: '👥 Internal', style: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' };
+    case 'Marketing':
+      return { label: '📢 Marketing', style: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+    case 'Newsletter':
+      return { label: '📰 Newsletter', style: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' };
+    case 'Spam':
+      return { label: '⛔ Spam', style: 'bg-red-500/20 text-red-300 border-red-500/40' };
+    case 'Personal':
+      return { label: '👤 Personal', style: 'bg-pink-500/20 text-pink-300 border-pink-500/40' };
+    default:
+      return { label: '📧 General', style: 'bg-slate-500/20 text-slate-300 border-slate-500/40' };
+  }
+}
+
+function getPriorityBadge(priority?: EmailPriority) {
+  switch (priority) {
+    case 'Critical':
+      return { label: '🚨 URGENT', style: 'bg-red-500/30 text-red-300 border-red-500/50 animate-pulse font-bold' };
+    case 'High':
+      return { label: '⚡ HIGH', style: 'bg-amber-500/25 text-amber-300 border-amber-500/40 font-bold' };
+    case 'Medium':
+      return { label: '🔹 NORMAL', style: 'bg-slate-500/20 text-slate-300 border-slate-500/30' };
+    case 'Low':
+      return { label: '⚪ LOW', style: 'bg-slate-800 text-slate-400 border-slate-700' };
+    default:
+      return { label: '🔹 NORMAL', style: 'bg-slate-500/20 text-slate-300 border-slate-500/30' };
+  }
+}
+
 export default function DashboardEmailAssistantPage() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [emails, setEmails] = useState<EmailItem[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [newEmailNotice, setNewEmailNotice] = useState<string | null>(null);
+
+  // Filter state
+  const [activeFilter, setActiveFilter] = useState<string>('All');
 
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -91,15 +151,17 @@ export default function DashboardEmailAssistantPage() {
 
   // ── Session detection ────────────────────────────────────────────
   useEffect(() => {
-    // Try new user_profile cookie (small, no tokens)
     try {
       const profileMatch = document.cookie.match(new RegExp('(^| )user_profile=([^;]+)'));
       if (profileMatch) {
         const decoded = JSON.parse(decodeURIComponent(profileMatch[2]));
-        if (decoded?.email) { setUser(decoded); return; }
+        if (decoded?.email) {
+          setUser(decoded);
+          return;
+        }
       }
     } catch {}
-    // Fallback: legacy user_session cookie
+
     try {
       const match = document.cookie.match(new RegExp('(^| )user_session=([^;]+)'));
       if (match) {
@@ -107,10 +169,12 @@ export default function DashboardEmailAssistantPage() {
         if (decoded?.email) setUser(decoded);
       }
     } catch {}
-    // Confirm via server
+
     fetch('/auth/me')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.email) setUser(d); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.email) setUser(d);
+      })
       .catch(() => {});
   }, []);
 
@@ -127,7 +191,7 @@ export default function DashboardEmailAssistantPage() {
       }
       const list: EmailItem[] = data.emails || [];
       if (knownIdsRef.current.size > 0) {
-        const fresh = list.filter(m => !knownIdsRef.current.has(m.id));
+        const fresh = list.filter((m) => !knownIdsRef.current.has(m.id));
         if (fresh.length > 0) {
           const latest = fresh[0];
           const msg = `New email from ${latest.fromName}: ${latest.subject}`;
@@ -136,7 +200,7 @@ export default function DashboardEmailAssistantPage() {
           speakText(msg);
         }
       }
-      knownIdsRef.current = new Set(list.map(m => m.id));
+      knownIdsRef.current = new Set(list.map((m) => m.id));
       setEmails(list);
     } catch (e: any) {
       setEmailError(`Network error: ${e.message}`);
@@ -159,7 +223,6 @@ export default function DashboardEmailAssistantPage() {
     setTranscript('');
     setAiResponse(null);
 
-    // Get mic stream
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -178,7 +241,6 @@ export default function DashboardEmailAssistantPage() {
       return;
     }
 
-    // Choose best MIME type
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm')
@@ -189,12 +251,12 @@ export default function DashboardEmailAssistantPage() {
     const recorder = new MediaRecorder(stream, { mimeType });
     mediaRecorderRef.current = recorder;
 
-    recorder.ondataavailable = e => {
+    recorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
     };
 
     recorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       await processRecording(mimeType);
     };
@@ -239,20 +301,17 @@ export default function DashboardEmailAssistantPage() {
         return;
       }
 
-      // Get transcript and reply from response headers
       const transcriptText = decodeURIComponent(res.headers.get('X-AI-Transcript') || '');
       const replyText = decodeURIComponent(res.headers.get('X-AI-Reply') || '');
 
       if (transcriptText) setTranscript(`🗣️ "${transcriptText}"`);
       if (replyText) setAiResponse(replyText);
 
-      // Play the AI TTS audio response
       const audioData = await res.blob();
       if (audioData.size > 0) {
         playAudioBlob(audioData);
         setVoiceStatus(`✅ AI replied. Ready to record again.`);
       } else {
-        // Fallback to browser TTS if no audio
         if (replyText) speakText(replyText);
         setVoiceStatus('✅ Done.');
       }
@@ -270,9 +329,10 @@ export default function DashboardEmailAssistantPage() {
     setTranscript(`⌨️ "${cmd}"`);
 
     if (c.includes('summarize') || c.includes('summary')) {
-      const text = emails.length > 0
-        ? `Latest email from ${emails[0].fromName}. Subject: ${emails[0].subject}. ${emails[0].snippet}`
-        : 'No emails found in inbox.';
+      const text =
+        emails.length > 0
+          ? `Latest email from ${emails[0].fromName}. Subject: ${emails[0].subject}. Categorized as ${emails[0].aiCategory || 'Customer'}, Priority: ${emails[0].aiPriority || 'Medium'}. ${emails[0].snippet}`
+          : 'No emails found in inbox.';
       setAiResponse(text);
       playChime();
       speakText(text);
@@ -309,7 +369,13 @@ export default function DashboardEmailAssistantPage() {
     setEmailError(null);
   };
 
-  // ── UI ───────────────────────────────────────────────────────────
+  // Filtered email list
+  const filteredEmails = emails.filter((e) => {
+    if (activeFilter === 'All') return true;
+    if (activeFilter === 'Urgent') return e.aiPriority === 'Critical' || e.aiPriority === 'High';
+    return e.aiCategory === activeFilter;
+  });
+
   return (
     <div className="w-full h-full flex flex-col p-6 text-white bg-[#0a0a0c]">
       {/* Header */}
@@ -319,11 +385,12 @@ export default function DashboardEmailAssistantPage() {
             <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">🎙️</span>
             AI Executive Email Assistant
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Voice-first · Whisper AI transcription · GPT-4o powered</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Automatic AI Categorization · Priority Routing · Whisper Voice Controls
+          </p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Record / Stop button */}
           <button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isProcessing}
@@ -342,7 +409,6 @@ export default function DashboardEmailAssistantPage() {
             )}
           </button>
 
-          {/* Google sign-in / user */}
           {user ? (
             <div className="flex items-center gap-3 bg-white/[0.04] border border-emerald-500/30 px-4 py-2 rounded-xl">
               {user.picture ? (
@@ -406,7 +472,6 @@ export default function DashboardEmailAssistantPage() {
           </span>
         </div>
 
-        {/* Waveform when recording */}
         {isRecording && (
           <div className="flex items-center gap-1 mb-4 h-8">
             {[...Array(20)].map((_, i) => (
@@ -423,21 +488,18 @@ export default function DashboardEmailAssistantPage() {
           </div>
         )}
 
-        {/* Status */}
         {voiceStatus && (
           <div className="mb-3 text-xs font-mono text-indigo-300 bg-black/30 rounded-lg px-4 py-2">
             {voiceStatus}
           </div>
         )}
 
-        {/* Transcript */}
         {transcript && (
           <div className="mb-3 p-3 rounded-xl bg-black/30 border border-white/5 font-mono text-xs text-slate-300">
             {transcript}
           </div>
         )}
 
-        {/* AI Response */}
         {aiResponse && (
           <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-slate-200 flex items-start gap-2">
             <span className="text-base">🤖</span>
@@ -448,13 +510,12 @@ export default function DashboardEmailAssistantPage() {
           </div>
         )}
 
-        {/* Text command fallback */}
         <form onSubmit={handleTypedSubmit} className="flex items-center gap-2 mt-4">
           <input
             type="text"
             value={typedCommand}
-            onChange={e => setTypedCommand(e.target.value)}
-            placeholder='Or type a command: "Summarize", "Read email", "Refresh"...'
+            onChange={(e) => setTypedCommand(e.target.value)}
+            placeholder='Or type a command: "Summarize", "Read email", "Reply to latest saying..."'
             className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
           <button type="submit" className="px-4 py-2.5 bg-indigo-500 text-white font-bold text-xs rounded-xl hover:bg-indigo-600 transition-all whitespace-nowrap">
@@ -474,11 +535,13 @@ export default function DashboardEmailAssistantPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live Gmail Inbox */}
         <div className="lg:col-span-2 p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
-              📬 Live Gmail Inbox
-              {emails.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-mono">{emails.length}</span>
+              📬 Live Categorized Gmail Inbox
+              {filteredEmails.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-mono">
+                  {filteredEmails.length}
+                </span>
               )}
             </h2>
             {user && (
@@ -486,6 +549,23 @@ export default function DashboardEmailAssistantPage() {
                 {loadingEmails ? 'Syncing...' : '🔄 Refresh'}
               </button>
             )}
+          </div>
+
+          {/* AI Category Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-white/5 no-scrollbar">
+            {['All', 'Urgent', 'Customer', 'Accounting', 'Banking', 'Vendor', 'Internal', 'Newsletter', 'Marketing'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveFilter(cat)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
+                  activeFilter === cat
+                    ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/60 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                    : 'bg-white/[0.02] text-slate-400 border-white/5 hover:bg-white/[0.06] hover:text-slate-200'
+                }`}
+              >
+                {cat === 'All' ? '🌐 All' : cat === 'Urgent' ? '🚨 Urgent' : cat}
+              </button>
+            ))}
           </div>
 
           {!user ? (
@@ -496,31 +576,47 @@ export default function DashboardEmailAssistantPage() {
           ) : loadingEmails && emails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">
               <span className="inline-block animate-spin text-lg mb-2">🔄</span>
-              <div>Fetching from Gmail...</div>
+              <div>Fetching &amp; Categorizing Gmail messages...</div>
             </div>
-          ) : emails.length === 0 ? (
+          ) : filteredEmails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
-              No recent emails found.
+              No emails matching filter "{activeFilter}".
             </div>
           ) : (
-            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
-              {emails.map(email => (
-                <div
-                  key={email.id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    !email.isRead ? 'bg-indigo-950/30 border-indigo-500/40' : 'bg-white/[0.02] border-white/5'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-indigo-300">{email.fromName}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+            <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+              {filteredEmails.map((email) => {
+                const catBadge = getCategoryBadge(email.aiCategory);
+                const prioBadge = getPriorityBadge(email.aiPriority);
+
+                return (
+                  <div
+                    key={email.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      !email.isRead ? 'bg-indigo-950/30 border-indigo-500/40 shadow-sm' : 'bg-white/[0.02] border-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                      <span className="text-xs font-bold text-indigo-300">{email.fromName}</span>
+                      <div className="flex items-center gap-1.5">
+                        {/* Category badge */}
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] border ${catBadge.style}`}>
+                          {catBadge.label}
+                        </span>
+                        {/* Priority badge */}
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] border ${prioBadge.style}`}>
+                          {prioBadge.label}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono ml-1">
+                          {new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-white mb-1 truncate">{email.subject}</h4>
+                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
                   </div>
-                  <h4 className="text-xs font-bold text-white mb-1 truncate">{email.subject}</h4>
-                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -528,27 +624,36 @@ export default function DashboardEmailAssistantPage() {
         {/* Quick Commands */}
         <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-3">
           <div className="text-2xl">🗣️</div>
-          <h3 className="text-sm font-bold text-white">Quick Commands</h3>
-          <p className="text-xs text-slate-400">Click to run instantly (no mic needed):</p>
-          <button onClick={() => processTextCommand('summarize')}
-            className="w-full py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-xs hover:bg-indigo-500/20 transition-all text-left flex items-center justify-between">
-            <span>📧 Summarize latest</span><span className="text-[10px] text-slate-400">→ reads snippet aloud</span>
+          <h3 className="text-sm font-bold text-white">Quick Voice Shortcuts</h3>
+          <p className="text-xs text-slate-400">Click to run instantly:</p>
+          <button
+            onClick={() => processTextCommand('summarize')}
+            className="w-full py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-xs hover:bg-indigo-500/20 transition-all text-left flex items-center justify-between"
+          >
+            <span>📧 Summarize latest</span>
+            <span className="text-[10px] text-slate-400">→ speaks summary</span>
           </button>
-          <button onClick={() => processTextCommand('read email')}
-            className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-mono text-xs hover:bg-cyan-500/20 transition-all text-left flex items-center justify-between">
-            <span>🔊 Read email aloud</span><span className="text-[10px] text-slate-400">→ speaks full email</span>
+          <button
+            onClick={() => processTextCommand('read email')}
+            className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-mono text-xs hover:bg-cyan-500/20 transition-all text-left flex items-center justify-between"
+          >
+            <span>🔊 Read email aloud</span>
+            <span className="text-[10px] text-slate-400">→ speaks full email</span>
           </button>
-          <button onClick={fetchEmails}
-            className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono text-xs hover:bg-purple-500/20 transition-all text-left flex items-center justify-between">
-            <span>🔄 Refresh inbox</span><span className="text-[10px] text-slate-400">→ syncs Gmail now</span>
+          <button
+            onClick={fetchEmails}
+            className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono text-xs hover:bg-purple-500/20 transition-all text-left flex items-center justify-between"
+          >
+            <span>🔄 Refresh &amp; Categorize</span>
+            <span className="text-[10px] text-slate-400">→ syncs inbox now</span>
           </button>
 
           <div className="mt-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-slate-400 leading-relaxed">
-            <strong className="text-slate-300 block mb-1">💡 How to use voice:</strong>
-            1. Click <strong className="text-indigo-300">"Hold & Speak to AI"</strong><br/>
-            2. Say your command out loud<br/>
-            3. Click <strong className="text-red-300">"Stop & Send to AI"</strong><br/>
-            4. AI replies in text + audio 🔊
+            <strong className="text-slate-300 block mb-1">🏷️ AI Categories Supported:</strong>
+            • <strong className="text-blue-300">Customer</strong> &amp; <strong className="text-purple-300">Vendor</strong><br />
+            • <strong className="text-emerald-300">Accounting</strong> &amp; <strong className="text-teal-300">Banking</strong><br />
+            • <strong className="text-cyan-300">Internal</strong> &amp; <strong className="text-indigo-300">Newsletter</strong><br />
+            • <strong className="text-amber-300">Marketing</strong> &amp; <strong className="text-red-300">Spam</strong>
           </div>
         </div>
       </div>
