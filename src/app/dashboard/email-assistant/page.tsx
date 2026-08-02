@@ -60,7 +60,9 @@ export default function DashboardEmailAssistantPage() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const shouldListenRef = useRef<boolean>(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -119,47 +121,72 @@ export default function DashboardEmailAssistantPage() {
 
   const toggleListening = () => {
     if (isListening) {
+      shouldListenRef.current = false;
       recognitionRef.current?.stop();
       setIsListening(false);
+      setTranscript('');
       return;
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+      setMicError('Speech Recognition API is not supported in this browser. Please open in Google Chrome or Edge.');
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    setMicError(null);
+    shouldListenRef.current = true;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setTranscript('Listening for command...');
-    };
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-    recognition.onresult = (event: any) => {
-      let currentText = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        currentText += event.results[i][0].transcript;
-      }
-      setTranscript(currentText);
-      processVoiceCommand(currentText.toLowerCase());
-    };
+      recognition.onstart = () => {
+        setIsListening(true);
+        setTranscript('🎤 Listening... Speak your command ("Summarize", "Read email", "Refresh")...');
+      };
 
-    recognition.onerror = (err: any) => {
-      console.error('[SpeechRecognition Error]', err);
+      recognition.onresult = (event: any) => {
+        let currentText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentText += event.results[i][0].transcript;
+        }
+        if (currentText.trim()) {
+          setTranscript(`🗣️ "${currentText}"`);
+          processVoiceCommand(currentText.toLowerCase());
+        }
+      };
+
+      recognition.onerror = (err: any) => {
+        console.warn('[SpeechRecognition Error]', err.error);
+        if (err.error === 'not-allowed') {
+          shouldListenRef.current = false;
+          setIsListening(false);
+          setMicError('Microphone permission blocked. Click the padlock icon 🔒 in the Chrome address bar to Allow Microphone.');
+        }
+      };
+
+      recognition.onend = () => {
+        if (shouldListenRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {
+            setIsListening(false);
+          }
+        } else {
+          setIsListening(false);
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error('[Mic Start Error]', err);
       setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+      setMicError('Failed to start microphone. Please check your browser microphone settings.');
+    }
   };
 
   const processVoiceCommand = (cmd: string) => {
@@ -170,7 +197,7 @@ export default function DashboardEmailAssistantPage() {
         setAiResponse(resText);
         playSpeechAlert(resText);
       } else {
-        const noMail = 'No emails found to summarize.';
+        const noMail = 'No emails found in your Gmail inbox to summarize.';
         setAiResponse(noMail);
         playSpeechAlert(noMail);
       }
@@ -188,7 +215,7 @@ export default function DashboardEmailAssistantPage() {
   };
 
   const handleTestVoice = () => {
-    playSpeechAlert('Voice alerts are active. Speak "Summarize" or "Read email" to test voice commands.');
+    playSpeechAlert('Voice engine active. Click Start Voice Control and say Summarize or Read Email.');
     setSpeechTested(true);
   };
 
@@ -224,7 +251,7 @@ export default function DashboardEmailAssistantPage() {
             }`}
           >
             <span className="text-sm">{isListening ? '🛑' : '🎙️'}</span>
-            {isListening ? 'Listening (Click to Stop)' : 'Start Voice Control'}
+            {isListening ? 'Listening Active (Click to Stop)' : 'Start Voice Control'}
           </button>
 
           <button
@@ -268,6 +295,15 @@ export default function DashboardEmailAssistantPage() {
         </div>
       </div>
 
+      {micError && (
+        <div className="max-w-6xl w-full mb-6 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between">
+          <span>⚠️ {micError}</span>
+          <button onClick={() => setMicError(null)} className="text-white text-xs opacity-70 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Voice Control Interactive Console */}
       <div className={`max-w-6xl w-full mb-8 p-6 rounded-2xl border transition-all ${
         isListening
@@ -280,12 +316,12 @@ export default function DashboardEmailAssistantPage() {
             <h3 className="text-sm font-bold text-white">Voice Command Console</h3>
           </div>
           <span className="text-xs text-slate-400 font-mono">
-            {isListening ? '🎤 Listening... Say "Summarize", "Read email", or "Refresh"' : 'Click "Start Voice Control" to begin'}
+            {isListening ? '🎤 Microphone Live — Continuous Listening' : 'Click "Start Voice Control" to enable microphone'}
           </span>
         </div>
 
         <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 min-h-[48px] flex items-center justify-between">
-          <span>{transcript || 'Say "Summarize" or "Read email"...'}</span>
+          <span>{transcript || 'Click "Start Voice Control" above, then speak "Summarize" or "Read email"...'}</span>
           {isListening && (
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-4 bg-indigo-400 animate-pulse rounded-full" />
