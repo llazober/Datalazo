@@ -200,14 +200,18 @@ function parseGmailSearchQuery(input: string): string {
   // 2. Standardize folder: syntax to label:
   raw = raw.replace(/\bfolder:\s*/gi, 'label:');
 
-  // 3. Match explicit natural language folder searches like "search emails in folder anil" or "in folder Victor Rivera for Victor"
-  const naturalFolderMatch = raw.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
-  if (naturalFolderMatch) {
-    const targetFolder = naturalFolderMatch[1].trim();
-    const subQuery = (naturalFolderMatch[2] || '').trim();
-    if (subQuery) {
-      return `label:"${targetFolder}" (from:"${subQuery}" OR to:"${subQuery}" OR "${subQuery}")`;
-    }
+  // 3. Match natural language folder searches with optional subquery
+  // e.g. "search emails in folder Victor Rivera for Victor" OR "search emails in folder Victor Rivera"
+  const folderWithSub = raw.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?(.+?)["']?\s+(?:for|from|about)\s+(.+)$/i);
+  if (folderWithSub) {
+    const targetFolder = folderWithSub[1].trim();
+    const subQuery = folderWithSub[2].trim();
+    return `label:"${targetFolder}" (from:"${subQuery}" OR to:"${subQuery}" OR "${subQuery}")`;
+  }
+
+  const folderOnly = raw.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?(.+?)["']?$/i);
+  if (folderOnly) {
+    const targetFolder = folderOnly[1].trim();
     return `label:"${targetFolder}"`;
   }
 

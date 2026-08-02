@@ -561,6 +561,7 @@ LANGUAGE MANDATE: You MUST respond in the EXACT SAME LANGUAGE as the user's inpu
 
 Use the live Gmail inbox context below to answer questions, reply to emails, trash/archive emails, move emails to folders, or schedule meetings on Google Calendar.
 - If the user asks to search or filter emails (e.g., "Show emails from Amazon", "Buscar correos de facturas"), call 'search_emails'.
+- If the user asks to search emails inside a specific folder or label (e.g. "search emails in folder Victor Rivera", "in folder Victor Rivera", "buscar correos en carpeta Victor Rivera"), call 'search_emails' with query='folder:"Victor Rivera"'.
 - If the user asks to move all/multiple emails to a folder or back to Inbox (e.g., "Move all to Finance", "Mover todos a Recibidos"), call 'batch_move_emails'.
 - If the user asks to reply to an email, call 'send_reply_email'.
 - If the user asks to delete/trash an email, call 'trash_email'.

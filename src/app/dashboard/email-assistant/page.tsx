@@ -302,17 +302,22 @@ export default function DashboardEmailAssistantPage() {
   const executeSearch = (rawQuery: string) => {
     let clean = rawQuery.trim();
 
-    const naturalFolderMatch = clean.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
-    if (naturalFolderMatch) {
-      const folder = naturalFolderMatch[1].trim();
-      const sub = (naturalFolderMatch[2] || '').trim();
-      clean = sub ? `folder:"${folder}" ${sub}` : `folder:"${folder}"`;
+    const folderWithSub = clean.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?(.+?)["']?\s+(?:for|from|about)\s+(.+)$/i);
+    const folderOnly = clean.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?(.+?)["']?$/i);
+
+    if (folderWithSub) {
+      const folder = folderWithSub[1].trim();
+      const sub = folderWithSub[2].trim();
+      clean = `folder:"${folder}" ${sub}`;
+    } else if (folderOnly) {
+      const folder = folderOnly[1].trim();
+      clean = `folder:"${folder}"`;
     } else if (!clean.toLowerCase().includes('label:') && !clean.toLowerCase().includes('folder:') && !clean.toLowerCase().includes('in:')) {
-      clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
-      clean = clean.replace(/^(emails?\s+|messages?\s+)/i, '');
-      clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|for|from|about)\s+/i, '');
+      clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for|busca|buscar|mostrar)\s+/i, '');
+      clean = clean.replace(/^(emails?\s+|messages?\s+|correos?\s+|mensajes?\s+)/i, '');
+      clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|for|from|about|de|para|sobre)\s+/i, '');
       clean = clean.replace(/^(inbox\s+folder\s+for|inbox\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
-      clean = clean.replace(/^(for|from|about)\s+/i, '');
+      clean = clean.replace(/^(for|from|about|de|para|sobre)\s+/i, '');
       clean = clean.trim();
     }
 
