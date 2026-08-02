@@ -31,27 +31,37 @@ export function useVoice(userId?: string) {
     window.speechSynthesis.cancel();
     setStatus('speaking');
     const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.05;
-    utter.pitch = 1.0;
+    utter.rate = 0.90; // Natural, unhurried speaking rate
+    utter.pitch = 1.05; // Natural female pitch
 
-    const isEs = /[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text) || /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes)\b/i.test(text);
+    const isEs = /[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text) || /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes|tengo|necesito|quiero|hacer|estar|buen|día|dia|noche|tarde)\b/i.test(text);
     utter.lang = isEs ? 'es-ES' : 'en-US';
 
-    // Try to pick a natural female voice
     const voices = window.speechSynthesis.getVoices();
-    const targetPrefix = isEs ? 'es' : 'en';
-    const langVoices = voices.filter(v => v.lang.toLowerCase().startsWith(targetPrefix));
-    const maleNames = ['jorge', 'david', 'guy', 'mark', 'pablo', 'manuel', 'raul', 'george', 'james', 'richard'];
-    const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman'];
+    if (voices.length > 0) {
+      const maleNames = ['jorge', 'david', 'guy', 'mark', 'pablo', 'manuel', 'raul', 'george', 'james', 'richard'];
+      const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman', 'google us english', 'google uk english female'];
 
-    const preferredFemale =
-      langVoices.find(v => femaleKeywords.some(kw => v.name.toLowerCase().includes(kw)) && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
-      langVoices.find(v => v.name.includes('Google') && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
-      langVoices.find(v => v.name.includes('Microsoft') && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
-      langVoices.find(v => !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
-      langVoices[0];
+      const isMatchingLang = (v: SpeechSynthesisVoice) => {
+        const langL = v.lang.toLowerCase();
+        const nameL = v.name.toLowerCase();
+        if (isEs) return langL.includes('es') || nameL.includes('spanish') || nameL.includes('español');
+        return langL.includes('en') || nameL.includes('english');
+      };
 
-    if (preferredFemale) utter.voice = preferredFemale;
+      const langVoices = voices.filter(isMatchingLang);
+      const pool = langVoices.length > 0 ? langVoices : voices;
+
+      const preferredFemale =
+        pool.find(v => femaleKeywords.some(kw => v.name.toLowerCase().includes(kw)) && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+        pool.find(v => !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+        pool[0];
+
+      if (preferredFemale) {
+        utter.voice = preferredFemale;
+        utter.lang = preferredFemale.lang;
+      }
+    }
 
     utter.onend = () => {
       setStatus('listening');
