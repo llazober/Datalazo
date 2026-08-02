@@ -229,6 +229,32 @@ function parseGmailSearchQuery(input: string): string {
   return `label:INBOX (from:"${cleaned}" OR to:"${cleaned}" OR subject:"${cleaned}" OR "${cleaned}")`;
 }
 
+function extractAttachmentMetadata(payload: any): { filename: string; mimeType: string; size: number }[] {
+  const list: { filename: string; mimeType: string; size: number }[] = [];
+  if (!payload) return list;
+
+  function traverse(parts: any[]) {
+    if (!parts || !Array.isArray(parts)) return;
+    for (const p of parts) {
+      if (p.filename && p.filename.trim() && p.body && (p.body.attachmentId || p.body.size > 0)) {
+        list.push({
+          filename: p.filename,
+          mimeType: p.mimeType || 'application/octet-stream',
+          size: p.body.size || 0,
+        });
+      }
+      if (p.parts) {
+        traverse(p.parts);
+      }
+    }
+  }
+
+  if (payload.parts) {
+    traverse(payload.parts);
+  }
+  return list;
+}
+
 export async function GET(req: NextRequest) {
   const tokensCookie = req.cookies.get('user_tokens');
   const legacyCookie = req.cookies.get('user_session');
@@ -314,7 +340,7 @@ export async function GET(req: NextRequest) {
       messageList.map(async (msg: { id: string }) => {
         try {
           const detailRes = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
             {
               headers: { Authorization: `Bearer ${accessToken}` },
             }
@@ -331,6 +357,7 @@ export async function GET(req: NextRequest) {
           const subject = getHeader('Subject') || '(No Subject)';
           const date = getHeader('Date');
           const snippet = detail.snippet || '';
+          const attachments = extractAttachmentMetadata(detail.payload);
 
           const fromMatch = from.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
           const fromName = (fromMatch?.[1] || '').trim() || fromMatch?.[2] || from;
@@ -343,9 +370,11 @@ export async function GET(req: NextRequest) {
             fromEmail,
             subject,
             snippet,
-            date: date ? new Date(date).toISOString() : new Date().toISOString(),
+            date: date || new Date().toUTCString(),
             isRead: !detail.labelIds?.includes('UNREAD'),
             isStarred: detail.labelIds?.includes('STARRED'),
+            hasAttachments: attachments.length > 0,
+            attachments,
           };
         } catch {
           return null;

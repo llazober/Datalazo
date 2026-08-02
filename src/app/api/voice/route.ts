@@ -807,13 +807,16 @@ ${emailContextPrompt}${knowledgePrompt}`;
         response_format: 'mp3',
       });
 
-      const res = new NextResponse(speechResponse.body, {
-        headers: {
-          'Content-Type': 'audio/mpeg',
-          'X-AI-Transcript': encodeURIComponent(userText),
-          'X-AI-Reply': encodeURIComponent(aiReply),
-        },
+      const speechBuffer = await speechResponse.arrayBuffer();
+      const audioBase64 = Buffer.from(speechBuffer).toString('base64');
+
+      const res = NextResponse.json({
+        transcript: userText,
+        reply: aiReply,
+        action: actionObj,
+        audioBase64: `data:audio/mpeg;base64,${audioBase64}`,
       });
+
       if (newTokensCookieVal) {
         res.cookies.set('user_tokens', newTokensCookieVal, {
           httpOnly: true,

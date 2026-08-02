@@ -27,6 +27,26 @@ interface EmailItem {
   aiCategory?: EmailCategory;
   aiPriority?: EmailPriority;
   aiSummary?: string;
+  hasAttachments?: boolean;
+  attachments?: { filename: string; mimeType: string; size: number }[];
+}
+
+function formatEmailDate(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+
+    const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return timePart;
+
+    const datePart = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `${datePart}, ${timePart}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 interface UserSession {
@@ -106,12 +126,14 @@ function speakText(text: string) {
   } catch {}
 }
 
-// Play audio blob from API
-function playAudioBlob(blob: Blob) {
+// Play audio from Blob or Base64 string
+function playAudioInput(input: Blob | string) {
   try {
-    const url = URL.createObjectURL(blob);
+    const url = typeof input === 'string' ? input : URL.createObjectURL(input);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
+    if (typeof input !== 'string') {
+      audio.onended = () => URL.revokeObjectURL(url);
+    }
     audio.play().catch(() => {});
   } catch {}
 }
@@ -446,25 +468,23 @@ export default function DashboardEmailAssistantPage() {
         return;
       }
 
-      const transcriptText = decodeURIComponent(res.headers.get('X-AI-Transcript') || '');
-      const replyText = decodeURIComponent(res.headers.get('X-AI-Reply') || '');
-      const actionText = decodeURIComponent(res.headers.get('X-AI-Action') || '');
+      const data = await res.json();
+      const transcriptText = data.transcript || '';
+      const replyText = data.reply || '';
+      const actionObj = data.action || null;
 
       if (transcriptText) setTranscript(`🗣️ "${transcriptText}"`);
       if (replyText) setAiResponse(replyText);
 
       let handledAction = false;
-      if (actionText) {
-        try {
-          const action = JSON.parse(actionText);
-          if (action.type === 'search' && action.query) {
-            executeSearch(action.query);
-            handledAction = true;
-          } else if (action.type === 'refresh') {
-            fetchEmails();
-            handledAction = true;
-          }
-        } catch (e) {}
+      if (actionObj) {
+        if (actionObj.type === 'search' && actionObj.query) {
+          executeSearch(actionObj.query);
+          handledAction = true;
+        } else if (actionObj.type === 'refresh') {
+          fetchEmails();
+          handledAction = true;
+        }
       }
 
       if (!handledAction && transcriptText) {
@@ -482,9 +502,8 @@ export default function DashboardEmailAssistantPage() {
         }
       }
 
-      const audioData = await res.blob();
-      if (audioData.size > 0) {
-        playAudioBlob(audioData);
+      if (data.audioBase64) {
+        playAudioInput(data.audioBase64);
         setVoiceStatus(`✅ AI replied. Ready to record again.`);
       } else {
         if (replyText) speakText(replyText);
@@ -939,13 +958,26 @@ export default function DashboardEmailAssistantPage() {
                           {prioBadge.label}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono ml-1">
-                          {new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatEmailDate(email.date)}
                         </span>
                       </div>
                     </div>
 
                     <h4 className="text-xs font-bold text-white mb-1 truncate">{email.subject}</h4>
                     <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
+
+                    {email.hasAttachments && (
+                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                          📎 {email.attachments?.length || 1} Attachment(s)
+                        </span>
+                        {email.attachments?.map((att, i) => (
+                          <span key={i} className="text-[10px] text-slate-300 bg-white/5 px-2 py-0.5 rounded border border-white/10 flex items-center gap-1 truncate max-w-[220px]">
+                            📄 {att.filename}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Quick Row Action Bar if Selected */}
                     {isSelected && (
