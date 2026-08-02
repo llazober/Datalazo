@@ -62,6 +62,7 @@ export default function DashboardEmailAssistantPage() {
   const [typedCommand, setTypedCommand] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
+  const [micStatus, setMicStatus] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const shouldListenRef = useRef<boolean>(false);
@@ -261,6 +262,37 @@ export default function DashboardEmailAssistantPage() {
     setSpeechTested(true);
   };
 
+  const testMicrophone = async () => {
+    setMicStatus(null);
+    setMicError(null);
+
+    // Step 1: Check if getUserMedia works
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError('getMicError: navigator.mediaDevices.getUserMedia not available. Not on HTTPS or browser too old.');
+      return;
+    }
+
+    try {
+      setMicStatus('🔄 Requesting microphone access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const tracks = stream.getAudioTracks();
+      const label = tracks[0]?.label || 'Unknown device';
+      stream.getTracks().forEach(t => t.stop());
+      setMicStatus(`✅ Mic hardware OK! Device: "${label}". Now click Start Voice Control.`);
+    } catch (err: any) {
+      const code = err.name || err.message || 'Unknown';
+      if (code === 'NotAllowedError' || code === 'PermissionDeniedError') {
+        setMicError(`getMic error: NotAllowedError — Chrome denied mic even though datalazo.net is in Allowed list. Try: in Chrome go to chrome://settings/content/microphone, delete datalazo.net from Allowed, reload, then allow again.`);
+      } else if (code === 'NotFoundError' || code === 'DevicesNotFoundError') {
+        setMicError(`getMic error: NotFoundError — No microphone hardware found. Check Windows Sound → Recording tab → make sure a mic device is enabled.`);
+      } else if (code === 'NotReadableError' || code === 'TrackStartError') {
+        setMicError(`getMic error: NotReadableError — Microphone is busy or used by another app (Teams, Zoom, etc.). Close other apps using the mic, then try again.`);
+      } else {
+        setMicError(`getMic error: ${code} — ${err.message}`);
+      }
+    }
+  };
+
   const handleLogout = () => {
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     document.cookie = 'user_profile=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -306,6 +338,13 @@ export default function DashboardEmailAssistantPage() {
             🔊 {speechTested ? 'Speaker Tested ✓' : 'Test Speaker'}
           </button>
 
+          <button
+            onClick={testMicrophone}
+            className="px-3.5 py-2 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 text-xs font-bold hover:bg-purple-500/20 transition-all flex items-center gap-1.5"
+          >
+            🎤 Test Mic
+          </button>
+
           {user ? (
             <div className="flex items-center gap-3 bg-white/[0.04] border border-emerald-500/30 px-4 py-2 rounded-xl">
               {user.picture ? (
@@ -348,6 +387,16 @@ export default function DashboardEmailAssistantPage() {
           </button>
         </div>
       )}
+
+      {micStatus && (
+        <div className="max-w-6xl w-full mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 font-bold text-xs flex items-center justify-between shadow-lg">
+          <span>{micStatus}</span>
+          <button onClick={() => setMicStatus(null)} className="text-white text-xs opacity-70 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
 
       {emailError && (
         <div className="max-w-6xl w-full mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 font-bold text-xs flex items-center justify-between shadow-lg">
