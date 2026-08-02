@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Admin Dashboard routes require admin authentication
-  const isAdminDashboardRoute = pathname.startsWith('/dashboard');
+  // 1. Admin Dashboard routes require admin authentication (except email assistant)
+  const isAdminDashboardRoute = pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/email-assistant');
 
   // 2. Client Dashboard routes require client user authentication
   const isClientDashboardRoute = pathname.startsWith('/client/dashboard');
