@@ -191,6 +191,7 @@ Return format:
 export async function GET(req: NextRequest) {
   const tokensCookie = req.cookies.get('user_tokens');
   const legacyCookie = req.cookies.get('user_session');
+  const searchQueryParam = req.nextUrl.searchParams.get('q') || '';
 
   let accessToken: string | null = null;
   let refreshToken: string | null = null;
@@ -219,10 +220,23 @@ export async function GET(req: NextRequest) {
 
   let newTokensCookieVal: string | null = null;
 
+  // Construct Gmail API query string
+  let gmailQuery = 'label:INBOX';
+  if (searchQueryParam.trim()) {
+    const qTrim = searchQueryParam.trim();
+    if (qTrim.toLowerCase().startsWith('all:') || qTrim.toLowerCase().startsWith('global:')) {
+      gmailQuery = qTrim.replace(/^(all|global):/i, '').trim();
+    } else if (qTrim.includes('label:') || qTrim.includes('in:')) {
+      gmailQuery = qTrim;
+    } else {
+      gmailQuery = `label:INBOX ${qTrim}`;
+    }
+  }
+
   try {
-    // List latest 15 messages from Gmail inbox
+    // List latest 15 messages matching query
     let listRes = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=label:INBOX',
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=${encodeURIComponent(gmailQuery)}`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -238,7 +252,7 @@ export async function GET(req: NextRequest) {
 
         // Retry Gmail API call with new access token
         listRes = await fetch(
-          'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=label:INBOX',
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=${encodeURIComponent(gmailQuery)}`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
@@ -358,6 +372,115 @@ export async function GET(req: NextRequest) {
     return res;
   } catch (err: any) {
     console.error('[API Emails] Exception:', err);
+    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const tokensCookie = req.cookies.get('user_tokens');
+  let accessToken: string | null = null;
+
+  if (tokensCookie?.value) {
+    try {
+      const tokens = JSON.parse(tokensCookie.value);
+      accessToken = tokens.accessToken || null;
+    } catch {}
+  }
+
+  if (!accessToken) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { action, messageIds, folderName } = body as {
+      action: 'move' | 'archive' | 'trash' | 'restore';
+      messageIds: string[];
+      folderName?: string;
+    };
+
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return NextResponse.json({ error: 'No messageIds provided' }, { status: 400 });
+    }
+
+    let addLabelIds: string[] = [];
+    let removeLabelIds: string[] = [];
+
+    if (action === 'archive') {
+      removeLabelIds = ['INBOX'];
+    } else if (action === 'trash') {
+      addLabelIds = ['TRASH'];
+    } else if (action === 'restore') {
+      addLabelIds = ['INBOX'];
+      removeLabelIds = ['TRASH'];
+    } else if (action === 'move') {
+      if (!folderName) {
+        return NextResponse.json({ error: 'folderName required for move' }, { status: 400 });
+      }
+
+      // Check/create folder label
+      const labelsRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      let targetLabelId: string | null = null;
+      if (labelsRes.ok) {
+        const labelsData = await labelsRes.json();
+        const existing = (labelsData.labels || []).find(
+          (l: { id: string; name: string }) => l.name.toLowerCase() === folderName.toLowerCase()
+        );
+        if (existing) targetLabelId = existing.id;
+      }
+
+      if (!targetLabelId) {
+        const createRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: folderName,
+            labelListVisibility: 'labelShow',
+            messageListVisibility: 'show',
+          }),
+        });
+
+        if (createRes.ok) {
+          const newLabel = await createRes.json();
+          targetLabelId = newLabel.id;
+        }
+      }
+
+      if (!targetLabelId) {
+        return NextResponse.json({ error: `Could not find or create folder "${folderName}"` }, { status: 400 });
+      }
+
+      addLabelIds = [targetLabelId];
+      removeLabelIds = ['INBOX'];
+    }
+
+    const batchRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ids: messageIds,
+        addLabelIds,
+        removeLabelIds,
+      }),
+    });
+
+    if (!batchRes.ok) {
+      const errData = await batchRes.json();
+      return NextResponse.json({ error: errData.error?.message || 'Batch operation failed' }, { status: batchRes.status });
+    }
+
+    return NextResponse.json({ success: true, count: messageIds.length, action });
+  } catch (err: any) {
+    console.error('[API Emails Batch] Error:', err);
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }

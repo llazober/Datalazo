@@ -494,6 +494,40 @@ export async function POST(req: Request) {
         {
           type: 'function' as const,
           function: {
+            name: 'search_emails',
+            description: 'Filter or search emails by keyword, sender, or subject (e.g. "Amazon", "invoice", "from:John").',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'The search query or sender name (e.g. "Amazon", "invoice", "John").',
+                },
+              },
+              required: ['query'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'batch_move_emails',
+            description: 'Move multiple emails to a target folder/label (e.g. "Finance", "Work", "INBOX").',
+            parameters: {
+              type: 'object',
+              properties: {
+                folderName: {
+                  type: 'string',
+                  description: 'The target folder or label name (e.g. "Finance", "Shopping", "INBOX" to move back to inbox).',
+                },
+              },
+              required: ['folderName'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
             name: 'schedule_calendar_event',
             description: 'Check availability and schedule a meeting/event on Google Calendar.',
             parameters: {
@@ -526,6 +560,8 @@ export async function POST(req: Request) {
 LANGUAGE MANDATE: You MUST respond in the EXACT SAME LANGUAGE as the user's input or the email being discussed. If the user speaks in Spanish, asks in Spanish, or if the email is in Spanish, YOU MUST RESPOND IN FLUENT, NATURAL SPANISH. Do NOT reply in English when spoken to or reading content in Spanish.
 
 Use the live Gmail inbox context below to answer questions, reply to emails, trash/archive emails, move emails to folders, or schedule meetings on Google Calendar.
+- If the user asks to search or filter emails (e.g., "Show emails from Amazon", "Buscar correos de facturas"), call 'search_emails'.
+- If the user asks to move all/multiple emails to a folder or back to Inbox (e.g., "Move all to Finance", "Mover todos a Recibidos"), call 'batch_move_emails'.
 - If the user asks to reply to an email, call 'send_reply_email'.
 - If the user asks to delete/trash an email, call 'trash_email'.
 - If the user asks to archive an email, call 'archive_email'.
@@ -618,6 +654,49 @@ ${emailContextPrompt}${knowledgePrompt}`;
             }
           } catch (e) {
             aiReply = 'There was an error archiving the email.';
+          }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'search_emails') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            const q = (args.query || '').trim();
+            aiReply = q ? `Searching emails for "${q}".` : 'Please specify a search query.';
+          } catch (e) {
+            aiReply = 'There was an error searching emails.';
+          }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'batch_move_emails') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            const folderName = (args.folderName || 'INBOX').trim();
+
+            if (accessToken && gmailMessages.length > 0) {
+              const messageIds = gmailMessages.map((m) => m.id);
+              const actionName = folderName.toUpperCase() === 'INBOX' ? 'restore' : 'move';
+
+              const batchRes = await fetch(`${req.url.split('/api/')[0]}/api/emails`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  cookie: req.headers.get('cookie') || '',
+                },
+                body: JSON.stringify({
+                  action: actionName,
+                  messageIds,
+                  folderName,
+                }),
+              });
+
+              if (batchRes.ok) {
+                aiReply = folderName.toUpperCase() === 'INBOX'
+                  ? `Moved ${messageIds.length} emails back to Inbox.`
+                  : `Moved ${messageIds.length} emails to folder "${folderName}".`;
+              } else {
+                aiReply = `Failed to batch move emails to "${folderName}".`;
+              }
+            } else {
+              aiReply = 'No emails found to move.';
+            }
+          } catch (e) {
+            aiReply = 'There was an error executing batch move.';
           }
         } else if (toolCall.type === 'function' && toolCall.function.name === 'move_email_to_folder') {
           try {

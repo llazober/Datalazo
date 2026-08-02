@@ -168,6 +168,13 @@ export default function PublicEmailAssistantPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [typedCommand, setTypedCommand] = useState('');
 
+  // Search & Batch state
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [moveFolderModalOpen, setMoveFolderModalOpen] = useState(false);
+  const [targetFolderName, setTargetFolderName] = useState('');
+
   const [micError, setMicError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -178,46 +185,20 @@ export default function PublicEmailAssistantPage() {
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
-  useEffect(() => {
-    try {
-      const profileMatch = document.cookie.match(new RegExp('(^| )user_profile=([^;]+)'));
-      if (profileMatch) {
-        const decoded = JSON.parse(decodeURIComponent(profileMatch[2]));
-        if (decoded?.email) {
-          setUser(decoded);
-          return;
-        }
-      }
-    } catch {}
-
-    try {
-      const match = document.cookie.match(new RegExp('(^| )user_session=([^;]+)'));
-      if (match) {
-        const decoded = JSON.parse(decodeURIComponent(match[2]));
-        if (decoded?.email) setUser(decoded);
-      }
-    } catch {}
-
-    fetch('/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.email) setUser(d);
-      })
-      .catch(() => {});
-  }, []);
-
-  const fetchEmails = async () => {
+  const fetchEmails = async (overrideQuery?: string) => {
     setLoadingEmails(true);
     setEmailError(null);
     try {
-      const res = await fetch('/api/emails');
+      const q = overrideQuery !== undefined ? overrideQuery : activeSearch;
+      const url = q ? `/api/emails?q=${encodeURIComponent(q)}` : '/api/emails';
+      const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) {
         setEmailError(`Gmail sync: ${data?.error || `Error ${res.status}`}`);
         return;
       }
       const list: EmailItem[] = data.emails || [];
-      if (knownIdsRef.current.size > 0) {
+      if (knownIdsRef.current.size > 0 && !q) {
         // Only notify for genuinely new emails (unseen AND received within the last 10 minutes)
         const fresh = list.filter((m) => {
           if (knownIdsRef.current.has(m.id)) return false;
@@ -244,6 +225,49 @@ export default function PublicEmailAssistantPage() {
     } finally {
       setLoadingEmails(false);
     }
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = searchInput.trim();
+    setActiveSearch(q);
+    fetchEmails(q);
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setActiveSearch('');
+    fetchEmails('');
+  };
+
+  const handleBatchAction = async (action: 'move' | 'archive' | 'trash' | 'restore', folderName?: string) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    try {
+      const res = await fetch('/api/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, messageIds: ids, folderName }),
+      });
+      if (res.ok) {
+        setSelectedIds(new Set());
+        setMoveFolderModalOpen(false);
+        setTargetFolderName('');
+        fetchEmails();
+      }
+    } catch (err) {
+      console.error('Batch action error', err);
+    }
+  };
+
+  const toggleSelectEmail = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -598,19 +622,50 @@ export default function PublicEmailAssistantPage() {
               )}
             </h2>
             {user && (
-              <button onClick={fetchEmails} disabled={loadingEmails} className="text-xs text-indigo-400 hover:text-indigo-300 font-mono">
+              <button onClick={() => fetchEmails()} disabled={loadingEmails} className="text-xs text-indigo-400 hover:text-indigo-300 font-mono">
                 {loadingEmails ? 'Syncing...' : '🔄 Refresh'}
               </button>
             )}
           </div>
 
+          {/* Search Bar & Scope Controls */}
+          <div className="flex items-center gap-2 mb-3">
+            <form onSubmit={handleSearchSubmit} className="flex-1 flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search inbox or folders (e.g. 'Amazon', 'invoice', 'from:John')..."
+                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                />
+                <span className="absolute left-3 top-2 text-slate-500 text-xs">🔍</span>
+                {searchInput && (
+                  <button type="button" onClick={() => setSearchInput('')} className="absolute right-3 top-2 text-slate-500 hover:text-white text-xs">
+                    ✕
+                  </button>
+                )}
+              </div>
+              <button type="submit" className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md">
+                Search
+              </button>
+            </form>
+          </div>
+
+          {/* AI Category & Dynamic Search Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-white/5 no-scrollbar">
+            {activeSearch && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.3)] whitespace-nowrap">
+                <span>🔍 Search: "{activeSearch}"</span>
+                <button onClick={clearSearch} className="ml-1 opacity-70 hover:opacity-100 text-white font-bold">✕</button>
+              </div>
+            )}
             {['All', 'Urgent', 'Customer', 'Accounting', 'Banking', 'Vendor', 'Internal', 'Newsletter', 'Marketing'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveFilter(cat)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
-                  activeFilter === cat
+                  activeFilter === cat && !activeSearch
                     ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/60 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
                     : 'bg-white/[0.02] text-slate-400 border-white/5 hover:bg-white/[0.06] hover:text-slate-200'
                 }`}
@@ -619,6 +674,45 @@ export default function PublicEmailAssistantPage() {
               </button>
             ))}
           </div>
+
+          {/* Batch Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="mb-3 p-3 rounded-xl bg-indigo-950/80 border border-indigo-500/50 flex items-center justify-between flex-wrap gap-2 text-xs shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+              <div className="flex items-center gap-2 font-bold text-indigo-200">
+                <span>☑️ {selectedIds.size} Selected</span>
+                <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-white underline font-normal text-[11px]">
+                  Deselect All
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setMoveFolderModalOpen(true)}
+                  className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-colors flex items-center gap-1 shadow"
+                >
+                  📁 Move to Folder
+                </button>
+                <button
+                  onClick={() => handleBatchAction('restore')}
+                  className="px-3 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white font-bold transition-colors flex items-center gap-1 shadow"
+                >
+                  📥 Move to Inbox
+                </button>
+                <button
+                  onClick={() => handleBatchAction('archive')}
+                  className="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold transition-colors flex items-center gap-1"
+                >
+                  📦 Archive
+                </button>
+                <button
+                  onClick={() => handleBatchAction('trash')}
+                  className="px-3 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white font-bold transition-colors flex items-center gap-1 shadow"
+                >
+                  🗑️ Trash
+                </button>
+              </div>
+            </div>
+          )}
 
           {!user ? (
             <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
@@ -632,7 +726,7 @@ export default function PublicEmailAssistantPage() {
             </div>
           ) : filteredEmails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
-              No emails matching filter "{activeFilter}".
+              No emails matching {activeSearch ? `search "${activeSearch}"` : `filter "${activeFilter}"`}.
             </div>
           ) : (
             <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
@@ -640,6 +734,7 @@ export default function PublicEmailAssistantPage() {
                 const catBadge = getCategoryBadge(email.aiCategory);
                 const prioBadge = getPriorityBadge(email.aiPriority);
                 const isSelected = selectedEmailId === email.id;
+                const isChecked = selectedIds.has(email.id);
 
                 return (
                   <div
@@ -655,6 +750,13 @@ export default function PublicEmailAssistantPage() {
                   >
                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                       <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => toggleSelectEmail(email.id, e as any)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
                         {isSelected && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] bg-indigo-500 text-white font-bold animate-pulse">
                             ✓ Selected
@@ -733,7 +835,7 @@ export default function PublicEmailAssistantPage() {
             <span className="text-[10px] text-slate-400">→ speaks full email</span>
           </button>
           <button
-            onClick={fetchEmails}
+            onClick={() => fetchEmails()}
             className="w-full py-2.5 px-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono text-xs hover:bg-purple-500/20 transition-all text-left flex items-center justify-between"
           >
             <span>🔄 Refresh &amp; Categorize</span>
@@ -748,6 +850,48 @@ export default function PublicEmailAssistantPage() {
           </div>
         </div>
       </div>
+
+      {/* Move to Folder Modal */}
+      {moveFolderModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/40 p-6 rounded-2xl max-w-md w-full shadow-2xl animate-scaleUp">
+            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+              📁 Move {selectedIds.size} Email{selectedIds.size > 1 ? 's' : ''} to Folder
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Enter target folder or label name (e.g., "Work", "Finance", "Personal"). It will be created automatically if it doesn't exist.
+            </p>
+            <input
+              type="text"
+              value={targetFolderName}
+              onChange={(e) => setTargetFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && targetFolderName.trim()) {
+                  handleBatchAction('move', targetFolderName);
+                }
+              }}
+              placeholder="Folder Name..."
+              className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white mb-5 focus:outline-none focus:border-indigo-500"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setMoveFolderModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBatchAction('move', targetFolderName)}
+                disabled={!targetFolderName.trim()}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow"
+              >
+                Move {selectedIds.size} Email{selectedIds.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
