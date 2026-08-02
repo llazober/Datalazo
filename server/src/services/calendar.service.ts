@@ -1,21 +1,8 @@
 import { google, calendar_v3 } from 'googleapis';
-import { getGmailClient } from './gmail.service';
-import { createOAuth2Client } from './gmail.service';
-import { db } from '../db';
-import { users } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { getAuthenticatedOAuth2Client } from './gmail.service';
 
 async function getCalendarClient(userId: string): Promise<calendar_v3.Calendar> {
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user?.accessToken) throw new Error('Not authenticated');
-
-  const auth = createOAuth2Client();
-  auth.setCredentials({
-    access_token: user.accessToken,
-    refresh_token: user.refreshToken,
-    expiry_date: user.tokenExpiry ? user.tokenExpiry.getTime() : undefined,
-  });
-
+  const auth = await getAuthenticatedOAuth2Client(userId);
   return google.calendar({ version: 'v3', auth });
 }
 

@@ -30,23 +30,24 @@ export function getAuthUrl(): string {
   });
 }
 
-export async function getGmailClient(userId: string): Promise<gmail_v1.Gmail> {
+export async function getAuthenticatedOAuth2Client(userId: string): Promise<OAuth2Client> {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user || !user.accessToken) throw new Error('User not authenticated with Gmail');
+  if (!user || !user.accessToken) throw new Error('User not authenticated with Google');
 
   const auth = createOAuth2Client();
   auth.setCredentials({
     access_token: user.accessToken,
-    refresh_token: user.refreshToken,
+    refresh_token: user.refreshToken || undefined,
     expiry_date: user.tokenExpiry ? user.tokenExpiry.getTime() : undefined,
   });
 
-  // Auto-refresh token if expired
+  // Auto-refresh token if expired and save new token to DB
   auth.on('tokens', async (tokens) => {
     if (tokens.access_token) {
       await db.update(users)
         .set({
           accessToken: tokens.access_token,
+          ...(tokens.refresh_token && { refreshToken: tokens.refresh_token }),
           tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
           updatedAt: new Date(),
         })
@@ -54,6 +55,11 @@ export async function getGmailClient(userId: string): Promise<gmail_v1.Gmail> {
     }
   });
 
+  return auth;
+}
+
+export async function getGmailClient(userId: string): Promise<gmail_v1.Gmail> {
+  const auth = await getAuthenticatedOAuth2Client(userId);
   return google.gmail({ version: 'v1', auth });
 }
 

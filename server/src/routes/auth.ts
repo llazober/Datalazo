@@ -96,9 +96,10 @@ const router = Router();
 router.get('/google', passport.authenticate('google', { scope: SCOPES, accessType: 'offline', prompt: 'consent' }));
 
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.VITE_API_URL?.replace('3001','3000') || 'http://localhost:3000'}/login?error=auth_failed` }),
+  passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
   (req: Request, res: Response) => {
-    res.redirect(process.env.VITE_API_URL?.replace('3001','3000') || 'http://localhost:3000');
+    const redirectUrl = process.env.CLIENT_URL || '/';
+    res.redirect(redirectUrl);
   }
 );
 
