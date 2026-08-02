@@ -139,6 +139,38 @@ async function sendGmailReply(
   }
 }
 
+async function trashGmailMessage(accessToken: string, messageId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('[Trash Gmail Error]', err);
+    return false;
+  }
+}
+
+async function archiveGmailMessage(accessToken: string, messageId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        removeLabelIds: ['INBOX'],
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('[Archive Gmail Error]', err);
+    return false;
+  }
+}
+
 async function scheduleGoogleCalendarEvent(
   accessToken: string,
   summary: string,
@@ -147,7 +179,6 @@ async function scheduleGoogleCalendarEvent(
   attendeeEmail?: string
 ): Promise<{ success: boolean; isConflict?: boolean; link?: string; formattedStart?: string }> {
   try {
-    // 1. FreeBusy Check for Availability
     const freeBusyRes = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
       method: 'POST',
       headers: {
@@ -169,7 +200,6 @@ async function scheduleGoogleCalendarEvent(
       }
     }
 
-    // 2. Create Event on Primary Google Calendar
     const eventBody: any = {
       summary: summary || 'Executive Meeting',
       description: 'Scheduled via Datalazo AI Executive Assistant',
@@ -249,7 +279,6 @@ export async function POST(req: Request) {
       else if (mimeType.includes('wav')) extension = 'wav';
       else if (mimeType.includes('mpeg')) extension = 'mp3';
 
-      // 1. Whisper Voice Transcription
       const transcription = await openai.audio.transcriptions.create({
         file: new File([file], `audio.${extension}`, { type: mimeType }),
         model: 'whisper-1',
@@ -257,7 +286,6 @@ export async function POST(req: Request) {
 
       const userText = transcription.text;
 
-      // 2. Retrieve Live Gmail Inbox Details
       const accessToken = getAccessTokenFromReq(req);
       let gmailMessages: GmailMessageDetail[] = [];
       let emailContextPrompt = 'User is not signed in to Gmail or has no inbox messages.';
@@ -280,7 +308,6 @@ export async function POST(req: Request) {
 
       const currentIsoDate = new Date().toISOString();
 
-      // 3. Define Tools for GPT-4o
       const tools = [
         {
           type: 'function' as const,
@@ -300,6 +327,38 @@ export async function POST(req: Request) {
                 },
               },
               required: ['replyBody'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'trash_email',
+            description: 'Move an email message to Trash (Delete to Trash).',
+            parameters: {
+              type: 'object',
+              properties: {
+                emailIndex: {
+                  type: 'integer',
+                  description: '1-based index of the email in the inbox list to move to Trash (default 1 for latest).',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'archive_email',
+            description: 'Archive an email message (remove from Inbox).',
+            parameters: {
+              type: 'object',
+              properties: {
+                emailIndex: {
+                  type: 'integer',
+                  description: '1-based index of the email in the inbox list to archive (default 1 for latest).',
+                },
+              },
             },
           },
         },
@@ -335,13 +394,14 @@ export async function POST(req: Request) {
       ];
 
       const systemPrompt = `You are Datalazo AI Executive Assistant. Speak in a natural, professional tone. Keep responses concise (1-3 sentences) suitable for voice speech. Current date/time is ${currentIsoDate}.
-Use the live Gmail inbox context below to answer questions, reply to emails, or schedule meetings on Google Calendar.
+Use the live Gmail inbox context below to answer questions, reply to emails, trash/archive emails, or schedule meetings on Google Calendar.
 - If the user asks to reply to an email, call 'send_reply_email'.
+- If the user asks to delete/trash an email, call 'trash_email'.
+- If the user asks to archive an email, call 'archive_email'.
 - If the user asks to schedule or set up a meeting/event, call 'schedule_calendar_event'.
 
 ${emailContextPrompt}${knowledgePrompt}`;
 
-      // 4. Chat Completion with Function Calling
       const chatCompletion = await openai.chat.completions.create({
         model: chosenModel,
         messages: [
@@ -356,7 +416,6 @@ ${emailContextPrompt}${knowledgePrompt}`;
       let aiReply = '';
       const responseMessage = chatCompletion.choices[0].message;
 
-      // Handle tool calls
       if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
         const toolCall = responseMessage.tool_calls[0];
 
@@ -390,6 +449,44 @@ ${emailContextPrompt}${knowledgePrompt}`;
             console.error('[Tool Call Reply Error]', e);
             aiReply = 'There was an error formatting your reply email.';
           }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'trash_email') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            const index = (args.emailIndex || 1) - 1;
+            const targetMsg = gmailMessages[index] || gmailMessages[0];
+
+            if (accessToken && targetMsg) {
+              const ok = await trashGmailMessage(accessToken, targetMsg.id);
+              if (ok) {
+                aiReply = `Moved email from ${targetMsg.from} to Trash.`;
+              } else {
+                aiReply = 'Failed to move email to Trash.';
+              }
+            } else {
+              aiReply = 'Cannot trash email: Please sign in with Google first.';
+            }
+          } catch (e) {
+            aiReply = 'There was an error moving the email to Trash.';
+          }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'archive_email') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            const index = (args.emailIndex || 1) - 1;
+            const targetMsg = gmailMessages[index] || gmailMessages[0];
+
+            if (accessToken && targetMsg) {
+              const ok = await archiveGmailMessage(accessToken, targetMsg.id);
+              if (ok) {
+                aiReply = `Archived email from ${targetMsg.from}.`;
+              } else {
+                aiReply = 'Failed to archive email.';
+              }
+            } else {
+              aiReply = 'Cannot archive email: Please sign in with Google first.';
+            }
+          } catch (e) {
+            aiReply = 'There was an error archiving the email.';
+          }
         } else if (toolCall.type === 'function' && toolCall.function.name === 'schedule_calendar_event') {
           try {
             const args = JSON.parse(toolCall.function.arguments);
@@ -421,7 +518,6 @@ ${emailContextPrompt}${knowledgePrompt}`;
         aiReply = responseMessage.content || "I'm sorry, I couldn't process your request.";
       }
 
-      // Track usage
       const usage = chatCompletion.usage;
       if (usage) {
         const estimatedCost = usage.prompt_tokens * 0.00000015 + usage.completion_tokens * 0.0000006 + 0.005;
@@ -437,7 +533,6 @@ ${emailContextPrompt}${knowledgePrompt}`;
         });
       }
 
-      // 5. Generate TTS Audio for the spoken confirmation/response
       const speechResponse = await openai.audio.speech.create({
         model: 'tts-1',
         voice: 'alloy',
