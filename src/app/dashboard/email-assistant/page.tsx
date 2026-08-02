@@ -591,7 +591,7 @@ export default function DashboardEmailAssistantPage() {
                 return (
                   <div
                     key={email.id}
-                    className={`p-4 rounded-xl border transition-all ${
+                    className={`p-4 rounded-xl border transition-all select-none cursor-default ${
                       !email.isRead ? 'bg-indigo-950/30 border-indigo-500/40 shadow-sm' : 'bg-white/[0.02] border-white/5'
                     }`}
                   >
