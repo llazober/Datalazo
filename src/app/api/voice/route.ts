@@ -4,6 +4,7 @@ import { searchKnowledge } from '@/lib/knowledge';
 import { prisma } from '@/lib/prisma';
 import { getDatalazoConfig } from '@/lib/config';
 import { getClientIp } from '@/lib/auth-utils';
+import { refreshGoogleAccessToken } from '@/lib/google-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ interface GmailMessageDetail {
   messageIdHeader?: string;
 }
 
-function getAccessTokenFromReq(req: Request): string | null {
+function getTokensFromReq(req: Request): { accessToken: string | null; refreshToken: string | null } {
   try {
     const cookieHeader = req.headers.get('cookie') || '';
     const matchTokens = cookieHeader.match(new RegExp('(?:^|; )user_tokens=([^;]+)'));
@@ -28,25 +29,54 @@ function getAccessTokenFromReq(req: Request): string | null {
 
     if (matchTokens) {
       const parsed = JSON.parse(decodeURIComponent(matchTokens[1]));
-      if (parsed?.accessToken) return parsed.accessToken;
+      return {
+        accessToken: parsed?.accessToken || null,
+        refreshToken: parsed?.refreshToken || null,
+      };
     }
 
     if (matchLegacy) {
       const parsed = JSON.parse(decodeURIComponent(matchLegacy[1]));
-      if (parsed?.accessToken) return parsed.accessToken;
+      return {
+        accessToken: parsed?.accessToken || null,
+        refreshToken: null,
+      };
     }
   } catch {}
-  return null;
+  return { accessToken: null, refreshToken: null };
 }
 
-async function fetchRecentGmailDetails(accessToken: string, selectedId?: string | null): Promise<GmailMessageDetail[]> {
+function getAccessTokenFromReq(req: Request): string | null {
+  return getTokensFromReq(req).accessToken;
+}
+
+async function fetchRecentGmailDetails(
+  accessToken: string,
+  selectedId?: string | null,
+  refreshToken?: string | null
+): Promise<{ details: GmailMessageDetail[]; newTokens?: string }> {
   try {
-    const listRes = await fetch(
+    let activeToken = accessToken;
+    let newTokensCookie: string | undefined;
+
+    let listRes = await fetch(
       'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=8&q=label:INBOX',
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { headers: { Authorization: `Bearer ${activeToken}` } }
     );
 
-    if (!listRes.ok) return [];
+    if (listRes.status === 401 && refreshToken) {
+      const renewed = await refreshGoogleAccessToken(refreshToken);
+      if (renewed?.accessToken) {
+        activeToken = renewed.accessToken;
+        newTokensCookie = JSON.stringify({ accessToken: activeToken, refreshToken: renewed.refreshToken || refreshToken });
+        listRes = await fetch(
+          'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=8&q=label:INBOX',
+          { headers: { Authorization: `Bearer ${activeToken}` } }
+        );
+      }
+    }
+
+    if (!listRes.ok) return { details: [] };
 
     const listData = await listRes.json();
     let messageList: { id: string }[] = listData.messages || [];
@@ -63,7 +93,7 @@ async function fetchRecentGmailDetails(accessToken: string, selectedId?: string 
         try {
           const detailRes = await fetch(
             `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
+            { headers: { Authorization: `Bearer ${activeToken}` } }
           );
           const detail = await detailRes.json();
           const headers = detail.payload?.headers || [];
@@ -85,9 +115,9 @@ async function fetchRecentGmailDetails(accessToken: string, selectedId?: string 
       })
     );
 
-    return details.filter(Boolean) as GmailMessageDetail[];
+    return { details: details.filter(Boolean) as GmailMessageDetail[], newTokens: newTokensCookie };
   } catch {
-    return [];
+    return { details: [] };
   }
 }
 
@@ -294,13 +324,16 @@ export async function POST(req: Request) {
       const userText = transcription.text;
 
       // 2. Retrieve Live Gmail Inbox Details
-      const accessToken = getAccessTokenFromReq(req);
+      const { accessToken, refreshToken } = getTokensFromReq(req);
       const selectedId = req.headers.get('x-selected-email-id') || null;
       let gmailMessages: GmailMessageDetail[] = [];
       let emailContextPrompt = 'User is not signed in to Gmail or has no inbox messages.';
+      let newTokensCookieVal: string | undefined;
 
       if (accessToken) {
-        gmailMessages = await fetchRecentGmailDetails(accessToken, selectedId);
+        const result = await fetchRecentGmailDetails(accessToken, selectedId, refreshToken);
+        gmailMessages = result.details;
+        newTokensCookieVal = result.newTokens;
         if (gmailMessages.length > 0) {
           const listFormatted = gmailMessages.map((m, i) =>
             `Email #${i + 1}${selectedId && i === 0 ? ' [SELECTED BY USER IN UI]' : ''}:\n- From: ${m.from}\n- Subject: ${m.subject}\n- Date: ${m.date}\n- Snippet: ${m.snippet}`
@@ -549,13 +582,23 @@ ${emailContextPrompt}${knowledgePrompt}`;
         response_format: 'mp3',
       });
 
-      return new NextResponse(speechResponse.body, {
+      const res = new NextResponse(speechResponse.body, {
         headers: {
           'Content-Type': 'audio/mpeg',
           'X-AI-Transcript': encodeURIComponent(userText),
           'X-AI-Reply': encodeURIComponent(aiReply),
         },
       });
+      if (newTokensCookieVal) {
+        res.cookies.set('user_tokens', newTokensCookieVal, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 3600,
+        });
+      }
+      return res;
     }
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });

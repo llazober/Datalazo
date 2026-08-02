@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
+import { refreshGoogleAccessToken } from '@/lib/google-auth';
 
 export type EmailCategory =
   | 'Customer'
@@ -192,11 +193,13 @@ export async function GET(req: NextRequest) {
   const legacyCookie = req.cookies.get('user_session');
 
   let accessToken: string | null = null;
+  let refreshToken: string | null = null;
 
   if (tokensCookie?.value) {
     try {
       const tokens = JSON.parse(tokensCookie.value);
       accessToken = tokens.accessToken || null;
+      refreshToken = tokens.refreshToken || null;
     } catch {}
   }
 
@@ -214,14 +217,34 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  let newTokensCookieVal: string | null = null;
+
   try {
     // List latest 15 messages from Gmail inbox
-    const listRes = await fetch(
+    let listRes = await fetch(
       'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=label:INBOX',
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     );
+
+    // If access token expired (401), try refreshing using refresh token automatically
+    if (listRes.status === 401 && refreshToken) {
+      const renewed = await refreshGoogleAccessToken(refreshToken);
+      if (renewed?.accessToken) {
+        accessToken = renewed.accessToken;
+        refreshToken = renewed.refreshToken || refreshToken;
+        newTokensCookieVal = JSON.stringify({ accessToken, refreshToken });
+
+        // Retry Gmail API call with new access token
+        listRes = await fetch(
+          'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=label:INBOX',
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+      }
+    }
 
     const listData = await listRes.json();
 
@@ -322,7 +345,17 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ emails: categorizedEmails, count: categorizedEmails.length });
+    const res = NextResponse.json({ emails: categorizedEmails, count: categorizedEmails.length });
+    if (newTokensCookieVal) {
+      res.cookies.set('user_tokens', newTokensCookieVal, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 3600,
+      });
+    }
+    return res;
   } catch (err: any) {
     console.error('[API Emails] Exception:', err);
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
