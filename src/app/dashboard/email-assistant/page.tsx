@@ -279,13 +279,18 @@ export default function DashboardEmailAssistantPage() {
 
   const executeSearch = (rawQuery: string) => {
     let clean = rawQuery.trim();
-    if (!clean.includes('label:') && !clean.includes('folder:') && !clean.includes('in:')) {
+
+    const naturalFolderMatch = clean.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
+    if (naturalFolderMatch) {
+      const folder = naturalFolderMatch[1].trim();
+      const sub = (naturalFolderMatch[2] || '').trim();
+      clean = sub ? `folder:"${folder}" ${sub}` : `folder:"${folder}"`;
+    } else if (!clean.toLowerCase().includes('label:') && !clean.toLowerCase().includes('folder:') && !clean.toLowerCase().includes('in:')) {
       clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
       clean = clean.replace(/^(emails?\s+|messages?\s+)/i, '');
       clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|for|from|about)\s+/i, '');
       clean = clean.replace(/^(inbox\s+folder\s+for|inbox\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
       clean = clean.replace(/^(for|from|about)\s+/i, '');
-      clean = clean.replace(/\s+(in|inside)\s+(the\s+)?(inbox|label).*/i, '');
       clean = clean.trim();
     }
 
@@ -537,9 +542,15 @@ export default function DashboardEmailAssistantPage() {
     if (activeSearch.trim()) {
       const q = activeSearch.toLowerCase().trim();
 
-      // If explicit label/folder query, keep list returned by Gmail API directly
-      if (q.includes('label:') || q.includes('folder:') || q.includes('in:')) {
-        // keep list
+      const isFolderSearch =
+        q.includes('folder:') ||
+        q.includes('label:') ||
+        q.includes('in:') ||
+        q.includes('folder ') ||
+        q.includes('in folder');
+
+      if (isFolderSearch) {
+        return list;
       } else {
         const directMatches = list.filter(
           (e) =>

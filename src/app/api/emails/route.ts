@@ -198,10 +198,10 @@ function parseGmailSearchQuery(input: string): string {
   }
 
   // 2. Standardize folder: syntax to label:
-  raw = raw.replace(/\bfolder:/gi, 'label:');
+  raw = raw.replace(/\bfolder:\s*/gi, 'label:');
 
-  // 3. Match explicit natural language folder searches like "in folder Victor Rivera for Victor"
-  const naturalFolderMatch = raw.match(/(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
+  // 3. Match explicit natural language folder searches like "search emails in folder anil" or "in folder Victor Rivera for Victor"
+  const naturalFolderMatch = raw.match(/(?:search\s+emails?\s+)?(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
   if (naturalFolderMatch) {
     const targetFolder = naturalFolderMatch[1].trim();
     const subQuery = (naturalFolderMatch[2] || '').trim();
