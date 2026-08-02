@@ -266,13 +266,15 @@ export default function PublicEmailAssistantPage() {
 
   const executeSearch = (rawQuery: string) => {
     let clean = rawQuery.trim();
-    clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
-    clean = clean.replace(/^(emails?\s+|messages?\s+)/i, '');
-    clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|in\s+folder|folder\s+for|for|from|about)\s+/i, '');
-    clean = clean.replace(/^(inbox\s+folder\s+for|inbox\s+for|folder\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
-    clean = clean.replace(/^(for|from|about)\s+/i, '');
-    clean = clean.replace(/\s+(in|inside)\s+(the\s+)?(inbox|folder|label).*/i, '');
-    clean = clean.replace(/^(inbox|folder)\s+for\s+/i, '').trim();
+    if (!clean.includes('label:') && !clean.includes('folder:') && !clean.includes('in:')) {
+      clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
+      clean = clean.replace(/^(emails?\s+|messages?\s+)/i, '');
+      clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|for|from|about)\s+/i, '');
+      clean = clean.replace(/^(inbox\s+folder\s+for|inbox\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
+      clean = clean.replace(/^(for|from|about)\s+/i, '');
+      clean = clean.replace(/\s+(in|inside)\s+(the\s+)?(inbox|label).*/i, '');
+      clean = clean.trim();
+    }
 
     const finalQ = clean || rawQuery.trim();
     setSearchInput(finalQ);
@@ -519,24 +521,27 @@ export default function PublicEmailAssistantPage() {
     if (activeSearch.trim()) {
       const q = activeSearch.toLowerCase().trim();
 
-      // Check if there are direct sender matches (e.g. email from Victor Rivera)
-      const directMatches = list.filter(
-        (e) =>
-          (e.fromName && e.fromName.toLowerCase().includes(q)) ||
-          (e.fromEmail && e.fromEmail.toLowerCase().includes(q))
-      );
-
-      // If direct sender matches exist, show ONLY emails from that sender so third-party receipts aren't mixed in!
-      if (directMatches.length > 0) {
-        list = directMatches;
+      // If explicit label/folder query, keep list returned by Gmail API directly
+      if (q.includes('label:') || q.includes('folder:') || q.includes('in:')) {
+        // keep list
       } else {
-        list = list.filter(
+        const directMatches = list.filter(
           (e) =>
             (e.fromName && e.fromName.toLowerCase().includes(q)) ||
-            (e.fromEmail && e.fromEmail.toLowerCase().includes(q)) ||
-            (e.subject && e.subject.toLowerCase().includes(q)) ||
-            (e.snippet && e.snippet.toLowerCase().includes(q))
+            (e.fromEmail && e.fromEmail.toLowerCase().includes(q))
         );
+
+        if (directMatches.length > 0) {
+          list = directMatches;
+        } else {
+          list = list.filter(
+            (e) =>
+              (e.fromName && e.fromName.toLowerCase().includes(q)) ||
+              (e.fromEmail && e.fromEmail.toLowerCase().includes(q)) ||
+              (e.subject && e.subject.toLowerCase().includes(q)) ||
+              (e.snippet && e.snippet.toLowerCase().includes(q))
+          );
+        }
       }
     }
 

@@ -188,24 +188,45 @@ Return format:
   return results;
 }
 
-function sanitizeSearchQuery(input: string): string {
-  let q = input.trim();
-  if (!q) return '';
+function parseGmailSearchQuery(input: string): string {
+  let raw = input.trim();
+  if (!raw) return 'label:INBOX';
 
-  // 1. Remove all common conversational prefixes
-  q = q.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
-  q = q.replace(/^(emails?\s+|messages?\s+)/i, '');
-  q = q.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|in\s+folder|folder\s+for|for|from|about)\s+/i, '');
-  q = q.replace(/^(inbox\s+folder\s+for|inbox\s+for|folder\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
-  q = q.replace(/^(for|from|about)\s+/i, '');
-  q = q.trim();
+  // 1. Explicit global search
+  if (raw.toLowerCase().startsWith('all:') || raw.toLowerCase().startsWith('global:')) {
+    return raw.replace(/^(all|global):/i, '').trim();
+  }
 
-  // 2. Remove trailing folder/inbox references (e.g. "Victor in inbox folder")
-  q = q.replace(/\s+(in|inside)\s+(the\s+)?(inbox|folder|label).*/i, '');
-  q = q.replace(/^(inbox|folder)\s+for\s+/i, '');
-  q = q.trim();
+  // 2. Standardize folder: syntax to label:
+  raw = raw.replace(/\bfolder:/gi, 'label:');
 
-  return q;
+  // 3. Match explicit natural language folder searches like "in folder Victor Rivera for Victor"
+  const naturalFolderMatch = raw.match(/(?:in\s+folder|in\s+label|folder)\s+["']?([^"'\s]+(?:\s+[^"'\s]+)*?)["']?(?:\s+(?:for|from|about)\s+(.*))?$/i);
+  if (naturalFolderMatch) {
+    const targetFolder = naturalFolderMatch[1].trim();
+    const subQuery = (naturalFolderMatch[2] || '').trim();
+    if (subQuery) {
+      return `label:"${targetFolder}" (from:"${subQuery}" OR to:"${subQuery}" OR "${subQuery}")`;
+    }
+    return `label:"${targetFolder}"`;
+  }
+
+  // 4. If query already includes specific Gmail operators (label:, in:, from:, to:, subject:)
+  if (raw.includes('label:') || raw.includes('in:') || raw.includes('from:') || raw.includes('to:') || raw.includes('subject:')) {
+    return raw;
+  }
+
+  // 5. Strip conversational leading words
+  let cleaned = raw;
+  cleaned = cleaned.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
+  cleaned = cleaned.replace(/^(emails?\s+|messages?\s+)/i, '');
+  cleaned = cleaned.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|for|from|about)\s+/i, '');
+  cleaned = cleaned.replace(/^(inbox\s+folder\s+for|inbox\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
+  cleaned = cleaned.replace(/^(for|from|about)\s+/i, '').trim();
+
+  if (!cleaned) return 'label:INBOX';
+
+  return `label:INBOX (from:"${cleaned}" OR to:"${cleaned}" OR subject:"${cleaned}" OR "${cleaned}")`;
 }
 
 export async function GET(req: NextRequest) {
@@ -240,18 +261,8 @@ export async function GET(req: NextRequest) {
 
   let newTokensCookieVal: string | null = null;
 
-  // Construct Gmail API query string with conversational query sanitizer
-  let gmailQuery = 'label:INBOX';
-  if (searchQueryParam.trim()) {
-    const cleaned = sanitizeSearchQuery(searchQueryParam);
-    if (cleaned.toLowerCase().startsWith('all:') || cleaned.toLowerCase().startsWith('global:')) {
-      gmailQuery = cleaned.replace(/^(all|global):/i, '').trim();
-    } else if (cleaned.includes('label:') || cleaned.includes('in:') || cleaned.includes('from:') || cleaned.includes('to:') || cleaned.includes('subject:')) {
-      gmailQuery = cleaned;
-    } else if (cleaned) {
-      gmailQuery = `label:INBOX (from:"${cleaned}" OR to:"${cleaned}" OR subject:"${cleaned}" OR "${cleaned}")`;
-    }
-  }
+  // Construct Gmail API query string with parseGmailSearchQuery
+  const gmailQuery = parseGmailSearchQuery(searchQueryParam);
 
   try {
     // List latest 15 messages matching query
