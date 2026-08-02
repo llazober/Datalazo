@@ -439,15 +439,33 @@ export default function PublicEmailAssistantPage() {
       if (transcriptText) setTranscript(`🗣️ "${transcriptText}"`);
       if (replyText) setAiResponse(replyText);
 
+      let handledAction = false;
       if (actionText) {
         try {
           const action = JSON.parse(actionText);
           if (action.type === 'search' && action.query) {
             executeSearch(action.query);
+            handledAction = true;
           } else if (action.type === 'refresh') {
             fetchEmails();
+            handledAction = true;
           }
         } catch (e) {}
+      }
+
+      if (!handledAction && transcriptText) {
+        const tLower = transcriptText.toLowerCase().trim();
+        if (
+          tLower.includes('search') ||
+          tLower.includes('find') ||
+          tLower.includes('show') ||
+          tLower.includes('busca') ||
+          tLower.includes('buscar') ||
+          tLower.includes('emails from') ||
+          tLower.includes('correos de')
+        ) {
+          executeSearch(transcriptText);
+        }
       }
 
       const audioData = await res.blob();

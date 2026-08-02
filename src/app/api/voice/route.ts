@@ -759,6 +759,30 @@ ${emailContextPrompt}${knowledgePrompt}`;
         }
       } else {
         aiReply = responseMessage.content || "I'm sorry, I couldn't process your request.";
+
+        // Fallback: If AI returned plain text but user asked to search, extract search query
+        if (!actionObj && userText) {
+          const u = userText.toLowerCase().trim();
+          if (
+            u.includes('search') ||
+            u.includes('find') ||
+            u.includes('busca') ||
+            u.includes('buscar') ||
+            u.includes('show emails') ||
+            u.includes('mostrar correos') ||
+            u.includes('emails from') ||
+            u.includes('correos de')
+          ) {
+            let q = userText.trim();
+            q = q.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for|busca|buscar|mostrar)\s+/i, '');
+            q = q.replace(/^(emails?\s+|messages?\s+|correos?\s+|mensajes?\s+)/i, '');
+            q = q.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|in\s+folder|folder\s+for|for|from|about|de|para|sobre)\s+/i, '');
+            q = q.replace(/^(for|from|about|de|para|sobre)\s+/i, '').trim();
+            if (q) {
+              actionObj = { type: 'search', query: q };
+            }
+          }
+        }
       }
 
       const usage = chatCompletion.usage;
