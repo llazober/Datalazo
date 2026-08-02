@@ -21,15 +21,14 @@ interface UserSession {
 
 function playSpeechAlert(text: string) {
   try {
-    // 1. Play Web Audio API notification chime
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (AudioCtx) {
       const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.2, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
       osc.connect(gain);
@@ -38,7 +37,6 @@ function playSpeechAlert(text: string) {
       osc.stop(ctx.currentTime + 0.35);
     }
 
-    // 2. Play Web Speech API speech synthesis
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.resume();
@@ -58,8 +56,11 @@ export default function DashboardEmailAssistantPage() {
   const [emails, setEmails] = useState<EmailItem[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [newEmailNotice, setNewEmailNotice] = useState<string | null>(null);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [speechTested, setSpeechTested] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
   const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -87,20 +88,16 @@ export default function DashboardEmailAssistantPage() {
         const data = await res.json();
         const list: EmailItem[] = data.emails || [];
 
-        // Check for new emails that haven't been seen before
         if (knownIdsRef.current.size > 0) {
           const freshEmails = list.filter((m) => !knownIdsRef.current.has(m.id));
           if (freshEmails.length > 0) {
             const latest = freshEmails[0];
             const noticeText = `New email from ${latest.fromName}: ${latest.subject}`;
             setNewEmailNotice(`📩 ${noticeText}`);
-            if (voiceEnabled) {
-              playSpeechAlert(noticeText);
-            }
+            playSpeechAlert(noticeText);
           }
         }
 
-        // Update known IDs set
         const newSet = new Set(list.map((m) => m.id));
         knownIdsRef.current = newSet;
         setEmails(list);
@@ -120,8 +117,78 @@ export default function DashboardEmailAssistantPage() {
     }
   }, [user]);
 
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setTranscript('Listening for command...');
+    };
+
+    recognition.onresult = (event: any) => {
+      let currentText = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        currentText += event.results[i][0].transcript;
+      }
+      setTranscript(currentText);
+      processVoiceCommand(currentText.toLowerCase());
+    };
+
+    recognition.onerror = (err: any) => {
+      console.error('[SpeechRecognition Error]', err);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const processVoiceCommand = (cmd: string) => {
+    if (cmd.includes('summarize') || cmd.includes('summary')) {
+      if (emails.length > 0) {
+        const topMsg = emails[0];
+        const resText = `Latest email from ${topMsg.fromName}. Subject: ${topMsg.subject}. Summary: ${topMsg.snippet}`;
+        setAiResponse(resText);
+        playSpeechAlert(resText);
+      } else {
+        const noMail = 'No emails found to summarize.';
+        setAiResponse(noMail);
+        playSpeechAlert(noMail);
+      }
+    } else if (cmd.includes('read') || cmd.includes('latest')) {
+      if (emails.length > 0) {
+        const topMsg = emails[0];
+        const readText = `Reading email from ${topMsg.fromName}. Subject: ${topMsg.subject}. ${topMsg.snippet}`;
+        setAiResponse(readText);
+        playSpeechAlert(readText);
+      }
+    } else if (cmd.includes('refresh') || cmd.includes('check')) {
+      fetchEmails();
+      playSpeechAlert('Refreshing your inbox now.');
+    }
+  };
+
   const handleTestVoice = () => {
-    playSpeechAlert('Voice alerts are active. You will hear an audio notification when new emails arrive.');
+    playSpeechAlert('Voice alerts are active. Speak "Summarize" or "Read email" to test voice commands.');
     setSpeechTested(true);
   };
 
@@ -149,10 +216,22 @@ export default function DashboardEmailAssistantPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleTestVoice}
-            className="px-3.5 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-500/30 transition-all flex items-center gap-1.5"
+            onClick={toggleListening}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border shadow-lg ${
+              isListening
+                ? 'bg-red-500/20 text-red-300 border-red-500/50 animate-pulse'
+                : 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white border-transparent hover:scale-105'
+            }`}
           >
-            🔊 {speechTested ? 'Voice Tested ✓' : 'Test Voice Alert'}
+            <span className="text-sm">{isListening ? '🛑' : '🎙️'}</span>
+            {isListening ? 'Listening (Click to Stop)' : 'Start Voice Control'}
+          </button>
+
+          <button
+            onClick={handleTestVoice}
+            className="px-3.5 py-2 rounded-xl bg-white/5 text-slate-300 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all flex items-center gap-1.5"
+          >
+            🔊 {speechTested ? 'Speaker Tested ✓' : 'Test Speaker'}
           </button>
 
           {user ? (
@@ -187,6 +266,44 @@ export default function DashboardEmailAssistantPage() {
             </a>
           )}
         </div>
+      </div>
+
+      {/* Voice Control Interactive Console */}
+      <div className={`max-w-6xl w-full mb-8 p-6 rounded-2xl border transition-all ${
+        isListening
+          ? 'bg-gradient-to-r from-red-950/30 via-indigo-950/40 to-slate-900/40 border-red-500/40 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
+          : 'bg-white/[0.02] border-white/10'
+      }`}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className={`w-3 h-3 rounded-full ${isListening ? 'bg-red-500 animate-ping' : 'bg-indigo-400'}`} />
+            <h3 className="text-sm font-bold text-white">Voice Command Console</h3>
+          </div>
+          <span className="text-xs text-slate-400 font-mono">
+            {isListening ? '🎤 Listening... Say "Summarize", "Read email", or "Refresh"' : 'Click "Start Voice Control" to begin'}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 min-h-[48px] flex items-center justify-between">
+          <span>{transcript || 'Say "Summarize" or "Read email"...'}</span>
+          {isListening && (
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-4 bg-indigo-400 animate-pulse rounded-full" />
+              <span className="w-1.5 h-6 bg-cyan-400 animate-pulse rounded-full" />
+              <span className="w-1.5 h-3 bg-purple-400 animate-pulse rounded-full" />
+            </div>
+          )}
+        </div>
+
+        {aiResponse && (
+          <div className="mt-3 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-slate-200 flex items-start gap-2">
+            <span className="text-base">🤖</span>
+            <div>
+              <strong className="text-indigo-300 block mb-1">AI Assistant Spoken Response:</strong>
+              {aiResponse}
+            </div>
+          </div>
+        )}
       </div>
 
       {newEmailNotice && (
@@ -228,7 +345,7 @@ export default function DashboardEmailAssistantPage() {
           {!user ? (
             <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
               <div className="text-3xl mb-2">🔒</div>
-              Sign in with Google to view live inbox messages and automated voice alerts.
+              Sign in with Google to view live inbox messages and automated voice commands.
             </div>
           ) : loadingEmails && emails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">
@@ -264,33 +381,37 @@ export default function DashboardEmailAssistantPage() {
           )}
         </div>
 
-        {/* Right 1 Col: AI Voice Assistant Controls */}
+        {/* Right 1 Col: Quick Voice Command Buttons */}
         <div className="space-y-4">
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-            <div className="text-2xl mb-2">🎙️</div>
-            <h3 className="text-sm font-bold text-white mb-1">Voice Alerts Engine</h3>
-            <p className="text-xs text-slate-400 leading-relaxed mb-3">
-              Web Audio chime & Speech Synthesis play spoken notifications when new emails arrive.
+            <div className="text-2xl mb-2">🗣️</div>
+            <h3 className="text-sm font-bold text-white mb-1">Quick Voice Shortcuts</h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Click any command below or speak them into your microphone:
             </p>
-            <button
-              onClick={handleTestVoice}
-              className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-xs shadow-md hover:scale-102 transition-all flex items-center justify-center gap-2"
-            >
-              🔊 Click to Test Voice Speaker
-            </button>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
-            <div className="text-2xl mb-2">🤖</div>
-            <h3 className="text-sm font-bold text-white mb-1">GPT-4o Auto Summaries</h3>
-            <p className="text-xs text-slate-400 leading-relaxed mb-3">
-              Incoming messages are continuously scanned and summarized in real time.
-            </p>
-            <span className={`text-[10px] font-mono px-2.5 py-1 rounded-lg inline-block ${
-              user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-white/5'
-            }`}>
-              {user ? '🟢 AI Analysis Ready' : 'Requires Google Login'}
-            </span>
+            <div className="space-y-2">
+              <button
+                onClick={() => processVoiceCommand('summarize')}
+                className="w-full py-2 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-xs hover:bg-indigo-500/20 transition-all text-left flex items-center justify-between"
+              >
+                <span>🎙️ &ldquo;Summarize&rdquo;</span>
+                <span className="text-[10px] text-slate-400">Summarizes latest email</span>
+              </button>
+              <button
+                onClick={() => processVoiceCommand('read latest')}
+                className="w-full py-2 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-mono text-xs hover:bg-cyan-500/20 transition-all text-left flex items-center justify-between"
+              >
+                <span>🎙️ &ldquo;Read email&rdquo;</span>
+                <span className="text-[10px] text-slate-400">Reads full email text</span>
+              </button>
+              <button
+                onClick={() => processVoiceCommand('refresh')}
+                className="w-full py-2 px-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono text-xs hover:bg-purple-500/20 transition-all text-left flex items-center justify-between"
+              >
+                <span>🎙️ &ldquo;Refresh&rdquo;</span>
+                <span className="text-[10px] text-slate-400">Syncs inbox now</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
