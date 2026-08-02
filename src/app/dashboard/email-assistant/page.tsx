@@ -28,7 +28,7 @@ interface EmailItem {
   aiPriority?: EmailPriority;
   aiSummary?: string;
   hasAttachments?: boolean;
-  attachments?: { filename: string; mimeType: string; size: number }[];
+  attachments?: { id?: string; filename: string; mimeType: string; size: number }[];
 }
 
 function formatEmailDate(dateStr: string): string {
@@ -967,14 +967,24 @@ export default function DashboardEmailAssistantPage() {
                     <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
 
                     {email.hasAttachments && (
-                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      <div className="mt-2.5 flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
                           📎 {email.attachments?.length || 1} Attachment(s)
                         </span>
                         {email.attachments?.map((att, i) => (
-                          <span key={i} className="text-[10px] text-slate-300 bg-white/5 px-2 py-0.5 rounded border border-white/10 flex items-center gap-1 truncate max-w-[220px]">
-                            📄 {att.filename}
-                          </span>
+                          <a
+                            key={i}
+                            href={`/api/emails/attachment?messageId=${email.id}&attachmentId=${att.id || ''}&filename=${encodeURIComponent(att.filename)}&mimeType=${encodeURIComponent(att.mimeType)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/25 px-2 py-0.5 rounded border border-cyan-500/30 flex items-center gap-1.5 transition-all hover:scale-105 font-medium truncate max-w-[240px]"
+                            title={`Click to open/download ${att.filename}`}
+                          >
+                            <span>📄</span>
+                            <span className="truncate">{att.filename}</span>
+                            <span className="text-[9px] opacity-70">↗️</span>
+                          </a>
                         ))}
                       </div>
                     )}

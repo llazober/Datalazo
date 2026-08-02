@@ -229,8 +229,8 @@ function parseGmailSearchQuery(input: string): string {
   return `label:INBOX (from:"${cleaned}" OR to:"${cleaned}" OR subject:"${cleaned}" OR "${cleaned}")`;
 }
 
-function extractAttachmentMetadata(payload: any): { filename: string; mimeType: string; size: number }[] {
-  const list: { filename: string; mimeType: string; size: number }[] = [];
+function extractAttachmentMetadata(payload: any): { id: string; filename: string; mimeType: string; size: number }[] {
+  const list: { id: string; filename: string; mimeType: string; size: number }[] = [];
   if (!payload) return list;
 
   function traverse(parts: any[]) {
@@ -238,6 +238,7 @@ function extractAttachmentMetadata(payload: any): { filename: string; mimeType: 
     for (const p of parts) {
       if (p.filename && p.filename.trim() && p.body && (p.body.attachmentId || p.body.size > 0)) {
         list.push({
+          id: p.body.attachmentId || '',
           filename: p.filename,
           mimeType: p.mimeType || 'application/octet-stream',
           size: p.body.size || 0,
