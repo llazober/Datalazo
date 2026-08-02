@@ -33,12 +33,16 @@ export function useVoice(userId?: string) {
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.05;
     utter.pitch = 1.0;
-    utter.lang = 'en-US';
+
+    const isEs = /[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text) || /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes)\b/i.test(text);
+    utter.lang = isEs ? 'es-ES' : 'en-US';
 
     // Try to pick a natural voice
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
-                      voices.find(v => v.lang.startsWith('en'));
+    const targetPrefix = isEs ? 'es' : 'en';
+    const preferred = voices.find(v => v.name.includes('Google') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
+                      voices.find(v => v.name.includes('Microsoft') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
+                      voices.find(v => v.lang.toLowerCase().startsWith(targetPrefix));
     if (preferred) utter.voice = preferred;
 
     utter.onend = () => {

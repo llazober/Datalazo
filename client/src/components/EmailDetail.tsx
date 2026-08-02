@@ -74,6 +74,17 @@ export function EmailDetail() {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.0;
+
+    const isEs = /[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text) || /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes)\b/i.test(text);
+    utter.lang = isEs ? 'es-ES' : 'en-US';
+
+    const voices = window.speechSynthesis.getVoices();
+    const targetPrefix = isEs ? 'es' : 'en';
+    const preferred = voices.find(v => v.name.includes('Google') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
+                      voices.find(v => v.name.includes('Microsoft') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
+                      voices.find(v => v.lang.toLowerCase().startsWith(targetPrefix));
+    if (preferred) utter.voice = preferred;
+
     window.speechSynthesis.speak(utter);
   };
 
