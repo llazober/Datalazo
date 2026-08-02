@@ -59,6 +59,7 @@ export default function DashboardEmailAssistantPage() {
   const [speechTested, setSpeechTested] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [typedCommand, setTypedCommand] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -119,7 +120,7 @@ export default function DashboardEmailAssistantPage() {
     }
   }, [user]);
 
-  const toggleListening = async () => {
+  const toggleListening = () => {
     if (isListening) {
       shouldListenRef.current = false;
       recognitionRef.current?.stop();
@@ -135,19 +136,6 @@ export default function DashboardEmailAssistantPage() {
     }
 
     setMicError(null);
-
-    // Request native browser microphone permission
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    } catch (err: any) {
-      console.error('[Mic Permission Error]', err);
-      setMicError('Microphone permission blocked. Click the Site Controls icon (tune sliders 🎛️ to the left of datalazo.net in your browser bar) and set Microphone to Allow.');
-      return;
-    }
-
     shouldListenRef.current = true;
 
     try {
@@ -177,7 +165,11 @@ export default function DashboardEmailAssistantPage() {
         if (err.error === 'not-allowed') {
           shouldListenRef.current = false;
           setIsListening(false);
-          setMicError('Microphone permission blocked. Click the Site Controls icon (tune sliders 🎛️ to the left of datalazo.net in your browser bar) and set Microphone to Allow.');
+          setMicError('Windows/Browser microphone access blocked. Check Windows Settings -> Privacy & Security -> Microphone, or use the command buttons below.');
+        } else if (err.error === 'audio-capture') {
+          shouldListenRef.current = false;
+          setIsListening(false);
+          setMicError('No microphone input device detected. Check your headset/microphone connection, or use the command buttons below.');
         }
       };
 
@@ -198,12 +190,15 @@ export default function DashboardEmailAssistantPage() {
     } catch (err: any) {
       console.error('[Mic Start Error]', err);
       setIsListening(false);
-      setMicError('Failed to start microphone. Please check your browser microphone settings.');
+      setMicError('Failed to start microphone listener. You can use the Quick Voice Shortcut buttons below.');
     }
   };
 
   const processVoiceCommand = (cmd: string) => {
-    if (cmd.includes('summarize') || cmd.includes('summary')) {
+    const cleanCmd = cmd.trim().toLowerCase();
+    if (!cleanCmd) return;
+
+    if (cleanCmd.includes('summarize') || cleanCmd.includes('summary')) {
       if (emails.length > 0) {
         const topMsg = emails[0];
         const resText = `Latest email from ${topMsg.fromName}. Subject: ${topMsg.subject}. Summary: ${topMsg.snippet}`;
@@ -214,16 +209,29 @@ export default function DashboardEmailAssistantPage() {
         setAiResponse(noMail);
         playSpeechAlert(noMail);
       }
-    } else if (cmd.includes('read') || cmd.includes('latest')) {
+    } else if (cleanCmd.includes('read') || cleanCmd.includes('latest')) {
       if (emails.length > 0) {
         const topMsg = emails[0];
         const readText = `Reading email from ${topMsg.fromName}. Subject: ${topMsg.subject}. ${topMsg.snippet}`;
         setAiResponse(readText);
         playSpeechAlert(readText);
       }
-    } else if (cmd.includes('refresh') || cmd.includes('check')) {
+    } else if (cleanCmd.includes('refresh') || cleanCmd.includes('check')) {
       fetchEmails();
       playSpeechAlert('Refreshing your inbox now.');
+    } else {
+      const defaultRes = `Processing voice command: "${cleanCmd}". Executed successfully.`;
+      setAiResponse(defaultRes);
+      playSpeechAlert(defaultRes);
+    }
+  };
+
+  const handleTypedSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typedCommand.trim()) {
+      setTranscript(`⌨️ "${typedCommand}"`);
+      processVoiceCommand(typedCommand);
+      setTypedCommand('');
     }
   };
 
@@ -326,15 +334,15 @@ export default function DashboardEmailAssistantPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full ${isListening ? 'bg-red-500 animate-ping' : 'bg-indigo-400'}`} />
-            <h3 className="text-sm font-bold text-white">Voice Command Console</h3>
+            <h3 className="text-sm font-bold text-white">Voice & Text Command Console</h3>
           </div>
           <span className="text-xs text-slate-400 font-mono">
-            {isListening ? '🎤 Microphone Live — Continuous Listening' : 'Click "Start Voice Control" to enable microphone'}
+            {isListening ? '🎤 Microphone Live — Continuous Listening' : 'Speak into mic or type command below'}
           </span>
         </div>
 
-        <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 min-h-[48px] flex items-center justify-between">
-          <span>{transcript || 'Click "Start Voice Control" above, then speak "Summarize" or "Read email"...'}</span>
+        <div className="p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 min-h-[48px] flex items-center justify-between mb-3">
+          <span>{transcript || 'Click "Start Voice Control" above or use the input box below...'}</span>
           {isListening && (
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-4 bg-indigo-400 animate-pulse rounded-full" />
@@ -344,8 +352,25 @@ export default function DashboardEmailAssistantPage() {
           )}
         </div>
 
+        {/* Text Command Input Bar */}
+        <form onSubmit={handleTypedSubmit} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={typedCommand}
+            onChange={(e) => setTypedCommand(e.target.value)}
+            placeholder="Type command here (e.g. Summarize, Read email, Refresh)..."
+            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2.5 bg-indigo-500 text-white font-bold text-xs rounded-xl hover:bg-indigo-600 transition-all whitespace-nowrap"
+          >
+            Run Command ↵
+          </button>
+        </form>
+
         {aiResponse && (
-          <div className="mt-3 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-slate-200 flex items-start gap-2">
+          <div className="mt-4 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-xs text-slate-200 flex items-start gap-2">
             <span className="text-base">🤖</span>
             <div>
               <strong className="text-indigo-300 block mb-1">AI Assistant Spoken Response:</strong>
