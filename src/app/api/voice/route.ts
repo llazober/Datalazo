@@ -208,6 +208,72 @@ async function archiveGmailMessage(accessToken: string, messageId: string): Prom
   }
 }
 
+async function moveGmailMessageToFolder(
+  accessToken: string,
+  messageId: string,
+  folderName: string
+): Promise<{ success: boolean; labelName: string }> {
+  try {
+    const labelsRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    let targetLabelId: string | null = null;
+    let finalLabelName = folderName;
+
+    if (labelsRes.ok) {
+      const labelsData = await labelsRes.json();
+      const existing = (labelsData.labels || []).find(
+        (l: { id: string; name: string }) => l.name.toLowerCase() === folderName.toLowerCase()
+      );
+      if (existing) {
+        targetLabelId = existing.id;
+        finalLabelName = existing.name;
+      }
+    }
+
+    if (!targetLabelId) {
+      const createRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: folderName,
+          labelListVisibility: 'labelShow',
+          messageListVisibility: 'show',
+        }),
+      });
+
+      if (createRes.ok) {
+        const newLabel = await createRes.json();
+        targetLabelId = newLabel.id;
+        finalLabelName = newLabel.name;
+      }
+    }
+
+    if (!targetLabelId) return { success: false, labelName: folderName };
+
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        addLabelIds: [targetLabelId],
+        removeLabelIds: ['INBOX'],
+      }),
+    });
+
+    return { success: res.ok, labelName: finalLabelName };
+  } catch (err) {
+    console.error('[Move Gmail Message Error]', err);
+    return { success: false, labelName: folderName };
+  }
+}
+
 async function scheduleGoogleCalendarEvent(
   accessToken: string,
   summary: string,
@@ -407,6 +473,27 @@ export async function POST(req: Request) {
         {
           type: 'function' as const,
           function: {
+            name: 'move_email_to_folder',
+            description: 'Move an email to a specific folder or label (e.g. "Work", "Finance", "Personal", "Receipts", etc.). Creates the folder if it does not exist.',
+            parameters: {
+              type: 'object',
+              properties: {
+                emailIndex: {
+                  type: 'integer',
+                  description: '1-based index of the email in the inbox list to move (default 1 for latest).',
+                },
+                folderName: {
+                  type: 'string',
+                  description: 'The target folder or label name specified by the user (e.g. "Finance", "Work", "Personal").',
+                },
+              },
+              required: ['folderName'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
             name: 'schedule_calendar_event',
             description: 'Check availability and schedule a meeting/event on Google Calendar.',
             parameters: {
@@ -438,10 +525,11 @@ export async function POST(req: Request) {
       const systemPrompt = `You are Datalazo AI Executive Assistant. Speak in a natural, professional tone. Keep responses concise (1-3 sentences) suitable for voice speech. Current date/time is ${currentIsoDate}.
 LANGUAGE MANDATE: You MUST respond in the EXACT SAME LANGUAGE as the user's input or the email being discussed. If the user speaks in Spanish, asks in Spanish, or if the email is in Spanish, YOU MUST RESPOND IN FLUENT, NATURAL SPANISH. Do NOT reply in English when spoken to or reading content in Spanish.
 
-Use the live Gmail inbox context below to answer questions, reply to emails, trash/archive emails, or schedule meetings on Google Calendar.
+Use the live Gmail inbox context below to answer questions, reply to emails, trash/archive emails, move emails to folders, or schedule meetings on Google Calendar.
 - If the user asks to reply to an email, call 'send_reply_email'.
 - If the user asks to delete/trash an email, call 'trash_email'.
 - If the user asks to archive an email, call 'archive_email'.
+- If the user asks to move an email to a specific folder or label (e.g. "Move to Work", "Mover a Facturas"), call 'move_email_to_folder'.
 - If the user asks to schedule or set up a meeting/event, call 'schedule_calendar_event'.
 
 ${emailContextPrompt}${knowledgePrompt}`;
@@ -530,6 +618,28 @@ ${emailContextPrompt}${knowledgePrompt}`;
             }
           } catch (e) {
             aiReply = 'There was an error archiving the email.';
+          }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'move_email_to_folder') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            const index = (args.emailIndex || 1) - 1;
+            const targetMsg = gmailMessages[index] || gmailMessages[0];
+            const folderName = args.folderName || 'Folder';
+
+            if (accessToken && targetMsg) {
+              const res = await moveGmailMessageToFolder(accessToken, targetMsg.id, folderName);
+              if (res.success) {
+                const senderMatch = targetMsg.from.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
+                const senderName = (senderMatch?.[1] || '').trim() || senderMatch?.[2] || targetMsg.from;
+                aiReply = `Moved email from ${senderName} to folder "${res.labelName}".`;
+              } else {
+                aiReply = `Failed to move email to folder "${folderName}".`;
+              }
+            } else {
+              aiReply = 'Cannot move email: Please sign in with Google first.';
+            }
+          } catch (e) {
+            aiReply = 'There was an error moving the email to the requested folder.';
           }
         } else if (toolCall.type === 'function' && toolCall.function.name === 'schedule_calendar_event') {
           try {
