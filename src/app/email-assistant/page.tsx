@@ -68,8 +68,8 @@ function speakText(text: string) {
     window.speechSynthesis.cancel();
     window.speechSynthesis.resume();
     const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.0;
-    utt.pitch = 1.0;
+    utt.rate = 0.90; // Natural, unhurried pace
+    utt.pitch = 1.05; // Natural female cadence
 
     const isEs = isSpanishText(text);
     utt.lang = isEs ? 'es-ES' : 'en-US';
@@ -77,7 +77,7 @@ function speakText(text: string) {
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       const maleNames = ['jorge', 'david', 'guy', 'mark', 'pablo', 'manuel', 'raul', 'george', 'james', 'richard'];
-      const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman'];
+      const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman', 'google us english', 'google uk english female'];
 
       const isMatchingLang = (v: SpeechSynthesisVoice) => {
         const langL = v.lang.toLowerCase();
@@ -87,13 +87,12 @@ function speakText(text: string) {
       };
 
       const langVoices = voices.filter(isMatchingLang);
+      const pool = langVoices.length > 0 ? langVoices : voices;
 
       const preferredVoice =
-        langVoices.find((v) => femaleKeywords.some((kw) => v.name.toLowerCase().includes(kw)) && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
-        langVoices.find((v) => v.name.includes('Google') && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
-        langVoices.find((v) => v.name.includes('Microsoft') && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
-        langVoices.find((v) => !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
-        langVoices[0];
+        pool.find((v) => femaleKeywords.some((kw) => v.name.toLowerCase().includes(kw)) && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
+        pool.find((v) => !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
+        pool[0];
 
       if (preferredVoice) {
         utt.voice = preferredVoice;
