@@ -577,7 +577,7 @@ ${emailContextPrompt}${knowledgePrompt}`;
 
       const speechResponse = await openai.audio.speech.create({
         model: 'tts-1',
-        voice: 'alloy',
+        voice: 'nova',
         input: aiReply,
         response_format: 'mp3',
       });
