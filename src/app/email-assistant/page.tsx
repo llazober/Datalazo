@@ -57,10 +57,9 @@ function playChime() {
 
 function isSpanishText(text: string): boolean {
   if (!text) return false;
-  if (/[áéíóúñ¿¡ÁÉÍÓÚÑ]/.test(text)) return true;
-  const spanishWordsRegex = /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes)\b/i;
-  const matches = text.match(new RegExp(spanishWordsRegex, 'gi'));
-  return (matches?.length || 0) >= 2 || (matches?.length === 1 && text.split(/\s+/).length <= 6);
+  if (/[áéíóúñ¿¡ÁÉÍÓÚÑ]/i.test(text)) return true;
+  const esRegex = /\b(el|la|los|las|un|una|unos|unas|del|que|por|para|con|sin|como|pero|más|mas|este|esta|esto|estos|estas|ese|esa|eso|aqui|aquí|sobre|entre|después|despues|cuando|también|tambien|hola|gracias|saludos|atentamente|estimado|estimada|asunto|mensaje|correo|buenos|buenas|favor|usted|ustedes|tengo|necesito|quiero|hacer|estar|buen|día|dia|noche|tarde)\b/i;
+  return esRegex.test(text);
 }
 
 function speakText(text: string) {
@@ -77,19 +76,29 @@ function speakText(text: string) {
 
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
-      const targetPrefix = isEs ? 'es' : 'en';
-      const langVoices = voices.filter((v) => v.lang.toLowerCase().startsWith(targetPrefix));
       const maleNames = ['jorge', 'david', 'guy', 'mark', 'pablo', 'manuel', 'raul', 'george', 'james', 'richard'];
       const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman'];
 
-      const preferredFemale =
+      const isMatchingLang = (v: SpeechSynthesisVoice) => {
+        const langL = v.lang.toLowerCase();
+        const nameL = v.name.toLowerCase();
+        if (isEs) return langL.includes('es') || nameL.includes('spanish') || nameL.includes('español');
+        return langL.includes('en') || nameL.includes('english');
+      };
+
+      const langVoices = voices.filter(isMatchingLang);
+
+      const preferredVoice =
         langVoices.find((v) => femaleKeywords.some((kw) => v.name.toLowerCase().includes(kw)) && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
         langVoices.find((v) => v.name.includes('Google') && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
         langVoices.find((v) => v.name.includes('Microsoft') && !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
         langVoices.find((v) => !maleNames.some((m) => v.name.toLowerCase().includes(m))) ||
         langVoices[0];
 
-      if (preferredFemale) utt.voice = preferredFemale;
+      if (preferredVoice) {
+        utt.voice = preferredVoice;
+        utt.lang = preferredVoice.lang;
+      }
     }
 
     window.speechSynthesis.speak(utt);
