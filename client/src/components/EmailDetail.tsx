@@ -80,10 +80,18 @@ export function EmailDetail() {
 
     const voices = window.speechSynthesis.getVoices();
     const targetPrefix = isEs ? 'es' : 'en';
-    const preferred = voices.find(v => v.name.includes('Google') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
-                      voices.find(v => v.name.includes('Microsoft') && v.lang.toLowerCase().startsWith(targetPrefix)) ||
-                      voices.find(v => v.lang.toLowerCase().startsWith(targetPrefix));
-    if (preferred) utter.voice = preferred;
+    const langVoices = voices.filter(v => v.lang.toLowerCase().startsWith(targetPrefix));
+    const maleNames = ['jorge', 'david', 'guy', 'mark', 'pablo', 'manuel', 'raul', 'george', 'james', 'richard'];
+    const femaleKeywords = ['sabina', 'monica', 'paulina', 'lucia', 'helena', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'female', 'woman'];
+
+    const preferredFemale =
+      langVoices.find(v => femaleKeywords.some(kw => v.name.toLowerCase().includes(kw)) && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+      langVoices.find(v => v.name.includes('Google') && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+      langVoices.find(v => v.name.includes('Microsoft') && !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+      langVoices.find(v => !maleNames.some(m => v.name.toLowerCase().includes(m))) ||
+      langVoices[0];
+
+    if (preferredFemale) utter.voice = preferredFemale;
 
     window.speechSynthesis.speak(utter);
   };
