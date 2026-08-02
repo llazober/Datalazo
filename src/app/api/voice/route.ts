@@ -95,7 +95,6 @@ async function sendGmailReply(
   try {
     const cleanSubject = subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`;
     
-    // Parse target email from "Name <email@domain.com>" or "email@domain.com"
     const fromMatch = toEmail.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
     const recipient = fromMatch?.[2] || fromMatch?.[1] || toEmail;
 
@@ -137,6 +136,80 @@ async function sendGmailReply(
   } catch (err) {
     console.error('[Send Gmail Reply Error]', err);
     return false;
+  }
+}
+
+async function scheduleGoogleCalendarEvent(
+  accessToken: string,
+  summary: string,
+  startIso: string,
+  endIso: string,
+  attendeeEmail?: string
+): Promise<{ success: boolean; isConflict?: boolean; link?: string; formattedStart?: string }> {
+  try {
+    // 1. FreeBusy Check for Availability
+    const freeBusyRes = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        timeMin: startIso,
+        timeMax: endIso,
+        items: [{ id: 'primary' }],
+      }),
+    });
+
+    if (freeBusyRes.ok) {
+      const freeBusyData = await freeBusyRes.json();
+      const busyList = freeBusyData.calendars?.primary?.busy || [];
+      if (busyList.length > 0) {
+        return { success: false, isConflict: true };
+      }
+    }
+
+    // 2. Create Event on Primary Google Calendar
+    const eventBody: any = {
+      summary: summary || 'Executive Meeting',
+      description: 'Scheduled via Datalazo AI Executive Assistant',
+      start: { dateTime: startIso },
+      end: { dateTime: endIso },
+    };
+
+    if (attendeeEmail) {
+      eventBody.attendees = [{ email: attendeeEmail }];
+    }
+
+    const eventRes = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventBody),
+      }
+    );
+
+    if (eventRes.ok) {
+      const eventData = await eventRes.json();
+      const startDate = new Date(startIso);
+      const formattedStart = startDate.toLocaleString([], {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return { success: true, link: eventData.htmlLink, formattedStart };
+    }
+
+    return { success: false };
+  } catch (err) {
+    console.error('[Google Calendar Schedule Error]', err);
+    return { success: false };
   }
 }
 
@@ -205,6 +278,8 @@ export async function POST(req: Request) {
       const config = getDatalazoConfig();
       const chosenModel = config.models?.voiceChat || 'gpt-4o';
 
+      const currentIsoDate = new Date().toISOString();
+
       // 3. Define Tools for GPT-4o
       const tools = [
         {
@@ -228,11 +303,41 @@ export async function POST(req: Request) {
             },
           },
         },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'schedule_calendar_event',
+            description: 'Check availability and schedule a meeting/event on Google Calendar.',
+            parameters: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'string',
+                  description: 'Meeting title or subject (e.g., "Project Review with John").',
+                },
+                startIso: {
+                  type: 'string',
+                  description: `Start date/time in ISO 8601 format with timezone offset. Current ISO date: ${currentIsoDate}`,
+                },
+                endIso: {
+                  type: 'string',
+                  description: `End date/time in ISO 8601 format (default 30 mins after startIso). Current ISO date: ${currentIsoDate}`,
+                },
+                attendeeEmail: {
+                  type: 'string',
+                  description: 'Optional email address of meeting attendee to invite.',
+                },
+              },
+              required: ['summary', 'startIso', 'endIso'],
+            },
+          },
+        },
       ];
 
-      const systemPrompt = `You are Datalazo AI Executive Assistant. Speak in a natural, professional tone. Keep responses concise (1-3 sentences) suitable for voice speech.
-Use the live Gmail inbox context below to answer questions or reply to emails.
-If the user asks to reply to an email (e.g. "reply saying...", "send a reply to the last email with...", "tell them..."), call the 'send_reply_email' tool with the extracted reply body text.
+      const systemPrompt = `You are Datalazo AI Executive Assistant. Speak in a natural, professional tone. Keep responses concise (1-3 sentences) suitable for voice speech. Current date/time is ${currentIsoDate}.
+Use the live Gmail inbox context below to answer questions, reply to emails, or schedule meetings on Google Calendar.
+- If the user asks to reply to an email, call 'send_reply_email'.
+- If the user asks to schedule or set up a meeting/event, call 'schedule_calendar_event'.
 
 ${emailContextPrompt}${knowledgePrompt}`;
 
@@ -251,9 +356,10 @@ ${emailContextPrompt}${knowledgePrompt}`;
       let aiReply = '';
       const responseMessage = chatCompletion.choices[0].message;
 
-      // Handle tool call (sending reply email)
+      // Handle tool calls
       if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
         const toolCall = responseMessage.tool_calls[0];
+
         if (toolCall.type === 'function' && toolCall.function.name === 'send_reply_email') {
           try {
             const args = JSON.parse(toolCall.function.arguments);
@@ -271,7 +377,6 @@ ${emailContextPrompt}${knowledgePrompt}`;
               );
 
               if (success) {
-                // Parse clean sender name
                 const senderMatch = targetMsg.from.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
                 const senderName = (senderMatch?.[1] || '').trim() || senderMatch?.[2] || targetMsg.from;
                 aiReply = `Sent reply to ${senderName} with message: "${args.replyBody}".`;
@@ -284,6 +389,32 @@ ${emailContextPrompt}${knowledgePrompt}`;
           } catch (e) {
             console.error('[Tool Call Reply Error]', e);
             aiReply = 'There was an error formatting your reply email.';
+          }
+        } else if (toolCall.type === 'function' && toolCall.function.name === 'schedule_calendar_event') {
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            if (accessToken) {
+              const result = await scheduleGoogleCalendarEvent(
+                accessToken,
+                args.summary,
+                args.startIso,
+                args.endIso,
+                args.attendeeEmail
+              );
+
+              if (result.success) {
+                aiReply = `Successfully scheduled "${args.summary}" on your Google Calendar for ${result.formattedStart || 'the requested time'}.`;
+              } else if (result.isConflict) {
+                aiReply = `You have a calendar conflict at that time. Would you like to schedule it for a different time?`;
+              } else {
+                aiReply = `Failed to schedule event on Google Calendar. Please check your Google account connection.`;
+              }
+            } else {
+              aiReply = 'Cannot schedule meeting: Please sign in with Google to access your Google Calendar.';
+            }
+          } catch (e) {
+            console.error('[Tool Call Calendar Error]', e);
+            aiReply = 'There was an error scheduling your meeting on Google Calendar.';
           }
         }
       } else {
