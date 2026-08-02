@@ -48,6 +48,7 @@ export default function DashboardLayout({
         <nav className="flex-1 space-y-2 mt-20 md:mt-0">
           {[
             { name: 'Overview', path: '/dashboard' },
+            { name: 'AI Email Assistant', path: 'http://localhost:3000', external: true },
             { name: 'Visitor Analytics', path: '/dashboard/analytics' },
             { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
@@ -61,8 +62,11 @@ export default function DashboardLayout({
             <Link
               key={item.name}
               href={item.path}
+              target={item.external ? '_blank' : undefined}
+              rel={item.external ? 'noopener noreferrer' : undefined}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl transition-colors ${
+                item.name === 'AI Email Assistant' ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30' :
                 item.name === 'Visitor Analytics' ? 'bg-cyan-500/10 text-cyan-400' :
                 item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
                 item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' :
@@ -73,7 +77,7 @@ export default function DashboardLayout({
                 item.name === 'Utilities' ? 'bg-amber-500/10 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              {item.name}
+              {item.name} {item.external && '↗'}
             </Link>
           ))}
 
