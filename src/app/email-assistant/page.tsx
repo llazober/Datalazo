@@ -19,12 +19,48 @@ interface UserSession {
   picture?: string;
 }
 
+function playSpeechAlert(text: string) {
+  try {
+    // 1. Play Web Audio API notification chime
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+
+    // 2. Play Web Speech API speech synthesis
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.error('[Speech Error]', e);
+  }
+}
+
 export default function PublicEmailAssistantPage() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [emails, setEmails] = useState<EmailItem[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [newEmailNotice, setNewEmailNotice] = useState<string | null>(null);
-  const prevEmailCount = useRef<number>(0);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speechTested, setSpeechTested] = useState(false);
+  const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -50,17 +86,24 @@ export default function PublicEmailAssistantPage() {
       if (res.ok) {
         const data = await res.json();
         const list: EmailItem[] = data.emails || [];
-        setEmails(list);
 
-        if (prevEmailCount.current > 0 && list.length > prevEmailCount.current) {
-          const latest = list[0];
-          setNewEmailNotice(`📩 New Email: "${latest.subject}" from ${latest.fromName}`);
-          if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(`New email received from ${latest.fromName}: ${latest.subject}`);
-            window.speechSynthesis.speak(utterance);
+        // Check for new emails that haven't been seen before
+        if (knownIdsRef.current.size > 0) {
+          const freshEmails = list.filter((m) => !knownIdsRef.current.has(m.id));
+          if (freshEmails.length > 0) {
+            const latest = freshEmails[0];
+            const noticeText = `New email from ${latest.fromName}: ${latest.subject}`;
+            setNewEmailNotice(`📩 ${noticeText}`);
+            if (voiceEnabled) {
+              playSpeechAlert(noticeText);
+            }
           }
         }
-        prevEmailCount.current = list.length;
+
+        // Update known IDs set
+        const newSet = new Set(list.map((m) => m.id));
+        knownIdsRef.current = newSet;
+        setEmails(list);
       }
     } catch (e) {
       console.error(e);
@@ -72,10 +115,15 @@ export default function PublicEmailAssistantPage() {
   useEffect(() => {
     if (user) {
       fetchEmails();
-      const interval = setInterval(fetchEmails, 10000);
+      const interval = setInterval(fetchEmails, 8000);
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  const handleTestVoice = () => {
+    playSpeechAlert('Voice alerts are active. You will hear an audio notification when new emails arrive.');
+    setSpeechTested(true);
+  };
 
   const handleLogout = () => {
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -86,7 +134,7 @@ export default function PublicEmailAssistantPage() {
   return (
     <div className="min-h-screen w-full flex flex-col p-6 text-white bg-[#080c18] font-sans">
       {/* Top Navbar */}
-      <div className="max-w-6xl w-full mx-auto flex items-center justify-between pb-6 border-b border-white/10 mb-8">
+      <div className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10 mb-8">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.4)]">
             🎙️
@@ -97,48 +145,54 @@ export default function PublicEmailAssistantPage() {
           </div>
         </div>
 
-        {user ? (
-          <div className="flex items-center gap-3 bg-white/[0.04] border border-emerald-500/30 px-4 py-2 rounded-xl">
-            {user.picture ? (
-              <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-emerald-400/50" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs flex items-center justify-center border border-emerald-500/40">
-                {user.name?.charAt(0) || user.email?.charAt(0)}
-              </div>
-            )}
-            <div className="text-left">
-              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Google Connected
-              </div>
-              <div className="text-[11px] text-slate-300 font-mono">{user.email}</div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="ml-2 text-[11px] text-slate-400 hover:text-red-400 transition-colors underline"
-            >
-              Disconnect
-            </button>
-          </div>
-        ) : (
-          <a
-            href="/auth/google"
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:scale-105 transition-all flex items-center gap-2"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleTestVoice}
+            className="px-3.5 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold hover:bg-indigo-500/30 transition-all flex items-center gap-1.5"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Sign in with Google
-          </a>
-        )}
+            🔊 {speechTested ? 'Voice Tested ✓' : 'Test Voice Alert'}
+          </button>
+
+          {user ? (
+            <div className="flex items-center gap-3 bg-white/[0.04] border border-emerald-500/30 px-4 py-2 rounded-xl">
+              {user.picture ? (
+                <img src={user.picture} alt={user.name} className="w-7 h-7 rounded-full border border-emerald-400/50" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs flex items-center justify-center border border-emerald-500/40">
+                  {user.name?.charAt(0) || user.email?.charAt(0)}
+                </div>
+              )}
+              <div className="text-left">
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Google Connected
+                </div>
+                <div className="text-[11px] text-slate-300 font-mono">{user.email}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="ml-2 text-[11px] text-slate-400 hover:text-red-400 transition-colors underline"
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/auth/google"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:scale-105 transition-all flex items-center gap-2"
+            >
+              Sign in with Google
+            </a>
+          )}
+        </div>
       </div>
 
       {newEmailNotice && (
-        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-bold text-xs flex items-center justify-between animate-bounce">
-          <span>{newEmailNotice}</span>
+        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 font-bold text-xs flex items-center justify-between animate-bounce shadow-[0_0_25px_rgba(16,185,129,0.3)]">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔊</span>
+            <span>{newEmailNotice}</span>
+          </div>
           <button onClick={() => setNewEmailNotice(null)} className="text-white text-xs opacity-70 hover:opacity-100">
             ✕
           </button>
@@ -172,7 +226,7 @@ export default function PublicEmailAssistantPage() {
           {!user ? (
             <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
               <div className="text-3xl mb-2">🔒</div>
-              Sign in with Google to view live inbox messages and automated AI summaries.
+              Sign in with Google to view live inbox messages and automated voice alerts.
             </div>
           ) : loadingEmails && emails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">
@@ -208,26 +262,27 @@ export default function PublicEmailAssistantPage() {
           )}
         </div>
 
-        {/* Right 1 Col: AI Voice Assistant Modules */}
+        {/* Right 1 Col: AI Voice Assistant Controls */}
         <div className="space-y-4">
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
             <div className="text-2xl mb-2">🎙️</div>
-            <h3 className="text-sm font-bold text-white mb-1">Voice Notifications</h3>
+            <h3 className="text-sm font-bold text-white mb-1">Voice Alerts Engine</h3>
             <p className="text-xs text-slate-400 leading-relaxed mb-3">
-              Spoken alerts automatically play when a new email arrives in your connected Gmail account.
+              Web Audio chime & Speech Synthesis play spoken notifications when new emails arrive.
             </p>
-            <span className={`text-[10px] font-mono px-2.5 py-1 rounded-lg inline-block ${
-              user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-white/5'
-            }`}>
-              {user ? '🟢 Speech Synthesis Live' : 'Requires Google Login'}
-            </span>
+            <button
+              onClick={handleTestVoice}
+              className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-xs shadow-md hover:scale-102 transition-all flex items-center justify-center gap-2"
+            >
+              🔊 Click to Test Voice Speaker
+            </button>
           </div>
 
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
             <div className="text-2xl mb-2">🤖</div>
             <h3 className="text-sm font-bold text-white mb-1">GPT-4o Auto Summaries</h3>
             <p className="text-xs text-slate-400 leading-relaxed mb-3">
-              Incoming test emails are instantly analyzed for action items, meeting requests, and sentiment.
+              Incoming messages are continuously scanned and summarized in real time.
             </p>
             <span className={`text-[10px] font-mono px-2.5 py-1 rounded-lg inline-block ${
               user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-white/5'
