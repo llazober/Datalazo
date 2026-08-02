@@ -39,20 +39,27 @@ function getAccessTokenFromReq(req: Request): string | null {
   return null;
 }
 
-async function fetchRecentGmailDetails(accessToken: string): Promise<GmailMessageDetail[]> {
+async function fetchRecentGmailDetails(accessToken: string, selectedId?: string | null): Promise<GmailMessageDetail[]> {
   try {
     const listRes = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=label:INBOX',
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=8&q=label:INBOX',
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
     if (!listRes.ok) return [];
 
     const listData = await listRes.json();
-    const messageList = listData.messages || [];
+    let messageList: { id: string }[] = listData.messages || [];
+
+    if (selectedId) {
+      messageList = [
+        { id: selectedId },
+        ...messageList.filter((m) => m.id !== selectedId),
+      ];
+    }
 
     const details = await Promise.all(
-      messageList.map(async (msg: { id: string }) => {
+      messageList.slice(0, 5).map(async (msg: { id: string }) => {
         try {
           const detailRes = await fetch(
             `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
@@ -286,15 +293,17 @@ export async function POST(req: Request) {
 
       const userText = transcription.text;
 
+      // 2. Retrieve Live Gmail Inbox Details
       const accessToken = getAccessTokenFromReq(req);
+      const selectedId = req.headers.get('x-selected-email-id') || null;
       let gmailMessages: GmailMessageDetail[] = [];
       let emailContextPrompt = 'User is not signed in to Gmail or has no inbox messages.';
 
       if (accessToken) {
-        gmailMessages = await fetchRecentGmailDetails(accessToken);
+        gmailMessages = await fetchRecentGmailDetails(accessToken, selectedId);
         if (gmailMessages.length > 0) {
           const listFormatted = gmailMessages.map((m, i) =>
-            `Email #${i + 1}:\n- From: ${m.from}\n- Subject: ${m.subject}\n- Date: ${m.date}\n- Snippet: ${m.snippet}`
+            `Email #${i + 1}${selectedId && i === 0 ? ' [SELECTED BY USER IN UI]' : ''}:\n- From: ${m.from}\n- Subject: ${m.subject}\n- Date: ${m.date}\n- Snippet: ${m.snippet}`
           );
           emailContextPrompt = `LIVE GMAIL INBOX MESSAGES:\n${listFormatted.join('\n\n')}`;
         }

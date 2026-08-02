@@ -123,6 +123,7 @@ export default function PublicEmailAssistantPage() {
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [newEmailNotice, setNewEmailNotice] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('All');
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
@@ -138,6 +139,8 @@ export default function PublicEmailAssistantPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const streamRef = useRef<MediaStream | null>(null);
+
+  const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
   useEffect(() => {
     try {
@@ -279,7 +282,12 @@ export default function PublicEmailAssistantPage() {
       form.append('file', audioBlob, `audio.${mimeType.includes('ogg') ? 'ogg' : 'webm'}`);
       form.append('mode', 'fast');
 
-      const res = await fetch('/api/voice', { method: 'POST', body: form });
+      const headers: Record<string, string> = {};
+      if (selectedEmailId) {
+        headers['x-selected-email-id'] = selectedEmailId;
+      }
+
+      const res = await fetch('/api/voice', { method: 'POST', body: form, headers });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -314,17 +322,18 @@ export default function PublicEmailAssistantPage() {
     if (!c) return;
     setTranscript(`⌨️ "${cmd}"`);
 
+    const targetEmail = selectedEmail || (emails.length > 0 ? emails[0] : null);
+
     if (c.includes('summarize') || c.includes('summary')) {
-      const text =
-        emails.length > 0
-          ? `Latest email from ${emails[0].fromName}. Subject: ${emails[0].subject}. Categorized as ${emails[0].aiCategory || 'Customer'}, Priority: ${emails[0].aiPriority || 'Medium'}. ${emails[0].snippet}`
-          : 'No emails found in inbox.';
+      const text = targetEmail
+        ? `Email from ${targetEmail.fromName}. Subject: ${targetEmail.subject}. Categorized as ${targetEmail.aiCategory || 'Customer'}, Priority: ${targetEmail.aiPriority || 'Medium'}. ${targetEmail.snippet}`
+        : 'No emails found in inbox.';
       setAiResponse(text);
       playChime();
       speakText(text);
     } else if (c.includes('read') || c.includes('latest')) {
-      if (emails.length > 0) {
-        const text = `From ${emails[0].fromName}: ${emails[0].subject}. ${emails[0].snippet}`;
+      if (targetEmail) {
+        const text = `From ${targetEmail.fromName}: ${targetEmail.subject}. ${targetEmail.snippet}`;
         setAiResponse(text);
         playChime();
         speakText(text);
@@ -353,6 +362,7 @@ export default function PublicEmailAssistantPage() {
     setUser(null);
     setEmails([]);
     setEmailError(null);
+    setSelectedEmailId(null);
   };
 
   const filteredEmails = emails.filter((e) => {
@@ -370,7 +380,7 @@ export default function PublicEmailAssistantPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">Datalazo AI Executive Assistant</h1>
-            <p className="text-xs text-slate-400">Automatic AI Categorization · Priority Routing · Whisper Voice Controls</p>
+            <p className="text-xs text-slate-400">Click any row to select · Whisper Voice Controls · Interactive Email Operations</p>
           </div>
         </div>
 
@@ -424,6 +434,23 @@ export default function PublicEmailAssistantPage() {
         </div>
       </div>
 
+      {selectedEmail && (
+        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-bold text-xs flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-base">📌</span>
+            <span>
+              Selected Row: <strong className="text-white">{selectedEmail.fromName}</strong> — "{selectedEmail.subject}"
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedEmailId(null)}
+            className="px-2.5 py-1 rounded-lg bg-indigo-500/30 hover:bg-indigo-500/50 text-indigo-100 text-xs transition-colors"
+          >
+            Clear Selection ✕
+          </button>
+        </div>
+      )}
+
       {micError && (
         <div className="max-w-6xl w-full mx-auto mb-4 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between">
           <span>⚠️ {micError}</span>
@@ -450,7 +477,7 @@ export default function PublicEmailAssistantPage() {
             <h3 className="text-sm font-bold text-white">Voice Command Console <span className="text-slate-400 font-normal text-xs ml-1">· Whisper AI</span></h3>
           </div>
           <span className="text-xs text-slate-400 font-mono">
-            {isRecording ? '🎤 Recording live...' : isProcessing ? '🧠 Whisper + GPT-4o thinking...' : 'Click "Hold & Speak to AI" above'}
+            {isRecording ? '🎤 Recording live...' : isProcessing ? '🧠 Whisper + GPT-4o thinking...' : selectedEmail ? `Targeting Selected Email from ${selectedEmail.fromName}` : 'Click "Hold & Speak to AI" above'}
           </span>
         </div>
 
@@ -497,7 +524,7 @@ export default function PublicEmailAssistantPage() {
             type="text"
             value={typedCommand}
             onChange={(e) => setTypedCommand(e.target.value)}
-            placeholder='Or type a command: "Summarize", "Read email", "Reply to latest saying..."'
+            placeholder={selectedEmail ? `Run command on selected email from ${selectedEmail.fromName}: "Summarize", "Reply...", "Delete"` : 'Type a command: "Summarize", "Read email", "Reply to latest saying..."'}
             className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
           <button type="submit" className="px-4 py-2.5 bg-indigo-500 text-white font-bold text-xs rounded-xl hover:bg-indigo-600 transition-all whitespace-nowrap">
@@ -566,16 +593,30 @@ export default function PublicEmailAssistantPage() {
               {filteredEmails.map((email) => {
                 const catBadge = getCategoryBadge(email.aiCategory);
                 const prioBadge = getPriorityBadge(email.aiPriority);
+                const isSelected = selectedEmailId === email.id;
 
                 return (
                   <div
                     key={email.id}
-                    className={`p-4 rounded-xl border transition-all select-none cursor-default ${
-                      !email.isRead ? 'bg-indigo-950/30 border-indigo-500/40 shadow-sm' : 'bg-white/[0.02] border-white/5'
+                    onClick={() => setSelectedEmailId(isSelected ? null : email.id)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-950/60 border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.35)] ring-1 ring-indigo-500'
+                        : !email.isRead
+                        ? 'bg-indigo-950/20 border-indigo-500/30 hover:border-indigo-400/50'
+                        : 'bg-white/[0.02] border-white/5 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
-                      <span className="text-xs font-bold text-indigo-300">{email.fromName}</span>
+                      <div className="flex items-center gap-2">
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] bg-indigo-500 text-white font-bold animate-pulse">
+                            ✓ Selected
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-indigo-300">{email.fromName}</span>
+                      </div>
+
                       <div className="flex items-center gap-1.5">
                         <span className={`px-2 py-0.5 rounded-md text-[10px] border ${catBadge.style}`}>
                           {catBadge.label}
@@ -591,6 +632,33 @@ export default function PublicEmailAssistantPage() {
 
                     <h4 className="text-xs font-bold text-white mb-1 truncate">{email.subject}</h4>
                     <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
+
+                    {/* Quick Row Action Bar if Selected */}
+                    {isSelected && (
+                      <div className="mt-3 pt-3 border-t border-indigo-500/30 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => processTextCommand('read email')}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 text-[11px] font-bold transition-all border border-indigo-500/40 flex items-center gap-1"
+                        >
+                          🔊 Read Aloud
+                        </button>
+                        <button
+                          onClick={() => processTextCommand('summarize')}
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-200 text-[11px] font-bold transition-all border border-cyan-500/40 flex items-center gap-1"
+                        >
+                          📧 Summarize
+                        </button>
+                        <button
+                          onClick={() => {
+                            const replyText = prompt(`Type reply to ${email.fromName}:`);
+                            if (replyText) processTextCommand(`reply saying ${replyText}`);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 text-[11px] font-bold transition-all border border-purple-500/40 flex items-center gap-1"
+                        >
+                          ✍️ Reply
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -601,19 +669,21 @@ export default function PublicEmailAssistantPage() {
         <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col gap-3">
           <div className="text-2xl">🗣️</div>
           <h3 className="text-sm font-bold text-white">Quick Voice Shortcuts</h3>
-          <p className="text-xs text-slate-400">Click to run instantly:</p>
+          <p className="text-xs text-slate-400">
+            {selectedEmail ? `Targeting: ${selectedEmail.fromName}` : 'Click any email row on the left to select it!'}
+          </p>
           <button
             onClick={() => processTextCommand('summarize')}
             className="w-full py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-xs hover:bg-indigo-500/20 transition-all text-left flex items-center justify-between"
           >
-            <span>📧 Summarize latest</span>
+            <span>📧 Summarize {selectedEmail ? 'selected' : 'latest'}</span>
             <span className="text-[10px] text-slate-400">→ speaks summary</span>
           </button>
           <button
             onClick={() => processTextCommand('read email')}
             className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-mono text-xs hover:bg-cyan-500/20 transition-all text-left flex items-center justify-between"
           >
-            <span>🔊 Read email aloud</span>
+            <span>🔊 Read {selectedEmail ? 'selected' : 'latest'} email</span>
             <span className="text-[10px] text-slate-400">→ speaks full email</span>
           </button>
           <button
@@ -625,11 +695,10 @@ export default function PublicEmailAssistantPage() {
           </button>
 
           <div className="mt-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-slate-400 leading-relaxed">
-            <strong className="text-slate-300 block mb-1">🏷️ AI Categories Supported:</strong>
-            • <strong className="text-blue-300">Customer</strong> &amp; <strong className="text-purple-300">Vendor</strong><br />
-            • <strong className="text-emerald-300">Accounting</strong> &amp; <strong className="text-teal-300">Banking</strong><br />
-            • <strong className="text-cyan-300">Internal</strong> &amp; <strong className="text-indigo-300">Newsletter</strong><br />
-            • <strong className="text-amber-300">Marketing</strong> &amp; <strong className="text-red-300">Spam</strong>
+            <strong className="text-slate-300 block mb-1">💡 Row Selection:</strong>
+            • Click any email card to select it.<br />
+            • The selected email lights up with <strong className="text-indigo-300">✓ Selected</strong>.<br />
+            • All voice &amp; text commands target your selected email!
           </div>
         </div>
       </div>
