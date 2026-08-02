@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
 
   if (error || !code) {
-    return NextResponse.redirect(new URL('/email-assistant?error=auth_failed', origin));
+    return NextResponse.redirect(new URL('/dashboard/email-assistant?error=auth_failed', origin));
   }
 
   const clientID = process.env.GOOGLE_CLIENT_ID || FALLBACK_CLIENT_ID;
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('[OAuth Callback] Token exchange failed:', tokenData);
-      return NextResponse.redirect(new URL('/email-assistant?error=token_failed', origin));
+      return NextResponse.redirect(new URL('/dashboard/email-assistant?error=token_failed', origin));
     }
 
     // Retrieve Google user profile
@@ -58,27 +58,45 @@ export async function GET(req: NextRequest) {
     // Redirect user back to Email Assistant dashboard page
     const res = NextResponse.redirect(new URL('/dashboard/email-assistant', origin));
 
-    const userData = {
+    const isSecure = origin.startsWith('https');
+    const cookieOpts = {
+      secure: isSecure,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 7 * 24 * 3600,
+    };
+
+    // Cookie 1: Small readable profile cookie (no tokens) — JS can read this
+    const profileData = {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       picture: profile.picture,
+    };
+    res.cookies.set('user_profile', JSON.stringify(profileData), {
+      ...cookieOpts,
+      httpOnly: false, // readable by JS to show "Google Connected" status
+    });
+
+    // Cookie 2: Secure token cookie — server-only, never sent to client JS
+    const tokenData2 = {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
     };
+    res.cookies.set('user_tokens', JSON.stringify(tokenData2), {
+      ...cookieOpts,
+      httpOnly: true, // only server can read tokens
+    });
 
-    // Save session cookies (httpOnly false so JS can read email status)
-    res.cookies.set('user_session', JSON.stringify(userData), {
+    // Legacy cookie for backward compat (small, no tokens)
+    res.cookies.set('user_session', JSON.stringify(profileData), {
+      ...cookieOpts,
       httpOnly: false,
-      secure: origin.startsWith('https'),
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 3600,
     });
 
     return res;
   } catch (err) {
     console.error('[OAuth Callback] Exception:', err);
-    return NextResponse.redirect(new URL('/email-assistant?error=server_error', origin));
+    return NextResponse.redirect(new URL('/dashboard/email-assistant?error=server_error', origin));
   }
 }

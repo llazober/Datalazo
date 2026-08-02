@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-  const sessionCookie = req.cookies.get('user_session');
+  // Try new user_profile cookie first, then legacy user_session
+  const profileCookie = req.cookies.get('user_profile');
+  const legacyCookie = req.cookies.get('user_session');
 
-  if (!sessionCookie?.value) {
+  const rawCookie = profileCookie || legacyCookie;
+
+  if (!rawCookie?.value) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
-    const userData = JSON.parse(sessionCookie.value);
+    const userData = JSON.parse(rawCookie.value);
+    // Only return safe profile fields, never tokens
     return NextResponse.json({
       id: userData.id,
       email: userData.email,

@@ -62,11 +62,21 @@ export default function DashboardEmailAssistantPage() {
   const [typedCommand, setTypedCommand] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const shouldListenRef = useRef<boolean>(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    // Try user_profile cookie first (new split cookie, no tokens)
+    try {
+      const profileMatch = document.cookie.match(new RegExp('(^| )user_profile=([^;]+)'));
+      if (profileMatch) {
+        const decoded = JSON.parse(decodeURIComponent(profileMatch[2]));
+        if (decoded?.email) { setUser(decoded); return; }
+      }
+    } catch {}
+    // Fallback: legacy user_session cookie
     try {
       const match = document.cookie.match(new RegExp('(^| )user_session=([^;]+)'));
       if (match) {
@@ -75,38 +85,43 @@ export default function DashboardEmailAssistantPage() {
       }
     } catch {}
 
+    // Always confirm via server
     fetch('/auth/me')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.email) setUser(data);
-      })
+      .then((data) => { if (data?.email) setUser(data); })
       .catch(() => {});
   }, []);
 
   const fetchEmails = async () => {
     setLoadingEmails(true);
+    setEmailError(null);
     try {
       const res = await fetch('/api/emails');
-      if (res.ok) {
-        const data = await res.json();
-        const list: EmailItem[] = data.emails || [];
-
-        if (knownIdsRef.current.size > 0) {
-          const freshEmails = list.filter((m) => !knownIdsRef.current.has(m.id));
-          if (freshEmails.length > 0) {
-            const latest = freshEmails[0];
-            const noticeText = `New email from ${latest.fromName}: ${latest.subject}`;
-            setNewEmailNotice(`📩 ${noticeText}`);
-            playSpeechAlert(noticeText);
-          }
-        }
-
-        const newSet = new Set(list.map((m) => m.id));
-        knownIdsRef.current = newSet;
-        setEmails(list);
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error || `Error ${res.status}`;
+        setEmailError(`Gmail sync failed: ${msg}`);
+        console.error('[fetchEmails]', msg);
+        return;
       }
-    } catch (e) {
-      console.error(e);
+      const list: EmailItem[] = data.emails || [];
+
+      if (knownIdsRef.current.size > 0) {
+        const freshEmails = list.filter((m) => !knownIdsRef.current.has(m.id));
+        if (freshEmails.length > 0) {
+          const latest = freshEmails[0];
+          const noticeText = `New email from ${latest.fromName}: ${latest.subject}`;
+          setNewEmailNotice(`📩 ${noticeText}`);
+          playSpeechAlert(noticeText);
+        }
+      }
+
+      const newSet = new Set(list.map((m) => m.id));
+      knownIdsRef.current = newSet;
+      setEmails(list);
+    } catch (e: any) {
+      console.error('[fetchEmails] Network error:', e);
+      setEmailError(`Network error: ${e.message}`);
     } finally {
       setLoadingEmails(false);
     }
@@ -161,15 +176,21 @@ export default function DashboardEmailAssistantPage() {
       };
 
       recognition.onerror = (err: any) => {
-        console.warn('[SpeechRecognition Error]', err.error);
+        console.warn('[SpeechRecognition Error code]', err.error);
         if (err.error === 'not-allowed') {
           shouldListenRef.current = false;
           setIsListening(false);
-          setMicError('Windows/Browser microphone access blocked. Check Windows Settings -> Privacy & Security -> Microphone, or use the command buttons below.');
+          setMicError('Chrome mic blocked (not-allowed). Go to chrome://settings/content/microphone → find datalazo.net under "Not allowed" → click the trash icon → reload this page → click Allow when Chrome asks.');
         } else if (err.error === 'audio-capture') {
           shouldListenRef.current = false;
           setIsListening(false);
-          setMicError('No microphone input device detected. Check your headset/microphone connection, or use the command buttons below.');
+          setMicError('Mic error: audio-capture. No microphone detected. Check your headset/mic is plugged in and selected in Windows Sound Settings.');
+        } else if (err.error === 'network') {
+          console.warn('[SpeechRecognition] network error — will auto-restart');
+        } else if (err.error === 'aborted' || err.error === 'no-speech') {
+          // Non-fatal — recognition will auto-restart via onend
+        } else {
+          setMicError(`Mic error: ${err.error}. Use typed commands or quick buttons below.`);
         }
       };
 
@@ -242,9 +263,12 @@ export default function DashboardEmailAssistantPage() {
 
   const handleLogout = () => {
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'user_profile=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     setUser(null);
     setEmails([]);
+    setEmailError(null);
   };
+
 
   return (
     <div className="w-full h-full flex flex-col p-6 text-white bg-[#0a0a0c]">
@@ -317,13 +341,23 @@ export default function DashboardEmailAssistantPage() {
       </div>
 
       {micError && (
-        <div className="max-w-6xl w-full mb-6 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between shadow-lg">
+        <div className="max-w-6xl w-full mb-4 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between shadow-lg">
           <span>⚠️ {micError}</span>
           <button onClick={() => setMicError(null)} className="text-white text-xs opacity-70 hover:opacity-100">
             ✕
           </button>
         </div>
       )}
+
+      {emailError && (
+        <div className="max-w-6xl w-full mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 font-bold text-xs flex items-center justify-between shadow-lg">
+          <span>📧 {emailError}</span>
+          <button onClick={() => setEmailError(null)} className="text-white text-xs opacity-70 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
 
       {/* Voice Control Interactive Console */}
       <div className={`max-w-6xl w-full mb-8 p-6 rounded-2xl border transition-all ${

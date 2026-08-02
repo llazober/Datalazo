@@ -1,23 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
-  const sessionCookie = req.cookies.get('user_session');
+  // Try user_tokens first (new secure cookie), fall back to legacy user_session
+  const tokensCookie = req.cookies.get('user_tokens');
+  const legacyCookie = req.cookies.get('user_session');
 
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  let accessToken: string | null = null;
+
+  if (tokensCookie?.value) {
+    try {
+      const tokens = JSON.parse(tokensCookie.value);
+      accessToken = tokens.accessToken || null;
+    } catch {}
+  }
+
+  // Fallback: legacy user_session may still have accessToken
+  if (!accessToken && legacyCookie?.value) {
+    try {
+      const session = JSON.parse(legacyCookie.value);
+      accessToken = session.accessToken || null;
+    } catch {}
+  }
+
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: 'Not authenticated. Please sign in with Google first.' },
+      { status: 401 }
+    );
   }
 
   try {
-    const session = JSON.parse(sessionCookie.value);
-    const accessToken = session.accessToken;
-
-    if (!accessToken) {
-      return NextResponse.json({ error: 'No access token' }, { status: 401 });
-    }
-
-    // List latest 10 messages from Gmail
+    // List latest 15 messages from Gmail inbox
     const listRes = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q=label:INBOX',
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=label:INBOX',
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -26,17 +41,28 @@ export async function GET(req: NextRequest) {
     const listData = await listRes.json();
 
     if (!listRes.ok) {
-      return NextResponse.json({ error: listData.error?.message || 'Failed to list Gmail messages' }, { status: listRes.status });
+      console.error('[API Emails] Gmail list error:', listData);
+      // Token may be expired — signal client to re-auth
+      if (listRes.status === 401) {
+        return NextResponse.json(
+          { error: 'Google access token expired. Please disconnect and sign in again.' },
+          { status: 401 }
+        );
+      }
+      return NextResponse.json(
+        { error: listData.error?.message || 'Failed to list Gmail messages' },
+        { status: listRes.status }
+      );
     }
 
     const messageList = listData.messages || [];
 
-    // Fetch details for each message
+    // Fetch details for each message in parallel
     const detailedEmails = await Promise.all(
       messageList.map(async (msg: { id: string }) => {
         try {
           const detailRes = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
             {
               headers: { Authorization: `Bearer ${accessToken}` },
             }
@@ -45,22 +71,24 @@ export async function GET(req: NextRequest) {
 
           const headers = detail.payload?.headers || [];
           const getHeader = (name: string) =>
-            headers.find((h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+            headers.find((h: { name: string; value: string }) =>
+              h.name.toLowerCase() === name.toLowerCase()
+            )?.value || '';
 
           const from = getHeader('From');
           const subject = getHeader('Subject') || '(No Subject)';
           const date = getHeader('Date');
           const snippet = detail.snippet || '';
 
-          // Parse from name and email
-          const fromMatch = from.match(/^(?:"?([^"]*)"?\s)?(?:<(.+)>)?$/);
-          const fromName = fromMatch?.[1] || fromMatch?.[2] || from;
-          const fromEmail = fromMatch?.[2] || fromMatch?.[1] || from;
+          // Parse sender name and email
+          const fromMatch = from.match(/^(?:"?([^"<]*)"?\s*)?(?:<(.+)>)?$/);
+          const fromName = (fromMatch?.[1] || '').trim() || fromMatch?.[2] || from;
+          const fromEmail = fromMatch?.[2] || from;
 
           return {
             id: detail.id,
             threadId: detail.threadId,
-            fromName,
+            fromName: fromName || fromEmail,
             fromEmail,
             subject,
             snippet,
@@ -68,15 +96,15 @@ export async function GET(req: NextRequest) {
             isRead: !detail.labelIds?.includes('UNREAD'),
             isStarred: detail.labelIds?.includes('STARRED'),
           };
-        } catch {
+        } catch (e) {
+          console.error('[API Emails] Detail fetch error for', msg.id, e);
           return null;
         }
       })
     );
 
     const validEmails = detailedEmails.filter(Boolean);
-
-    return NextResponse.json({ emails: validEmails });
+    return NextResponse.json({ emails: validEmails, count: validEmails.length });
   } catch (err: any) {
     console.error('[API Emails] Exception:', err);
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
