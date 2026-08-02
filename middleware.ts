@@ -7,6 +7,16 @@ export function middleware(request: NextRequest) {
   // 1. Admin Dashboard routes require admin authentication (except email assistant)
   const isAdminDashboardRoute = pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/email-assistant');
 
+  // Public Google OAuth + Email Assistant auth routes — always exempt
+  const isPublicAuthRoute =
+    pathname.startsWith('/auth/google') ||
+    pathname.startsWith('/auth/me') ||
+    pathname.startsWith('/email-assistant');
+
+  if (isPublicAuthRoute) {
+    return NextResponse.next();
+  }
+
   // 2. Client Dashboard routes require client user authentication
   const isClientDashboardRoute = pathname.startsWith('/client/dashboard');
 
@@ -26,6 +36,7 @@ export function middleware(request: NextRequest) {
       '/api/chat',
       '/api/voice',
       '/api/appointments',
+      '/api/emails',        // Google Gmail sync — uses its own user_session cookie
     ];
 
     const isPublicPrefix = publicApiPrefixes.some(prefix => pathname.startsWith(prefix));
