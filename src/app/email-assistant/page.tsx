@@ -119,8 +119,8 @@ export default function PublicEmailAssistantPage() {
     }
   }, [user]);
 
-  // Voice Command Speech Recognition with Continuous Auto-Restart
-  const toggleListening = () => {
+  // Voice Command Speech Recognition with MediaDevices Prompt & Continuous Listener
+  const toggleListening = async () => {
     if (isListening) {
       shouldListenRef.current = false;
       recognitionRef.current?.stop();
@@ -136,6 +136,19 @@ export default function PublicEmailAssistantPage() {
     }
 
     setMicError(null);
+
+    // Request native browser microphone permission
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (err: any) {
+      console.error('[Mic Permission Error]', err);
+      setMicError('Microphone permission blocked. Click the Site Controls icon (tune sliders 🎛️ to the left of datalazo.net in your browser bar) and set Microphone to Allow.');
+      return;
+    }
+
     shouldListenRef.current = true;
 
     try {
@@ -165,14 +178,12 @@ export default function PublicEmailAssistantPage() {
         if (err.error === 'not-allowed') {
           shouldListenRef.current = false;
           setIsListening(false);
-          setMicError('Microphone permission blocked. Click the padlock icon 🔒 in the Chrome address bar to Allow Microphone.');
+          setMicError('Microphone permission blocked. Click the Site Controls icon (tune sliders 🎛️ to the left of datalazo.net in your browser bar) and set Microphone to Allow.');
         }
-        // Ignore 'no-speech' or 'aborted' error to keep continuous listening alive
       };
 
       recognition.onend = () => {
         if (shouldListenRef.current) {
-          // Auto-restart recognition so listening stays active continuously
           try {
             recognition.start();
           } catch (e) {
@@ -297,7 +308,7 @@ export default function PublicEmailAssistantPage() {
       </div>
 
       {micError && (
-        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between">
+        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-between shadow-lg">
           <span>⚠️ {micError}</span>
           <button onClick={() => setMicError(null)} className="text-white text-xs opacity-70 hover:opacity-100">
             ✕
