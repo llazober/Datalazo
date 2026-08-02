@@ -232,7 +232,17 @@ export default function DashboardEmailAssistantPage() {
       }
       const list: EmailItem[] = data.emails || [];
       if (knownIdsRef.current.size > 0) {
-        const fresh = list.filter((m) => !knownIdsRef.current.has(m.id));
+        // Only notify for genuinely new emails (unseen AND received within the last 10 minutes)
+        const fresh = list.filter((m) => {
+          if (knownIdsRef.current.has(m.id)) return false;
+          try {
+            const emailTime = new Date(m.date).getTime();
+            return !isNaN(emailTime) && Date.now() - emailTime < 10 * 60 * 1000;
+          } catch {
+            return false;
+          }
+        });
+
         if (fresh.length > 0) {
           const latest = fresh[0];
           const msg = `New email from ${latest.fromName}: ${latest.subject}`;
