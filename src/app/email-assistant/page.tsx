@@ -1,21 +1,32 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+
+interface EmailItem {
+  id: string;
+  fromName: string;
+  fromEmail: string;
+  subject: string;
+  snippet: string;
+  date: string;
+  isRead: boolean;
+}
 
 interface UserSession {
   id: string;
   email: string;
   name: string;
   picture?: string;
-  accessToken?: string;
 }
 
-export default function EmailAssistantPage() {
+export default function PublicEmailAssistantPage() {
   const [user, setUser] = useState<UserSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [emails, setEmails] = useState<EmailItem[]>([]);
+  const [loadingEmails, setLoadingEmails] = useState(false);
+  const [newEmailNotice, setNewEmailNotice] = useState<string | null>(null);
+  const prevEmailCount = useRef<number>(0);
 
   useEffect(() => {
-    // Check session cookie or fetch auth status
     try {
       const match = document.cookie.match(new RegExp('(^| )user_session=([^;]+)'));
       if (match) {
@@ -24,19 +35,52 @@ export default function EmailAssistantPage() {
       }
     } catch {}
 
-    // Fallback: fetch /auth/me or /api/auth/me
     fetch('/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.email) setUser(data);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
+
+  const fetchEmails = async () => {
+    setLoadingEmails(true);
+    try {
+      const res = await fetch('/api/emails');
+      if (res.ok) {
+        const data = await res.json();
+        const list: EmailItem[] = data.emails || [];
+        setEmails(list);
+
+        if (prevEmailCount.current > 0 && list.length > prevEmailCount.current) {
+          const latest = list[0];
+          setNewEmailNotice(`📩 New Email: "${latest.subject}" from ${latest.fromName}`);
+          if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(`New email received from ${latest.fromName}: ${latest.subject}`);
+            window.speechSynthesis.speak(utterance);
+          }
+        }
+        prevEmailCount.current = list.length;
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingEmails(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchEmails();
+      const interval = setInterval(fetchEmails, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     setUser(null);
+    setEmails([]);
   };
 
   return (
@@ -92,91 +136,106 @@ export default function EmailAssistantPage() {
         )}
       </div>
 
-      {/* Main Container */}
-      <div className="max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-indigo-500/40 transition-all">
-          <div className="text-3xl mb-3">🎙️</div>
-          <h3 className="text-base font-bold text-white mb-1">Voice-First Experience</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Hands-free email processing. Speak naturally to summarize, reply, or draft emails while working.
-          </p>
-          <span className={`text-[11px] font-mono px-3 py-1.5 rounded-lg inline-block ${
-            user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-indigo-400 bg-indigo-500/10'
-          }`}>
-            {user ? '🟢 Microphone & Voice Active' : 'Always-on listening'}
-          </span>
+      {newEmailNotice && (
+        <div className="max-w-6xl w-full mx-auto mb-6 p-4 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-bold text-xs flex items-center justify-between animate-bounce">
+          <span>{newEmailNotice}</span>
+          <button onClick={() => setNewEmailNotice(null)} className="text-white text-xs opacity-70 hover:opacity-100">
+            ✕
+          </button>
         </div>
+      )}
 
-        <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 transition-all">
-          <div className="text-3xl mb-3">🤖</div>
-          <h3 className="text-base font-bold text-white mb-1">GPT-4o Writing Style</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Learns your unique writing voice from sent mail to compose natural, professional responses.
-          </p>
-          <span className={`text-[11px] font-mono px-3 py-1.5 rounded-lg inline-block ${
-            user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-cyan-400 bg-cyan-500/10'
-          }`}>
-            {user ? '🟢 Style Trained from Sent Mail' : 'Style Memory Engine'}
-          </span>
-        </div>
+      {/* Main Grid */}
+      <div className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Left 2 Cols: Live Gmail Feed */}
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span>📬</span> Live Gmail Inbox
+              {emails.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-mono">
+                  {emails.length} messages
+                </span>
+              )}
+            </h2>
+            {user && (
+              <button
+                onClick={fetchEmails}
+                disabled={loadingEmails}
+                className="text-xs text-indigo-400 hover:text-indigo-300 font-mono flex items-center gap-1"
+              >
+                {loadingEmails ? 'Syncing...' : '🔄 Refresh Now'}
+              </button>
+            )}
+          </div>
 
-        <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-purple-500/40 transition-all">
-          <div className="text-3xl mb-3">⚡</div>
-          <h3 className="text-base font-bold text-white mb-1">Smart Automation</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Set rule triggers to auto-archive noise, flag high priority messages, and schedule meetings.
-          </p>
-          <span className={`text-[11px] font-mono px-3 py-1.5 rounded-lg inline-block ${
-            user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-purple-400 bg-purple-500/10'
-          }`}>
-            {user ? '🟢 Inbox Rules Active' : 'Auto Rule Processing'}
-          </span>
-        </div>
-      </div>
-
-      {/* Connection Banner */}
-      <div className={`max-w-6xl w-full mx-auto p-8 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${
-        user
-          ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900/40 to-slate-900/40 border-emerald-500/40'
-          : 'bg-gradient-to-r from-indigo-900/30 via-purple-900/20 to-slate-900/40 border-indigo-500/30'
-      }`}>
-        <div>
-          {user ? (
-            <>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-emerald-400 font-bold text-lg">✅ Google Account Connected</span>
-              </div>
-              <p className="text-xs text-slate-300 max-w-xl">
-                Your Gmail inbox and Google Calendar are actively synced. Voice commands, automated drafting, and scheduling are live for <strong className="text-white font-mono">{user.email}</strong>.
-              </p>
-            </>
+          {!user ? (
+            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
+              <div className="text-3xl mb-2">🔒</div>
+              Sign in with Google to view live inbox messages and automated AI summaries.
+            </div>
+          ) : loadingEmails && emails.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              <span className="inline-block animate-spin text-lg mb-2">🔄</span>
+              <div>Fetching latest messages from Gmail...</div>
+            </div>
+          ) : emails.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
+              No recent emails found in your Gmail Inbox.
+            </div>
           ) : (
-            <>
-              <h2 className="text-lg font-bold text-white mb-1">Ready to manage emails by voice?</h2>
-              <p className="text-xs text-slate-300 max-w-xl">
-                Authenticate with Google to connect Gmail and Google Calendar securely. Your data stays protected.
-              </p>
-            </>
+            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+              {emails.map((email) => (
+                <div
+                  key={email.id}
+                  className={`p-4 rounded-xl border transition-all ${
+                    !email.isRead
+                      ? 'bg-indigo-950/30 border-indigo-500/40 text-white'
+                      : 'bg-white/[0.02] border-white/5 text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-indigo-300">{email.fromName}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-white mb-1 truncate">{email.subject}</h4>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{email.snippet}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {user ? (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-5 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-xs hover:bg-emerald-500/30 transition-all flex items-center gap-2"
-            >
-              🔄 Sync Inbox Now
-            </button>
+        {/* Right 1 Col: AI Voice Assistant Modules */}
+        <div className="space-y-4">
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
+            <div className="text-2xl mb-2">🎙️</div>
+            <h3 className="text-sm font-bold text-white mb-1">Voice Notifications</h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-3">
+              Spoken alerts automatically play when a new email arrives in your connected Gmail account.
+            </p>
+            <span className={`text-[10px] font-mono px-2.5 py-1 rounded-lg inline-block ${
+              user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-white/5'
+            }`}>
+              {user ? '🟢 Speech Synthesis Live' : 'Requires Google Login'}
+            </span>
           </div>
-        ) : (
-          <a
-            href="/auth/google"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:scale-105 transition-all text-center whitespace-nowrap"
-          >
-            Sign in with Google ➔
-          </a>
-        )}
+
+          <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10">
+            <div className="text-2xl mb-2">🤖</div>
+            <h3 className="text-sm font-bold text-white mb-1">GPT-4o Auto Summaries</h3>
+            <p className="text-xs text-slate-400 leading-relaxed mb-3">
+              Incoming test emails are instantly analyzed for action items, meeting requests, and sentiment.
+            </p>
+            <span className={`text-[10px] font-mono px-2.5 py-1 rounded-lg inline-block ${
+              user ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-white/5'
+            }`}>
+              {user ? '🟢 AI Analysis Ready' : 'Requires Google Login'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
