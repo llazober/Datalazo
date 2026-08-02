@@ -134,8 +134,10 @@ export async function processAndStoreEmail(userId: string, gmailMessage: any): P
   // Check automation rules
   await applyAutomationRules(userId, inserted.id, { fromEmail, subject, category: analysis.category });
 
-  // Emit socket event for real-time UI update
-  if (io) {
+  // Emit socket event for real-time UI update ONLY if received recently (within 10 minutes)
+  const isRecent = (Date.now() - receivedAt.getTime()) < 10 * 60 * 1000;
+
+  if (io && isRecent) {
     const emailData = { ...inserted, analysis, fromName, fromEmail, subject, receivedAt };
     io.to(`user:${userId}`).emit('new_email', emailData);
 
