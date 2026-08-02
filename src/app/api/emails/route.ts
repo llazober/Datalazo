@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
     } else if (cleaned.includes('label:') || cleaned.includes('in:') || cleaned.includes('from:') || cleaned.includes('to:') || cleaned.includes('subject:')) {
       gmailQuery = cleaned;
     } else if (cleaned) {
-      gmailQuery = `label:INBOX (${cleaned} OR from:"${cleaned}")`;
+      gmailQuery = `label:INBOX (from:"${cleaned}" OR to:"${cleaned}" OR subject:"${cleaned}" OR "${cleaned}")`;
     }
   }
 

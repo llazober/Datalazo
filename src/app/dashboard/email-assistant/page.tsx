@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 
 export type EmailCategory =
   | 'Customer'
@@ -528,21 +528,38 @@ export default function DashboardEmailAssistantPage() {
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
-  // Filtered email list with client-side search matching safeguard
-  const filteredEmails = emails.filter((e) => {
+  // Filtered email list with smart sender matching & prioritization
+  const filteredEmails = useMemo(() => {
+    let list = emails;
+
     if (activeSearch.trim()) {
       const q = activeSearch.toLowerCase().trim();
-      const matchSearch =
-        (e.fromName && e.fromName.toLowerCase().includes(q)) ||
-        (e.fromEmail && e.fromEmail.toLowerCase().includes(q)) ||
-        (e.subject && e.subject.toLowerCase().includes(q)) ||
-        (e.snippet && e.snippet.toLowerCase().includes(q));
-      if (!matchSearch) return false;
+
+      // Check if there are direct sender matches (e.g. email from Victor Rivera)
+      const directMatches = list.filter(
+        (e) =>
+          (e.fromName && e.fromName.toLowerCase().includes(q)) ||
+          (e.fromEmail && e.fromEmail.toLowerCase().includes(q))
+      );
+
+      // If direct sender matches exist, show ONLY emails from that sender so third-party receipts aren't mixed in!
+      if (directMatches.length > 0) {
+        list = directMatches;
+      } else {
+        list = list.filter(
+          (e) =>
+            (e.fromName && e.fromName.toLowerCase().includes(q)) ||
+            (e.fromEmail && e.fromEmail.toLowerCase().includes(q)) ||
+            (e.subject && e.subject.toLowerCase().includes(q)) ||
+            (e.snippet && e.snippet.toLowerCase().includes(q))
+        );
+      }
     }
-    if (activeFilter === 'All') return true;
-    if (activeFilter === 'Urgent') return e.aiPriority === 'Critical' || e.aiPriority === 'High';
-    return e.aiCategory === activeFilter;
-  });
+
+    if (activeFilter === 'All') return list;
+    if (activeFilter === 'Urgent') return list.filter((e) => e.aiPriority === 'Critical' || e.aiPriority === 'High');
+    return list.filter((e) => e.aiCategory === activeFilter);
+  }, [emails, activeSearch, activeFilter]);
 
   return (
     <div className="w-full h-full flex flex-col p-6 text-white bg-[#0a0a0c]">
