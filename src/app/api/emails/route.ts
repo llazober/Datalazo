@@ -188,6 +188,26 @@ Return format:
   return results;
 }
 
+function sanitizeSearchQuery(input: string): string {
+  let q = input.trim();
+  if (!q) return '';
+
+  // 1. Remove all common conversational prefixes
+  q = q.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
+  q = q.replace(/^(emails?\s+|messages?\s+)/i, '');
+  q = q.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|in\s+folder|folder\s+for|for|from|about)\s+/i, '');
+  q = q.replace(/^(inbox\s+folder\s+for|inbox\s+for|folder\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
+  q = q.replace(/^(for|from|about)\s+/i, '');
+  q = q.trim();
+
+  // 2. Remove trailing folder/inbox references (e.g. "Victor in inbox folder")
+  q = q.replace(/\s+(in|inside)\s+(the\s+)?(inbox|folder|label).*/i, '');
+  q = q.replace(/^(inbox|folder)\s+for\s+/i, '');
+  q = q.trim();
+
+  return q;
+}
+
 export async function GET(req: NextRequest) {
   const tokensCookie = req.cookies.get('user_tokens');
   const legacyCookie = req.cookies.get('user_session');
@@ -223,18 +243,13 @@ export async function GET(req: NextRequest) {
   // Construct Gmail API query string with conversational query sanitizer
   let gmailQuery = 'label:INBOX';
   if (searchQueryParam.trim()) {
-    let qTrim = searchQueryParam.trim();
-
-    // Strip conversational phrases (e.g. "Search email from inbox for Victor Rivera" -> "Victor Rivera")
-    qTrim = qTrim.replace(/^(search\s+for|find\s+emails?\s+from|find\s+emails?\s+about|show\s+me\s+emails?\s+from|show\s+me\s+emails?\s+about|search\s+emails?\s+from\s+inbox\s+for|search\s+emails?\s+for|search\s+emails?\s+from|emails?\s+from|get\s+emails?\s+from|look\s+for)\s+/i, '').trim();
-
-    if (qTrim.toLowerCase().startsWith('all:') || qTrim.toLowerCase().startsWith('global:')) {
-      gmailQuery = qTrim.replace(/^(all|global):/i, '').trim();
-    } else if (qTrim.includes('label:') || qTrim.includes('in:') || qTrim.includes('from:') || qTrim.includes('to:') || qTrim.includes('subject:')) {
-      gmailQuery = qTrim;
-    } else {
-      // Flexible search matching sender name OR content in inbox
-      gmailQuery = `label:INBOX (${qTrim} OR from:"${qTrim}")`;
+    const cleaned = sanitizeSearchQuery(searchQueryParam);
+    if (cleaned.toLowerCase().startsWith('all:') || cleaned.toLowerCase().startsWith('global:')) {
+      gmailQuery = cleaned.replace(/^(all|global):/i, '').trim();
+    } else if (cleaned.includes('label:') || cleaned.includes('in:') || cleaned.includes('from:') || cleaned.includes('to:') || cleaned.includes('subject:')) {
+      gmailQuery = cleaned;
+    } else if (cleaned) {
+      gmailQuery = `label:INBOX (${cleaned} OR from:"${cleaned}")`;
     }
   }
 

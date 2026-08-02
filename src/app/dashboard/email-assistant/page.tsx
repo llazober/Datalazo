@@ -277,14 +277,34 @@ export default function DashboardEmailAssistantPage() {
     }
   };
 
+  const executeSearch = (rawQuery: string) => {
+    let clean = rawQuery.trim();
+    clean = clean.replace(/^(please\s+|can\s+you\s+|i\s+want\s+to\s+)?(search|find|show\s+me|get|look\s+for)\s+/i, '');
+    clean = clean.replace(/^(emails?\s+|messages?\s+)/i, '');
+    clean = clean.replace(/^(in\s+inbox\s+folder\s+for|in\s+inbox\s+for|from\s+inbox\s+for|in\s+inbox\s+folder|in\s+inbox|from\s+inbox|in\s+folder|folder\s+for|for|from|about)\s+/i, '');
+    clean = clean.replace(/^(inbox\s+folder\s+for|inbox\s+for|folder\s+for|emails?\s+for|emails?\s+from|emails?\s+about)\s+/i, '');
+    clean = clean.replace(/^(for|from|about)\s+/i, '');
+    clean = clean.replace(/\s+(in|inside)\s+(the\s+)?(inbox|folder|label).*/i, '');
+    clean = clean.replace(/^(inbox|folder)\s+for\s+/i, '').trim();
+
+    const finalQ = clean || rawQuery.trim();
+    setSearchInput(finalQ);
+    setActiveSearch(finalQ);
+    activeSearchRef.current = finalQ;
+    fetchEmails(finalQ);
+  };
+
   const handleSearchSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    const q = searchInput.trim();
-    setActiveSearch(q);
-    fetchEmails(q);
+    if (searchInput.trim()) {
+      executeSearch(searchInput);
+    } else {
+      clearSearch();
+    }
   };
 
   const clearSearch = () => {
+    activeSearchRef.current = '';
     setSearchInput('');
     setActiveSearch('');
     fetchEmails('');
@@ -430,9 +450,7 @@ export default function DashboardEmailAssistantPage() {
         try {
           const action = JSON.parse(actionText);
           if (action.type === 'search' && action.query) {
-            setSearchInput(action.query);
-            setActiveSearch(action.query);
-            fetchEmails(action.query);
+            executeSearch(action.query);
           } else if (action.type === 'refresh') {
             fetchEmails();
           }
@@ -461,11 +479,7 @@ export default function DashboardEmailAssistantPage() {
     setTranscript(`⌨️ "${cmd}"`);
 
     if (c.startsWith('search') || c.startsWith('find') || c.startsWith('show')) {
-      const q = cmd.replace(/^(search\s+for|find\s+emails?\s+from|find\s+emails?\s+about|show\s+me\s+emails?\s+from|show\s+me\s+emails?\s+about|search\s+emails?\s+from\s+inbox\s+for|search\s+emails?\s+for|search\s+emails?\s+from|emails?\s+from|get\s+emails?\s+from|look\s+for)\s+/i, '').trim();
-      setSearchInput(q);
-      setActiveSearch(q);
-      fetchEmails(q);
-      setAiResponse(`Searching emails for "${q}".`);
+      executeSearch(cmd);
       return;
     }
 
@@ -514,8 +528,17 @@ export default function DashboardEmailAssistantPage() {
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
-  // Filtered email list
+  // Filtered email list with client-side search matching safeguard
   const filteredEmails = emails.filter((e) => {
+    if (activeSearch.trim()) {
+      const q = activeSearch.toLowerCase().trim();
+      const matchSearch =
+        (e.fromName && e.fromName.toLowerCase().includes(q)) ||
+        (e.fromEmail && e.fromEmail.toLowerCase().includes(q)) ||
+        (e.subject && e.subject.toLowerCase().includes(q)) ||
+        (e.snippet && e.snippet.toLowerCase().includes(q));
+      if (!matchSearch) return false;
+    }
     if (activeFilter === 'All') return true;
     if (activeFilter === 'Urgent') return e.aiPriority === 'Critical' || e.aiPriority === 'High';
     return e.aiCategory === activeFilter;
