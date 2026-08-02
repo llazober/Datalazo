@@ -183,7 +183,37 @@ export default function PublicEmailAssistantPage() {
   const knownIdsRef = useRef<Set<string>>(new Set());
   const streamRef = useRef<MediaStream | null>(null);
 
-  const selectedEmail = emails.find((e) => e.id === selectedEmailId);
+  // ── Session detection ────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const profileMatch = document.cookie.match(new RegExp('(^| )user_profile=([^;]+)'));
+      if (profileMatch) {
+        const decoded = JSON.parse(decodeURIComponent(profileMatch[2]));
+        if (decoded?.email) {
+          setUser(decoded);
+          return;
+        }
+      }
+    } catch {}
+
+    try {
+      const match = document.cookie.match(new RegExp('(^| )user_session=([^;]+)'));
+      if (match) {
+        const decoded = JSON.parse(decodeURIComponent(match[2]));
+        if (decoded?.email) {
+          setUser(decoded);
+          return;
+        }
+      }
+    } catch {}
+
+    fetch('/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.email) setUser(d);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchEmails = async (overrideQuery?: string) => {
     setLoadingEmails(true);
@@ -434,6 +464,8 @@ export default function PublicEmailAssistantPage() {
     setEmailError(null);
     setSelectedEmailId(null);
   };
+
+  const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
   const filteredEmails = emails.filter((e) => {
     if (activeFilter === 'All') return true;
@@ -715,9 +747,15 @@ export default function PublicEmailAssistantPage() {
           )}
 
           {!user ? (
-            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl">
+            <div className="py-12 text-center text-slate-400 text-xs border border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center">
               <div className="text-3xl mb-2">🔒</div>
-              Sign in with Google to view live inbox.
+              <p className="mb-4 text-slate-300">Sign in with your Google Account to access live inbox, search &amp; batch operations.</p>
+              <a
+                href="/auth/google"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+              >
+                <span>🔑</span> Sign in with Google
+              </a>
             </div>
           ) : loadingEmails && emails.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">
