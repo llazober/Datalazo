@@ -49,6 +49,7 @@ export default function DashboardLayout({
           {[
             { name: 'Overview', path: '/dashboard' },
             { name: 'AI Email Assistant', path: '/dashboard/email-assistant' },
+            { name: 'System Backups', path: '/dashboard/backups' },
             { name: 'Visitor Analytics', path: '/dashboard/analytics' },
             { name: 'AI Usage', path: '/dashboard/usage' },
             { name: 'Knowledge Base', path: '/dashboard/knowledge' },
@@ -65,6 +66,7 @@ export default function DashboardLayout({
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl transition-colors ${
                 item.name === 'AI Email Assistant' ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30' :
+                item.name === 'System Backups' ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30' :
                 item.name === 'Visitor Analytics' ? 'bg-cyan-500/10 text-cyan-400' :
                 item.name === 'AI Usage' ? 'bg-indigo-500/10 text-indigo-400' : 
                 item.name === 'Knowledge Base' ? 'bg-accent-cyan/10 text-accent-cyan' :
