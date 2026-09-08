@@ -4,8 +4,12 @@ export async function POST(req: NextRequest) {
   try {
     const { password } = await req.json();
 
-    // Use environment variable or default
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'datalazo2025';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+    if (!ADMIN_PASSWORD) {
+      console.error('ADMIN_PASSWORD environment variable is not configured');
+      return NextResponse.json({ error: 'Server authentication unconfigured' }, { status: 500 });
+    }
 
     if (password === ADMIN_PASSWORD) {
       const response = NextResponse.json({ success: true });
