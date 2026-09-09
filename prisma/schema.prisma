@@ -148,6 +148,8 @@ model Client {
 
   // Relations
   users            ClientUser[]
+  billingSchedules CustomerBillingSchedule[]
+  customerInvoices CustomerInvoice[]
 
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -255,4 +257,52 @@ model ParentClientMap {
   @@index([clientName])
 }
 
+model CustomerBillingSchedule {
+  id               String            @id @default(cuid())
+  clientId         String
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  billingAmount    Float
+  currency         String            @default("USD")
+  billingDay       Int               // 1 to 31
+  description      String            @db.Text
+  autoSend         Boolean           @default(true)
+  paymentTermsDays Int               @default(15)
+  status           String            @default("Active") // Active, Inactive, Cancelled
+  lastBilledAt     DateTime?
+  nextBillingDate  DateTime?
+  invoices         CustomerInvoice[]
 
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([clientId])
+  @@index([billingDay])
+  @@index([status])
+}
+
+model CustomerInvoice {
+  id              String                   @id @default(cuid())
+  invoiceNumber   String                   @unique // e.g. INV-2026-1001
+  clientId        String
+  client          Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  scheduleId      String?
+  schedule        CustomerBillingSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  amount          Float
+  taxAmount       Float                    @default(0.0)
+  totalAmount     Float
+  status          String                   @default("SENT") // DRAFT, SENT, PAID, OVERDUE, CANCELLED, VOID
+  issueDate       DateTime                 @default(now())
+  dueDate         DateTime
+  paidAt          DateTime?
+  paymentMethod   String?
+  transactionRef  String?
+  notes           String?                  @db.Text
+  description     String?                  @db.Text
+  itemsJson       Json?                    // Array of [{description, amount}]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([scheduleId])
+}

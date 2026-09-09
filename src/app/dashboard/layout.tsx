@@ -55,6 +55,7 @@ export default function DashboardLayout({
             { name: 'SEO Roadmap', path: '/dashboard/seo/plan' },
             { name: 'B2B Marketing', path: '/dashboard/marketing' },
             { name: 'Clients', path: '/dashboard/clients' },
+            { name: 'Billing & Invoices', path: '/dashboard/billing' },
             { name: 'Bookings', path: '/dashboard/bookings' },
             { name: 'Utilities', path: '/dashboard/utilities' },
           ].map((item) => (
@@ -71,6 +72,7 @@ export default function DashboardLayout({
                 item.name === 'SEO Roadmap' ? 'bg-purple-500/10 text-purple-400' : 
                 item.name === 'B2B Marketing' ? 'bg-emerald-500/10 text-emerald-400' : 
                 item.name === 'Clients' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 
+                item.name === 'Billing & Invoices' ? 'bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30' :
                 item.name === 'Bookings' ? 'bg-pink-500/10 text-pink-400' : 
                 item.name === 'Utilities' ? 'bg-amber-500/10 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
