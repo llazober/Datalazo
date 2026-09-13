@@ -5,7 +5,7 @@ import { getNormalizedUsageValues } from '@/lib/usage-utils';
 
 export async function POST(req: Request) {
   try {
-    const { clientId, username, password } = await req.json();
+    const { clientId, username, password, role } = await req.json();
 
     if (!clientId || !username || !password) {
       return NextResponse.json({ error: 'Client ID, username, and password are required' }, { status: 400 });
@@ -34,11 +34,13 @@ export async function POST(req: Request) {
         clientId,
         username,
         password: passwordHash,
+        role: role || 'ADMIN',
         termsAccepted: false
       },
       select: {
         id: true,
         username: true,
+        role: true,
         termsAccepted: true
       }
     });
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId, username, password } = await req.json();
+    const { userId, username, password, role } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -84,12 +86,17 @@ export async function PATCH(req: Request) {
       data.password = hashPassword(password);
     }
 
+    if (role) {
+      data.role = role;
+    }
+
     const updated = await prisma.clientUser.update({
       where: { id: userId },
       data,
       select: {
         id: true,
         username: true,
+        role: true,
         termsAccepted: true
       }
     });

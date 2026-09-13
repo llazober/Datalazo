@@ -8,6 +8,7 @@ import Link from 'next/link';
 interface ClientUser {
   id: string;
   username: string;
+  role?: string;
   termsAccepted: boolean;
   termsAcceptedAt: string | null;
   termsAcceptedIp: string | null;
@@ -60,7 +61,8 @@ export default function ClientsDashboard() {
   const [userForm, setUserForm] = useState({
     id: '',
     username: '',
-    password: ''
+    password: '',
+    role: 'ADMIN'
   });
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -458,7 +460,8 @@ export default function ClientsDashboard() {
           body: JSON.stringify({
             clientId: selectedClient.id,
             username: userForm.username,
-            password: userForm.password
+            password: userForm.password,
+            role: userForm.role || 'ADMIN'
           })
         });
       } else {
@@ -468,7 +471,8 @@ export default function ClientsDashboard() {
           body: JSON.stringify({
             userId: userForm.id,
             username: userForm.username,
-            password: userForm.password || undefined
+            password: userForm.password || undefined,
+            role: userForm.role || 'ADMIN'
           })
         });
       }
@@ -477,7 +481,7 @@ export default function ClientsDashboard() {
       if (data.success) {
         showToast(userFormMode === 'add' ? 'User created successfully' : 'User updated successfully');
         setIsUserFormOpen(false);
-        setUserForm({ id: '', username: '', password: '' });
+        setUserForm({ id: '', username: '', password: '', role: 'ADMIN' });
         
         const updatedClients = await fetchClients();
         const freshClient = updatedClients.find((c: Client) => c.id === selectedClient.id);
@@ -2089,7 +2093,12 @@ export default function ClientsDashboard() {
                   {selectedClient.users.map((u) => (
                     <div key={u.id} className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-4 rounded-xl">
                       <div>
-                        <div className="font-bold text-slate-200">{u.username}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-slate-200">{u.username}</div>
+                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                            {u.role || 'ADMIN'}
+                          </span>
+                        </div>
                         <div className="text-[10px] text-slate-400 mt-1">
                           {u.termsAccepted 
                             ? `Terms accepted at ${u.termsAcceptedAt ? new Date(u.termsAcceptedAt).toLocaleDateString() : ''} (${u.termsAcceptedIp || 'IP'})`
@@ -2100,7 +2109,7 @@ export default function ClientsDashboard() {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => {
-                            setUserForm({ id: u.id, username: u.username, password: '' });
+                            setUserForm({ id: u.id, username: u.username, password: '', role: u.role || 'ADMIN' });
                             setUserFormMode('edit');
                             setIsUserFormOpen(true);
                           }}
@@ -2128,7 +2137,7 @@ export default function ClientsDashboard() {
                   {userFormMode === 'add' ? 'Create Client User' : `Edit User: ${userForm.username}`}
                 </h4>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Username</label>
                     <input 
@@ -2154,6 +2163,21 @@ export default function ClientsDashboard() {
                       placeholder="••••••••"
                     />
                   </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Role</label>
+                    <select 
+                      value={userForm.role || 'ADMIN'}
+                      onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm font-medium"
+                    >
+                      <option value="ADMIN">ADMIN (Full access, Billing)</option>
+                      <option value="SUPER_ADMIN">SUPER_ADMIN (Master system)</option>
+                      <option value="MANAGER">MANAGER (Records; no Billing)</option>
+                      <option value="TAX_PREP">TAX_PREP (Tax prep team member)</option>
+                      <option value="VIEWER">VIEWER (Read-only access)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
@@ -2177,7 +2201,7 @@ export default function ClientsDashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  setUserForm({ id: '', username: '', password: '' });
+                  setUserForm({ id: '', username: '', password: '', role: 'ADMIN' });
                   setUserFormMode('add');
                   setIsUserFormOpen(true);
                 }}

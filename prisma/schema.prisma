@@ -161,6 +161,7 @@ model ClientUser {
   client                 Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   username               String    @unique
   password               String    // Hashed password
+  role                   String    @default("ADMIN")
   termsAccepted          Boolean   @default(false)
   termsAcceptedAt        DateTime?
   termsAcceptedIp        String?

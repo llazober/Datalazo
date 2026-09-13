@@ -13,6 +13,7 @@ interface Client {
 interface ClientUser {
   id: string;
   username: string;
+  role?: string;
   termsAccepted: boolean;
   termsAcceptedAt: string | null;
   termsAcceptedIp: string | null;
@@ -203,7 +204,12 @@ export default function ClientUsersPage() {
                           )}
                         </td>
                         <td className="py-4 px-6 font-bold text-slate-300">
-                          {user.username}
+                          <div className="flex items-center gap-2">
+                            <span>{user.username}</span>
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                              {user.role || 'ADMIN'}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4 px-6">
                           <span className="font-black text-fuchsia-400">{user.monthlyUsageActual.toLocaleString()}</span>
