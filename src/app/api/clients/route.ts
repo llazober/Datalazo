@@ -13,6 +13,7 @@ export async function GET() {
           select: {
             id: true,
             username: true,
+            role: true,
             termsAccepted: true,
             termsAcceptedAt: true,
             termsAcceptedIp: true,
