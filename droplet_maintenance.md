@@ -81,6 +81,9 @@ sudo ufw allow https
 
 # Activar Firewall
 sudo ufw enable
+
+# IMPORTANTE: Reiniciar Docker tras activar UFW para restaurar las reglas iptables de los contenedores
+sudo systemctl restart docker
 ```
 
 ---
@@ -114,6 +117,13 @@ Mantén el sistema operativo protegido de vulnerabilidades:
 sudo apt update
 sudo apt upgrade -y
 sudo apt autoremove -y
+
+# PREVENCIÓN: Detener y deshabilitar Nginx nativo de Ubuntu (para evitar que tome los puertos 80/443 de Easypanel/Traefik)
+sudo systemctl stop nginx 2>/dev/null
+sudo systemctl disable nginx 2>/dev/null
+
+# PREVENCIÓN: Reiniciar Docker para restaurar las reglas de red e iptables tras la actualización del sistema
+sudo systemctl restart docker
 ```
 > [!IMPORTANT]
 > Si se actualiza el kernel del sistema, agenda un reinicio del droplet en un horario sin tráfico:
@@ -122,9 +132,19 @@ sudo apt autoremove -y
 > ```
 
 ### B. Vacuum Manual en PostgreSQL
-Si existen tablas con un volumen extremadamente alto de escritura, actualizaciones o eliminaciones, corre una limpieza para liberar el espacio de registros muertos:
+Si existen tablas con un volumen extremadamente alto de escritura, actualizaciones o eliminaciones, corre una limpieza para liberar el espacio de registros muertos.
+
+**Opción 1: Directo desde la terminal vía Docker (Recomendado para Easypanel)**
+```bash
+# 1. Identificar el nombre del contenedor de PostgreSQL
+sudo docker ps | grep postgres
+
+# 2. Ejecutar VACUUM ANALYZE directamente
+sudo docker exec -it <nombre_o_id_del_contenedor> psql -U postgres -d <nombre_de_tu_bd> -c "VACUUM ANALYZE;"
+```
+
+**Opción 2: Desde una interfaz SQL (TablePlus, DBeaver, psql interactivo o Easypanel)**
 ```sql
--- Ejecutar en la base de datos PostgreSQL mediante psql o interfaz SQL
 VACUUM ANALYZE;
 ```
 
@@ -150,3 +170,29 @@ Si el droplet se bloquea o los servicios empiezan a fallar porque el almacenamie
    ```bash
    sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log'
    ```
+
+---
+
+## 🛠️ 5. Solución de Problemas Frecuentes (Troubleshooting)
+
+### A. Cloudflare Error 521 ("Web Server Is Down")
+* **Síntoma:** No se puede acceder al sitio web `datalazo.net` y Cloudflare muestra el error 521.
+* **Causas comunes:**
+  1. El servicio `nginx` nativo de Ubuntu se inició tras una actualización y acaparó el puerto `80`, impidiendo que Easypanel/Traefik escuche en el puerto `443`.
+  2. UFW se activó o recargó, borrando las reglas de reenvío `iptables` de Docker.
+* **Solución rápida:**
+  ```bash
+  # 1. Liberar los puertos 80 y 443 del Nginx del sistema
+  sudo systemctl stop nginx
+  sudo systemctl disable nginx
+
+  # 2. Reconstruir reglas de red de Docker
+  sudo systemctl restart docker
+  sudo docker restart $(sudo docker ps -q)
+  ```
+
+### B. El comando `ping` a la IP del Droplet falla (Timeout)
+* **Síntoma:** `ping <IP_DROPLET>` no responde, pero los puertos SSH (22) y Web (80/443) funcionan.
+* **Causa:** UFW tiene configurado `ufw default deny incoming` y por defecto bloquea las solicitudes ICMP echo-request.
+* **Solución (Opcional):** Para permitir `ping`, edita `/etc/ufw/before.rules` y confirma que contenga `-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT` antes de ejecutar `sudo ufw reload`.
+
