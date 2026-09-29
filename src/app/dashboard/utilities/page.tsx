@@ -43,6 +43,15 @@ export default function UtilitiesPage() {
   const [backupSearch, setBackupSearch] = useState('');
   const [selectedDb, setSelectedDb] = useState('ALL');
 
+  // Pagination State (10 records per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when search or db filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [backupSearch, selectedDb]);
+
   // Restore Modal Dialog State
   const [restoreModalData, setRestoreModalData] = useState<{ dbName: string; filename: string; key: string } | null>(null);
 
@@ -187,6 +196,11 @@ export default function UtilitiesPage() {
     const matchesDb = selectedDb === 'ALL' || item.database === selectedDb;
     return matchesSearch && matchesDb;
   });
+
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredBackups.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedBackups = filteredBackups.slice(startIndex, startIndex + itemsPerPage);
 
   const uniqueDatabases = Array.from(new Set(backups.map(b => b.database))).sort();
 
@@ -492,7 +506,7 @@ export default function UtilitiesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {filteredBackups.map((item) => (
+                    {paginatedBackups.map((item) => (
                       <tr key={item.key} className="hover:bg-slate-800/40 transition-colors">
                         <td className="py-3.5 px-4">
                           <span className="px-3 py-1 bg-white/5 border border-sky-400/40 text-sky-300 font-bold text-xs rounded-lg inline-block">
@@ -537,6 +551,54 @@ export default function UtilitiesPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls Bar */}
+            {filteredBackups.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/10 text-xs">
+                <div className="text-slate-400 font-medium">
+                  Mostrando <span className="font-bold text-sky-300">{Math.min(startIndex + 1, filteredBackups.length)}</span> a{' '}
+                  <span className="font-bold text-sky-300">{Math.min(startIndex + itemsPerPage, filteredBackups.length)}</span> de{' '}
+                  <span className="font-bold text-sky-300">{filteredBackups.length}</span> respaldos
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    ← Anterior
+                  </button>
+
+                  <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] sm:max-w-none">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-lg font-bold text-xs transition-all ${
+                          currentPage === page
+                            ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
               </div>
             )}
 
