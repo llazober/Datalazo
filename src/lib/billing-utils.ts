@@ -203,6 +203,23 @@ export async function sendInvoiceEmail(invoiceId: string) {
     }
   });
 
+  try {
+    const fromHeader = `${finalSenderName} <${finalSenderEmail}>`;
+    const subjectHeader = `Invoice #${inv.invoiceNumber} from ${finalSenderName} ($${inv.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+    const bodySummary = `Invoice #${inv.invoiceNumber} sent to ${inv.client.email} for $${inv.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.\nDescription: ${inv.description || 'N/A'}`;
+
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO customer_communications (
+        customer_id, direction, sender_email, recipient_email, reply_to_email,
+        subject, body_text, status, is_read, created_at
+      ) VALUES (
+        $1::bigint, 'OUTBOUND', $2, $3, $4, $5, $6, 'DELIVERED', true, (NOW() AT TIME ZONE 'America/New_York')
+      );
+    `, inv.clientId, fromHeader, inv.client.email, finalSenderEmail, subjectHeader, bodySummary);
+  } catch (commErr) {
+    console.error('[COMM LOG ERROR] Failed to log invoice email in customer_communications:', commErr);
+  }
+
   return { success: true, recipient: inv.client.email, invoiceNumber: inv.invoiceNumber };
 }
 
